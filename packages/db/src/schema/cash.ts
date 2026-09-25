@@ -135,7 +135,8 @@ export const countPettyCash = cash.table(
   {
     id: integer().primaryKey().generatedByDefaultAsIdentity(),
     safeCountId: countRef(),
-    description: text().notNull(),
+    /** Null where the spreadsheet left it blank: missing, not "no description". */
+    description: text(),
     amountCents: cents(),
     createdAt: stamp(),
   },
@@ -149,7 +150,8 @@ export const tillFixes = cash.table(
     safeCountId: countRef(),
     tillNumber: integer().notNull(),
     shortageAmountCents: cents(),
-    intakeDeltaCents: cents(),
+    /** Null on fixes from before the spreadsheet recorded it: unknown, not zero. */
+    intakeDeltaCents: integer(),
     fixedAt: timestamp({ withTimezone: true }),
     createdAt: stamp(),
   },
