@@ -31,10 +31,15 @@ carried over: it is full of rehearsal counts and test accounts.
 
 1. [ ] Let the Apps Script report queue finish (`PendingReports` has nothing `pending`),
        then pause it: set the `CB_REPORTS_PAUSED` Script Property.
-2. [ ] Snapshot the production spreadsheets (File → Make a copy), so there is a fixed
-       source to import from and to check against afterwards.
-3. [ ] Run the import into PRODUCTION from that snapshot.
-4. [ ] Check it (below). Stop here if anything does not match.
+2. [ ] Snapshot the production spreadsheets, so there is a fixed source to import from
+       and to check against afterwards. Into `~/apps-hub-snapshots/<date>/`:
+       - Access Control - Data: File → Download → Microsoft Excel.
+       - Cash Balancing — Data: File → Make a copy, DELETE `Config_Managers` in the
+         copy, then download the copy as Excel. Delete the copy from Drive.
+3. [ ] Run the import into PRODUCTION from that snapshot: first
+       `npm run import -- <folder>` (dry run, must say "No problems"), then with
+       `--write --target <production ref>`.
+4. [ ] It verifies itself (below) and must end "All checks passed". Stop here if not.
 5. [ ] Set `EMAIL_MODE=live` in production. Redeploy.
 6. [ ] File one real count as a test user; confirm the report reaches the right inbox.
 7. [ ] Point the portal card and every shared link at the new app.
@@ -49,7 +54,9 @@ carried over: it is full of rehearsal counts and test accounts.
       above the highest imported id.
 - [ ] Every attachment is in Storage and linked to its count.
 - [ ] No `login` or `password` value exists anywhere in the database.
-- [ ] Five real people sign in and see only their own restaurants.
+- [ ] Only the admins are on the roster (nobody else is carried over, CLAUDE.md §5).
+- [ ] Five real people sign in, request access, are approved, and then see only
+      their own restaurants.
 
 ## After
 

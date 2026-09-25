@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { businessDate, businessTime, formatCents, normalizeEmail, parseCents, sumCents } from './index';
+import { businessDate, businessTime, formatCents, normalizeEmail, parseCents, sumCents, torontoWallClock } from './index';
 
 describe('money', () => {
   it('parses what a person types, in either language', () => {
@@ -60,5 +60,37 @@ describe('normalizeEmail', () => {
 
   it('keeps dots elsewhere: two Yahoo addresses are two people', () => {
     expect(normalizeEmail('jane.doe@yahoo.com')).not.toBe(normalizeEmail('janedoe@yahoo.com'));
+  });
+});
+
+describe('torontoWallClock: a spreadsheet timestamp back to a real instant', () => {
+  const iso = (d: Date) => d.toISOString();
+
+  it('reads a summer time as EDT (UTC-4)', () => {
+    // A count filed at 18:36:14 in April is 22:36:14 UTC.
+    expect(iso(torontoWallClock(2026, 4, 8, 18, 36, 14))).toBe('2026-04-08T22:36:14.000Z');
+  });
+
+  it('reads a winter time as EST (UTC-5)', () => {
+    expect(iso(torontoWallClock(2026, 1, 15, 23, 59))).toBe('2026-01-16T04:59:00.000Z');
+  });
+
+  it('round-trips through businessDate / businessTime, late evening included', () => {
+    const at = torontoWallClock(2026, 10, 1, 21, 30);
+    expect(businessDate(at)).toBe('2026-10-01');
+    expect(businessTime(at)).toBe('21:30');
+  });
+
+  it('takes the first 01:30 on the night the clocks go back', () => {
+    // 2026-11-01: 01:30 EDT (05:30 UTC) happens, then 01:30 EST (06:30 UTC).
+    expect(iso(torontoWallClock(2026, 11, 1, 1, 30))).toBe('2026-11-01T05:30:00.000Z');
+  });
+
+  it('either side of the spring jump', () => {
+    // 2026-03-08: 01:59 EST is 06:59 UTC; 03:00 EDT is 07:00 UTC.
+    expect(iso(torontoWallClock(2026, 3, 8, 1, 59))).toBe('2026-03-08T06:59:00.000Z');
+    expect(iso(torontoWallClock(2026, 3, 8, 3, 0))).toBe('2026-03-08T07:00:00.000Z');
+    // 02:30 never happened; read with the EST offset, i.e. 03:30 EDT.
+    expect(iso(torontoWallClock(2026, 3, 8, 2, 30))).toBe('2026-03-08T07:30:00.000Z');
   });
 });

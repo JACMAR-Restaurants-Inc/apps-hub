@@ -24,10 +24,12 @@ say what it used to say. A file that disagrees with reality is worse than none.
 - Built: `@hub/core`, `@hub/rbac` (`can()`), `@hub/email` (routing), `@hub/db` (schema
   and migrations), the Next.js shell, CI, and Google sign-in with Better Auth (a
   placeholder home page shows who you are and your roster standing), the roster
-  loader and `authorize()` for server actions. Code is at
+  loader, `authorize()` for server actions, and the spreadsheet import. Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
-  Data API off. Migrations 0000–0002 are applied; the roster tables are empty.
+  Data API off. Migrations 0000–0003 are applied. It holds the 2026-09-25 snapshot:
+  552 counts and their lines, the 7 restaurants, 40 tills, and 2 admins (no one else is
+  on the roster; see §5).
   Connection strings live only in `.env.local` (see §6).
 - Google Cloud project `apps-hub`: consent screen External, one web client
   `apps-hub-staging` (redirect `http://localhost:3000/api/auth/callback/google`),
@@ -35,9 +37,10 @@ say what it used to say. A file that disagrees with reality is worse than none.
   is fine for the demo. Publishing needs a home page and privacy policy on our domain,
   so it is a cutover step (`docs/CUTOVER.md`), not a staging one. The 7-day token
   limit in Testing does not matter: we use Google only at sign-in, never its refresh tokens.
-- Not built yet: the import scripts, i18n, UI tokens,
-  every screen. Accounts not created yet: Vercel, production Supabase, domain,
-  production OAuth client, Gmail service account.
+- Not built yet: request access and approval (needed on day one, §5), moving the 256
+  attachments from Drive to Storage (they are imported with their Drive file id and no
+  `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel,
+  production Supabase, domain, production OAuth client, Gmail service account.
 
 ## 2. Layout
 
@@ -46,6 +49,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
     packages/rbac     can() / explain(): pure, tested, no database
     packages/db       Drizzle schema (rbac, cash, identity), migrations, the client,
                       loadRoster()
+    packages/import   the spreadsheet import: xlsx -> transform -> load -> verify
     packages/email    where an email actually goes (test vs live)
     docs/CUTOVER.md   the approval-day checklist
 
@@ -142,9 +146,39 @@ is how sign-in recognises people, and approval day should be one setting, not an
 - `Config_Managers` is NOT imported. Its `login` / `password` columns are plaintext
   credentials and must not be copied anywhere. The pseudo-restaurants `ALL` and `ADMIN`
   were login rows and are dropped.
+- **Only admins are carried over from the roster.** Owner's decision, 2026-09-25: the
+  import brings the Access Control `Admins` (and their `Users` rows), `Restaurants` and
+  the `Perm_*` tabs, which are configuration, not people. It does NOT bring `App_*`
+  members or any other user. Everyone else, office staff included, signs in with their
+  own Google account and requests access, so Request access and approval must work on
+  day one. This replaces the old usernames and passwords, and old grants are not carried
+  over unreviewed. Cash Balancing history still imports in full: a count's
+  `manager_name` is text and needs no roster row.
 - A count and its children are written in ONE transaction.
 - Imports must be safe to run again: staging will run them many times, production once,
-  on the day, from a fresh snapshot.
+  on the day, from a fresh snapshot. Every row is an upsert on its key, in ONE
+  transaction; a second run from the same snapshot changes nothing (checked 2026-09-25).
+- The snapshot is two .xlsx downloads (File → Download → Microsoft Excel), kept OUTSIDE
+  the repo in `~/apps-hub-snapshots/<date>/`. Cash Balancing is downloaded from a COPY
+  with `Config_Managers` deleted, so the passwords never reach disk; the import refuses
+  a workbook that still has that tab. No Google credentials, no `clasp`.
+- What the 2026-09-25 snapshot taught the transforms (`packages/import`):
+  - Sheets stores Toronto WALL-CLOCK times with no zone, and the xlsx reader returns
+    them as if UTC. `torontoWallClock` in `@hub/core` turns them into real instants;
+    read as UTC, every timestamp would be 4 or 5 hours early.
+  - Amounts are floats (41.49 arrives as 41.489999999999995). They become cents, and
+    anything that is not a whole number of cents is refused, not rounded.
+  - A blank stays a blank where it means unknown: 3 till fixes predate `intake_delta`
+    and 3 petty-cash lines have no description, so those columns are nullable
+    (migration 0003). They used to be NOT NULL.
+  - Two comments read `#ERROR!` in the sheet itself (a note starting with `=` or `+`
+    became a formula). They are imported as the sheet shows them.
+  - 255 of 256 attachments predate their `restaurant_id` column; each takes its count's.
+  - Report status `done` becomes `sent`. A `pending` job is refused: the new app would
+    email it, so the old queue must be drained first (CUTOVER step 1). Counts that never
+    had a job do not get one.
+  - Every number reconciled to the cent (totals, variances, every total against its
+    lines). The verifier re-checks that from the database after each import.
 
 ## 6. Commands
 
@@ -152,6 +186,13 @@ is how sign-in recognises people, and approval day should be one setting, not an
     npm run typecheck
     npm run db:generate   after any schema change; commit the migration
     npm run db:migrate    staging first, always
+    npm run import -- <snapshot folder>                        dry run: reads, checks, writes nothing
+    npm run import -- <snapshot folder> --write --target <ref> import, then verify
+    npm run import -- <snapshot folder> --verify --target <ref>
+
+`<ref>` is the Supabase project ref that `DATABASE_URL` points at (staging:
+`rdfzqfztzhvgvjzfmxwx`), typed out so an import cannot reach the wrong database. The
+import prints counts and cell positions, never names, emails or amounts.
 
 There is one `.env.local`, at the repo root. `next.config.ts` loads it with
 `process.loadEnvFile`, because Next looks only in `apps/web`, and `@next/env`'s
@@ -171,6 +212,9 @@ match the schema.
 the time-zone gap above was found. Done for the break-glass admin, fail-closed, store
 holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, the
 sign-in rules (no domain restriction, Google only, no Google tokens stored), the
-roster loader, `authorize()`, and RLS on every table. One `authorize()` mutation
-survives on purpose: letting a no-session caller through is still refused by the
-`allowed && email` guard, and removing both fails a test.
+roster loader, `authorize()`, the import transforms (14, all caught), and RLS on every
+table. The import VERIFIER was checked the other way: staging was damaged inside a
+transaction (a total, a coin line changed and one deleted, tills relabelled, a
+restaurant deactivated), and it caught every one, then rolled back. One `authorize()`
+mutation survives on purpose: letting a no-session caller through is still refused by
+the `allowed && email` guard, and removing both fails a test.
