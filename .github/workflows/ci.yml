@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      # The committed migrations must match the schema. If this fails, run
+      # `npm run db:generate` and commit the result.
+      - name: migrations are up to date
+        run: |
+          npx drizzle-kit generate --config packages/db/drizzle.config.ts --name ci-check
+          git diff --exit-code --stat packages/db/migrations
+          test -z "$(git ls-files --others --exclude-standard packages/db/migrations)"
