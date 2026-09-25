@@ -35,14 +35,14 @@ export const users = rbac.table('users', {
   active: boolean().notNull(),
   addedAt: stamp(),
   addedBy: text(),
-});
+}).enableRLS();
 
 /** The stores. The one list every app scopes by. */
 export const restaurants = rbac.table('restaurants', {
   restaurantId: text().primaryKey(),
   name: text().notNull(),
   active: boolean().notNull(),
-});
+}).enableRLS();
 
 /** System admins. Bypass can() in every app. See BREAK_GLASS_ADMIN in @hub/rbac. */
 export const admins = rbac.table('admins', {
@@ -51,7 +51,7 @@ export const admins = rbac.table('admins', {
     .references(() => users.email),
   addedAt: stamp(),
   addedBy: text(),
-});
+}).enableRLS();
 
 /** One row per person WITH access to an app. No row = no access. A request is a 'pending' row. */
 export const appMembers = rbac.table(
@@ -67,7 +67,7 @@ export const appMembers = rbac.table(
     lastModified: stamp(),
   },
   (t) => [primaryKey({ columns: [t.app, t.email] })],
-);
+).enableRLS();
 
 /** Which restaurants a member holds in an app. A row is a grant. */
 export const memberStores = rbac.table(
@@ -83,7 +83,7 @@ export const memberStores = rbac.table(
     primaryKey({ columns: [t.app, t.email, t.restaurantId] }),
     foreignKey({ columns: [t.app, t.email], foreignColumns: [appMembers.app, appMembers.email] }),
   ],
-);
+).enableRLS();
 
 /** What exists to be permitted, per app. resource+action is the key; scope is an attribute. */
 export const permissions = rbac.table(
@@ -95,7 +95,7 @@ export const permissions = rbac.table(
     scope: scopeEnum().notNull(),
   },
   (t) => [primaryKey({ columns: [t.app, t.resource, t.action] })],
-);
+).enableRLS();
 
 /** Which roles hold a permission. A row is a grant. */
 export const permissionRoles = rbac.table(
@@ -113,7 +113,7 @@ export const permissionRoles = rbac.table(
       foreignColumns: [permissions.app, permissions.resource, permissions.action],
     }),
   ],
-);
+).enableRLS();
 
 /**
  * Denials, admin actions, grant changes and access requests (RBAC CLAUDE.md §7).
@@ -129,4 +129,4 @@ export const audit = rbac.table('audit', {
   restaurantId: text(),
   /** Before/after values for a change. Never SIN, address or birth date. */
   detail: jsonb().notNull().default(sql`'{}'::jsonb`),
-});
+}).enableRLS();

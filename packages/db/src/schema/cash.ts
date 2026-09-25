@@ -40,7 +40,7 @@ export const restaurantSettings = cash.table('restaurant_settings', {
   expectedSafeTotalCents: cents(),
   /** Where this restaurant's count reports go. */
   reportEmail: text(),
-});
+}).enableRLS();
 
 export const tills = cash.table(
   'tills',
@@ -51,7 +51,7 @@ export const tills = cash.table(
     baseAmountCents: cents(),
   },
   (t) => [primaryKey({ columns: [t.restaurantId, t.tillNumber] })],
-);
+).enableRLS();
 
 export const safeCounts = cash.table(
   'safe_counts',
@@ -77,7 +77,7 @@ export const safeCounts = cash.table(
     createdAt: stamp(),
   },
   (t) => [index().on(t.restaurantId, t.countDate), index().on(t.countDate)],
-);
+).enableRLS();
 
 const countRef = () =>
   integer()
@@ -101,7 +101,7 @@ export const countTills = cash.table(
     createdAt: stamp(),
   },
   (t) => [index().on(t.safeCountId)],
-);
+).enableRLS();
 
 export const countCoins = cash.table(
   'count_coins',
@@ -115,7 +115,7 @@ export const countCoins = cash.table(
     createdAt: stamp(),
   },
   (t) => [index().on(t.safeCountId)],
-);
+).enableRLS();
 
 export const countPaper = cash.table(
   'count_paper',
@@ -128,7 +128,7 @@ export const countPaper = cash.table(
     createdAt: stamp(),
   },
   (t) => [index().on(t.safeCountId)],
-);
+).enableRLS();
 
 export const countPettyCash = cash.table(
   'count_petty_cash',
@@ -140,7 +140,7 @@ export const countPettyCash = cash.table(
     createdAt: stamp(),
   },
   (t) => [index().on(t.safeCountId)],
-);
+).enableRLS();
 
 export const tillFixes = cash.table(
   'till_fixes',
@@ -154,7 +154,7 @@ export const tillFixes = cash.table(
     createdAt: stamp(),
   },
   (t) => [index().on(t.safeCountId)],
-);
+).enableRLS();
 
 /**
  * Photos and PDFs attached to a count. A staged upload has no count yet
@@ -178,7 +178,7 @@ export const attachments = cash.table(
     createdAt: stamp(),
   },
   (t) => [index().on(t.safeCountId)],
-);
+).enableRLS();
 
 /** The report queue: PDF, email, archive. Drained by a scheduled job. */
 export const reportJobs = cash.table(
@@ -195,4 +195,4 @@ export const reportJobs = cash.table(
     processedAt: timestamp({ withTimezone: true }),
   },
   (t) => [index().on(t.status)],
-);
+).enableRLS();

@@ -22,10 +22,14 @@ say what it used to say. A file that disagrees with reality is worse than none.
 - Staging reads a SNAPSHOT of the production spreadsheets. It never writes to them,
   never runs `clasp`, and never emails a real person (§4).
 - Built: `@hub/core`, `@hub/rbac` (`can()`), `@hub/email` (routing), `@hub/db` (schema
-  and first migration), the Next.js shell, CI.
+  and migrations), the Next.js shell, CI. Code is at
+  github.com/JACMAR-Restaurants-Inc/apps-hub (private).
+- Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
+  Data API off. Migrations 0000–0001 are applied and the tables are empty.
+  Connection strings live only in `.env.local` (see §6).
 - Not built yet: Better Auth, the roster loader, the import scripts, i18n, UI tokens,
-  every screen. Accounts not created yet: Vercel, Supabase, domain, OAuth client,
-  Gmail service account.
+  every screen. Accounts not created yet: Vercel, production Supabase, domain, OAuth
+  client, Gmail service account.
 
 ## 2. Layout
 
@@ -80,8 +84,15 @@ trim, and strip dots ONLY for Gmail (Yahoo and Hotmail dots are significant).
 cannot have Workspace accounts (RBAC §2); many use personal Gmail. Never restrict
 sign-in to a domain. The roster decides who gets in.
 
-**The database is only reached from the server.** Supabase's Data API is OFF, automatic
-RLS is ON as a backstop. The service-role key never goes near the browser.
+**The database is only reached from the server.** Supabase's Data API is OFF, and every
+table enables RLS with no policies as a backstop, so the Data API roles see nothing
+even if someone turns it back on. The app connects as `postgres`, which owns the tables,
+so RLS does not restrict it. This used to say "automatic RLS is ON". That setting
+covers only the `public` schema: the first staging migration (2026-09-25) created all
+18 `rbac` / `cash` tables with RLS off. Now each table calls `.enableRLS()` in the
+schema, and `rls.test.ts` fails if a new table leaves it out. Never use Supabase's
+`NEXT_PUBLIC_SUPABASE_*` snippet: it is for browser access, which we do not use. The
+service-role key never goes near the browser.
 
 **Never store or log SIN, address or birth date** from Clearview. Drop them on arrival.
 
@@ -110,9 +121,18 @@ is how sign-in recognises people, and approval day should be one setting, not an
     npm run db:generate   after any schema change; commit the migration
     npm run db:migrate    staging first, always
 
+drizzle-kit does not read `.env.local`. Load it first:
+`set -a && . ./.env.local && set +a && npm run db:migrate`. In Supabase, go to
+Connect → Direct → URI. `DATABASE_URL` is the **Transaction pooler** (6543).
+`DIRECT_URL` is the **Session pooler** (5432), not "Direct connection": that one is
+IPv6-only without a paid add-on and fails from most office and home networks. Write
+lines as `KEY=value`, with no spaces around `=` and no brackets left around the
+password.
+
 CI runs typecheck, tests, lint, build, and fails if the committed migrations do not
 match the schema.
 
 **Mutation-check new tests.** Break the rule, confirm a test fails, restore. It is how
 the time-zone gap above was found. Done for the break-glass admin, fail-closed, store
-holding, the live-mode switch, the test-mode cc, and Gmail-only dot stripping.
+holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, and RLS on
+every table.
