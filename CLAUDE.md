@@ -23,7 +23,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
   never runs `clasp`, and never emails a real person (§4).
 - Built: `@hub/core`, `@hub/rbac` (`can()`), `@hub/email` (routing), `@hub/db` (schema
   and migrations), the Next.js shell, CI, and Google sign-in with Better Auth (a
-  placeholder home page shows who you are and your roster standing). Code is at
+  placeholder home page shows who you are and your roster standing), the roster
+  loader and `authorize()` for server actions. Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
   Data API off. Migrations 0000–0002 are applied; the roster tables are empty.
@@ -34,7 +35,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
   is fine for the demo. Publishing needs a home page and privacy policy on our domain,
   so it is a cutover step (`docs/CUTOVER.md`), not a staging one. The 7-day token
   limit in Testing does not matter: we use Google only at sign-in, never its refresh tokens.
-- Not built yet: the roster loader, the import scripts, i18n, UI tokens,
+- Not built yet: the import scripts, i18n, UI tokens,
   every screen. Accounts not created yet: Vercel, production Supabase, domain,
   production OAuth client, Gmail service account.
 
@@ -43,7 +44,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
     apps/web          the one Next.js app. Portal and each app are route sections.
     packages/core     money in cents, Toronto dates, email normalisation
     packages/rbac     can() / explain(): pure, tested, no database
-    packages/db       Drizzle schema (rbac, cash), migrations, the client
+    packages/db       Drizzle schema (rbac, cash, identity), migrations, the client,
+                      loadRoster()
     packages/email    where an email actually goes (test vs live)
     docs/CUTOVER.md   the approval-day checklist
 
@@ -71,8 +73,20 @@ which is also what Vercel's servers run in. Do not remove it from the `test` scr
 
 **Every server action checks access.** A Next.js server action is a public endpoint
 anyone can call with any arguments, exactly like `google.script.run` (safe-count §3).
-Call `can()` at the top of each one. Where it touches an existing record, check the
-restaurant ON THE RECORD, not one the caller names. A perfect UI proves nothing.
+Start each one with `await authorize(app, resource, action, storeId)`
+(`apps/web/src/lib/access.ts`): it calls `can()`, throws `AccessDenied`, fails closed if
+the session or roster cannot be read, and audits denials by signed-in people (RBAC §7;
+not grants, and not calls with no session, which would let anyone grow the table).
+Where it touches an existing record, pass the restaurant ON THE RECORD, not one the
+caller names. A perfect UI proves nothing.
+
+**The roster is loaded once per request, never cached across requests**
+(`loadRoster` in `@hub/db`, `getRoster()` in `viewer.ts`), so deactivation takes effect
+on the next click. It normalises every email it reads, and if two users rows normalise
+to the same address that person is inactive: nobody can say which row is right.
+Measured 2026-09-25 against staging through the transaction pooler: about 12 ms warm,
+about 130 ms for the first load that opens connections. That was with empty tables;
+measure again after the import. The old Apps Script sign-in took 7.8 s (RBAC §78).
 
 **`can()` fails closed, and its order is the contract** (RBAC §6): admin → user active →
 app membership active → permission exists → store named, active and held → role
@@ -156,5 +170,7 @@ match the schema.
 **Mutation-check new tests.** Break the rule, confirm a test fails, restore. It is how
 the time-zone gap above was found. Done for the break-glass admin, fail-closed, store
 holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, the
-sign-in rules (no domain restriction, Google only, no Google tokens stored), and RLS
-on every table.
+sign-in rules (no domain restriction, Google only, no Google tokens stored), the
+roster loader, `authorize()`, and RLS on every table. One `authorize()` mutation
+survives on purpose: letting a no-session caller through is still refused by the
+`allowed && email` guard, and removing both fails a test.
