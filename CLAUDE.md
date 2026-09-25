@@ -168,9 +168,20 @@ production will send. Google sign-in is still in "Testing" on staging, so only l
 test users can sign in at all, which is a second gate. An allowlist of testers was built
 and removed the same day for this reason; do not bring it back without asking.
 
-**Mind this when Cash Balancing is built:** `live` covers every email. A practice count
-filed on staging would send its report to the REAL restaurant and accountant addresses
-imported from the spreadsheet. Decide how staging handles reports before building them.
+**Cash Balancing's report emails: decided, not built yet** (owner approved, 2026-09-25).
+`live` covers every email, so without this a practice count on staging would email its
+report to the REAL restaurant and accountant. The addresses are redirected by SETTINGS,
+never by editing data:
+
+| Address | Comes from | Staging | Production |
+|---|---|---|---|
+| The accountant | `ACCOUNTANT_EMAIL`, a setting (the old app's `CB_ACCOUNTANT_EMAIL` Script Property) | the owner's address | the real accountant |
+| Each restaurant's report | `cash.restaurant_settings.report_email`, imported from `Config_Restaurants` | `REPORT_EMAIL_OVERRIDE` = the owner's address, used for every restaurant | not set: each goes to its own address |
+
+Why not edit the addresses in the staging data and leave a "change in production"
+comment, which was the first idea: a re-import would silently put the real addresses
+back, and a comment is a launch-day step someone can forget. Production's values are
+set once when it is created (`docs/CUTOVER.md`), so launch day changes nothing.
 Mail goes through Gmail as `GMAIL_SENDER`, using a service account with domain-wide
 delegation for `gmail.send` only (`packages/email/src/gmail.ts`, no Google SDK). A send
 never throws: the request or grant it follows has already happened, and the outcome is

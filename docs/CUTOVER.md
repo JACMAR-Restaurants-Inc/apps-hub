@@ -12,6 +12,9 @@ carried over: it is full of rehearsal counts and test accounts.
 - [ ] The import has run cleanly against a fresh snapshot at least three times on staging.
 - [ ] Production Supabase project exists, migrations applied, empty.
 - [ ] Production Vercel environment has its own secrets, with `EMAIL_MODE=test` for now.
+- [ ] Production's `ACCOUNTANT_EMAIL` is the real accountant's address, and
+      `REPORT_EMAIL_OVERRIDE` is NOT set (on staging it sends every restaurant's report
+      to the owner; in production it would hide every report). See CLAUDE.md §4.
 - [ ] Google sign-in is published. Staging stays in "Testing", where only listed test
       users can sign in (max 100 over the app's life), and real managers can't be added
       one by one. To publish (Google Cloud project `apps-hub` → Google Auth Platform):
