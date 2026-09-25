@@ -32,6 +32,12 @@ export const users = rbac.table('users', {
   fullName: text(),
   /** Clearview employee number. A STRING: they carry leading zeros. */
   employeeNumber: text(),
+  /**
+   * The restaurant Clearview says they report to, saved when they ask for access, so
+   * the Grant panel can open with it ticked (RBAC §48). A suggestion for the admin and
+   * nothing else: can() never reads it.
+   */
+  clearviewStore: text(),
   active: boolean().notNull(),
   addedAt: stamp(),
   addedBy: text(),
@@ -49,6 +55,12 @@ export const admins = rbac.table('admins', {
   email: text()
     .primaryKey()
     .references(() => users.email),
+  /**
+   * Emailed when somebody asks for access. Not a grant: every admin can grant either
+   * way. If no admin has it on, the request email goes to the break-glass admin rather
+   * than to nobody (RBAC Notify.gs): the wrong admin told beats no admin told.
+   */
+  notify: boolean().notNull().default(false),
   addedAt: stamp(),
   addedBy: text(),
 }).enableRLS();
@@ -65,6 +77,11 @@ export const appMembers = rbac.table(
     status: memberStatusEnum().notNull(),
     grantedBy: text(),
     lastModified: stamp(),
+    /**
+     * When the "you now have access" email went. Stamped so it goes once (RBAC §31),
+     * and cleared when somebody asks again, or a re-grant would never tell them (§45).
+     */
+    notifiedOn: timestamp({ withTimezone: true }),
   },
   (t) => [primaryKey({ columns: [t.app, t.email] })],
 ).enableRLS();

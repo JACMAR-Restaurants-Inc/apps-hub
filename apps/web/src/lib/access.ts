@@ -1,6 +1,6 @@
 import 'server-only';
 import { audit } from '@hub/db';
-import { authorizeWith } from './authorize-core';
+import { authorizeWith, requireAdminWith, type AuthorizeDeps } from './authorize-core';
 import { db } from './db';
 import { getRoster, getSignedInEmail } from './viewer';
 
@@ -22,20 +22,23 @@ export { AccessDenied } from './authorize-core';
  * carry no identity worth keeping and would let anyone grow the table.
  */
 export function authorize(app: string, resource: string, action: string, storeId?: string | null) {
-  return authorizeWith(
-    {
-      signedInEmail: async () => (await getSignedInEmail())?.email ?? null,
-      roster: getRoster,
-      recordDenial: async (d) => {
-        await db()
-          .insert(audit)
-          .values({ ...d, event: 'denied' });
-      },
-      log: (message, error) => console.error(message, error),
+  return authorizeWith(deps(), app, resource, action, storeId);
+}
+
+/** The first line of every admin action: only a system admin passes. */
+export function requireSystemAdmin(action: string) {
+  return requireAdminWith(deps(), action);
+}
+
+function deps(): AuthorizeDeps {
+  return {
+    signedInEmail: async () => (await getSignedInEmail())?.email ?? null,
+    roster: getRoster,
+    recordDenial: async (d) => {
+      await db()
+        .insert(audit)
+        .values({ ...d, event: 'denied' });
     },
-    app,
-    resource,
-    action,
-    storeId,
-  );
+    log: (message, error) => console.error(message, error),
+  };
 }

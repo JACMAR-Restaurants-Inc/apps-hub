@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@hub/clearview": "^0.0.0",
     "@hub/core": "^0.0.0",
     "@hub/db": "^0.0.0",
+    "@hub/email": "^0.0.0",
     "@hub/rbac": "^0.0.0",
     "better-auth": "^1.7.6",
     "next": "16.3.6",

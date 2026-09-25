@@ -4,14 +4,11 @@ import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-const button =
-  'rounded-md border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900';
-
-export function SignInButton() {
+export function SignInButton({ label }: { label: string }) {
   const [busy, setBusy] = useState(false);
   return (
     <button
-      className={button}
+      className="rounded-md bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
       disabled={busy}
       onClick={async () => {
         setBusy(true);
@@ -20,17 +17,17 @@ export function SignInButton() {
         if (error) setBusy(false);
       }}
     >
-      Sign in with Google
+      {label}
     </button>
   );
 }
 
-export function SignOutButton() {
+export function SignOutButton({ label }: { label: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
     <button
-      className={button}
+      className="rounded-md px-2 py-1 text-sm text-zinc-600 underline-offset-4 hover:underline disabled:opacity-50 dark:text-zinc-400"
       disabled={busy}
       onClick={async () => {
         setBusy(true);
@@ -38,7 +35,7 @@ export function SignOutButton() {
         router.refresh();
       }}
     >
-      Sign out
+      {label}
     </button>
   );
 }

@@ -123,7 +123,7 @@ export function transform(access: Workbook, cash: Workbook): Result {
 
   const adminRows = each(access, 'Admins', (at, c) => {
     const e = email(at, 'email', c.email);
-    return e ? { email: e } : null;
+    return e ? { email: e, notify: exactly('yes', c.notify) } : null;
   });
   const adminEmails = new Set(adminRows.map((a) => a.email));
 
@@ -134,6 +134,7 @@ export function transform(access: Workbook, cash: Workbook): Result {
       email: e,
       hrEmail: email(at, 'hr_email', c.hr_email),
       fullName: text(at, 'full_name', c.full_name),
+      clearviewStore: text(at, 'clearview_store', c.clearview_store),
       active: exactly('yes', c.active),
       addedAt: instant(at, 'added_on', c.added_on),
       addedBy: email(at, 'added_by', c.added_by),
