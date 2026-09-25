@@ -12,7 +12,7 @@ describe('row level security', () => {
   const tables = Object.values(schema as Record<string, unknown>).filter((v): v is PgTable => is(v, PgTable));
 
   it('finds the tables', () => {
-    expect(tables.length).toBeGreaterThanOrEqual(18);
+    expect(tables.length).toBeGreaterThanOrEqual(22);
   });
 
   it.each(tables.map((t) => [`${getTableConfig(t).schema}.${getTableConfig(t).name}`, t] as const))(

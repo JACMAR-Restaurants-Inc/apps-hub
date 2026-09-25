@@ -9,7 +9,7 @@ export default defineConfig({
   schema: './packages/db/src/schema/index.ts',
   out: './packages/db/migrations',
   casing: 'snake_case',
-  schemaFilter: ['rbac', 'cash'],
+  schemaFilter: ['rbac', 'cash', 'identity'],
   dbCredentials: {
     url: process.env.DIRECT_URL ?? '',
   },
