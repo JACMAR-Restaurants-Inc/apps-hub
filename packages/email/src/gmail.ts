@@ -12,7 +12,7 @@
  */
 
 import { createSign } from 'node:crypto';
-import { emailModeFrom, routeEmail, type EmailMode } from './route';
+import { allowlistFrom, emailModeFrom, routeEmail, type EmailMode } from './route';
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
@@ -27,7 +27,8 @@ export interface Message {
 }
 
 export type SendResult =
-  | { sent: true; id: string; redirected: boolean }
+  /** redirected: some or all of it went to the test inbox instead of its recipients. */
+  | { sent: true; ids: string[]; redirected: boolean }
   | { sent: false; reason: string };
 
 export interface GmailEnv {
@@ -36,6 +37,8 @@ export interface GmailEnv {
   sender: string;
   mode: EmailMode;
   testInbox: string | undefined;
+  /** In test mode, who gets their email directly. See route.ts. */
+  testAllowlist: ReadonlySet<string>;
 }
 
 /** GMAIL_SERVICE_ACCOUNT is the service account's JSON key file, base64-encoded onto one line. */
@@ -57,6 +60,7 @@ export function readGmailEnv(env: Record<string, string | undefined> = process.e
     sender: env.GMAIL_SENDER!,
     mode: emailModeFrom(env.EMAIL_MODE),
     testInbox: env.EMAIL_TEST_INBOX,
+    testAllowlist: allowlistFrom(env.EMAIL_TEST_ALLOWLIST),
   };
 }
 
@@ -137,16 +141,20 @@ export function createGmail(env: GmailEnv, deps: GmailDeps = defaultDeps) {
       try {
         const to = msg.to.filter((a) => a.trim() && !isUndeliverable(a));
         if (!to.length) return { sent: false, reason: 'no_deliverable_recipient' };
-        const routed = routeEmail({ to, cc: msg.cc ?? [], subject: msg.subject }, env.mode, env.testInbox);
-        const raw = buildMime(env.sender, { ...routed, text: msg.text, html: msg.html }, deps.boundary());
-        const res = await deps.fetch(SEND_URL, {
-          method: 'POST',
-          headers: { authorization: `Bearer ${await getToken()}`, 'content-type': 'application/json' },
-          body: JSON.stringify({ raw: b64url(raw) }),
-        });
-        const json = (await res.json().catch(() => ({}))) as { id?: string };
-        if (!res.ok || !json.id) return { sent: false, reason: `send_http_${res.status}` };
-        return { sent: true, id: json.id, redirected: routed.redirected };
+        const routed = routeEmail({ to, cc: msg.cc ?? [], subject: msg.subject }, env.mode, env.testInbox, env.testAllowlist);
+        const ids: string[] = [];
+        for (const r of routed) {
+          const raw = buildMime(env.sender, { ...r, text: msg.text, html: msg.html }, deps.boundary());
+          const res = await deps.fetch(SEND_URL, {
+            method: 'POST',
+            headers: { authorization: `Bearer ${await getToken()}`, 'content-type': 'application/json' },
+            body: JSON.stringify({ raw: b64url(raw) }),
+          });
+          const json = (await res.json().catch(() => ({}))) as { id?: string };
+          if (!res.ok || !json.id) return { sent: false, reason: `send_http_${res.status}` };
+          ids.push(json.id);
+        }
+        return { sent: true, ids, redirected: routed.some((r) => r.redirected) };
       } catch (e) {
         return { sent: false, reason: e instanceof Error ? e.message : 'error' };
       }

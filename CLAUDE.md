@@ -155,12 +155,20 @@ service-role key never goes near the browser.
 
 ## 4. Email: test until approval
 
-`EMAIL_MODE` must be exactly `live` to email real people; anything else, including
-unset, sends everything to `EMAIL_TEST_INBOX` with the real recipients in the subject.
+`EMAIL_MODE` must be exactly `live` to email real people. Anything else, including
+unset, is test mode: addresses on `EMAIL_TEST_ALLOWLIST` (the designated testers and the
+admins) get their email directly, and everyone else's goes to `EMAIL_TEST_INBOX` with the
+real recipients in the subject. This used to send EVERYTHING to the test inbox; the owner
+changed it 2026-09-25 ("I don't want to be receiving everything, I have designated
+testers"). An empty allowlist is the old behaviour. A real manager who is not on the
+list is still never emailed from staging.
 Mail goes through Gmail as `GMAIL_SENDER`, using a service account with domain-wide
 delegation for `gmail.send` only (`packages/email/src/gmail.ts`, no Google SDK). A send
 never throws: the request or grant it follows has already happened, and the outcome is
-audited. `.invalid` addresses are never sent to. The emails are French only, ported
+audited. `.invalid` addresses are never sent to. Three emails: the request (to admins
+with `notify` on), the grant, and the decline (both to the person). The decline email
+is the owner's call, 2026-09-25, reversing RBAC §48, where a decline told nobody;
+removing access or changing it still emails nobody. The emails are French only, ported
 from RBAC Notify.gs (§46), and name the Grant panel's real button labels; a test holds
 them to it.
 The redirect happens at SEND time. Never rewrite addresses in the data: the roster email
@@ -240,7 +248,8 @@ the time-zone gap above was found. Done for the break-glass admin, fail-closed, 
 holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, the
 sign-in rules (no domain restriction, Google only, no Google tokens stored), the
 roster loader, `authorize()`, the import transforms (14, all caught), the access rules
-(14), the Clearview client, the Gmail sender and the admin check (10), and RLS on every
+(14), the Clearview client, the Gmail sender and the admin check (10), the test allowlist and
+the decline email (8), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

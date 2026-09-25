@@ -123,5 +123,29 @@ export function accessGrantedMail(input: { email: string; appName: string; url: 
   return { subject: `Vous avez maintenant accès à ${appName}`, text, html };
 }
 
+/**
+ * A request was declined. Owner's call, 2026-09-25: the person hears back either way.
+ * (The Apps Script portal emailed nobody on a decline, RBAC §48; this reverses that.)
+ * Kind and short, and it says they may ask again, which is true (RBAC §45).
+ */
+export function accessDeclinedMail(input: { email: string; appName: string; portalUrl: string }): Mail {
+  const { email, appName, portalUrl } = input;
+  const lines = [
+    `Votre demande d’accès à ${appName} n’a pas été acceptée.`,
+    'Si vous pensez que c’est une erreur, répondez à ce courriel ou parlez-en au bureau. ' +
+      'Vous pourrez refaire une demande depuis le portail.',
+    portalUrl,
+    `Cette demande a été faite avec l’adresse ${email}.`,
+  ];
+  const html =
+    '<div lang="fr">' +
+    `<p>${h(lines[0]!)}</p>` +
+    `<p>${h(lines[1]!)}</p>` +
+    `<p><a href="${escapeHtml(portalUrl)}">${h(portalUrl)}</a></p>` +
+    `<p><small>${h(lines[3]!)}</small></p>` +
+    '</div>';
+  return { subject: `Votre demande d’accès à ${appName}`, text: lines.join('\n\n') + '\n', html };
+}
+
 /** A restaurant as the company writes it: "1647 - Hull". */
 export const storeLabel = (id: string, name: string) => `${id} - ${name}`;

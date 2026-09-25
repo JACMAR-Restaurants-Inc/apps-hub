@@ -20,7 +20,7 @@ import type { SendResult } from '@hub/email';
 import type { MemberStatus, Role } from '@hub/rbac';
 import { BREAK_GLASS_ADMIN } from '@hub/rbac';
 import { appByKey } from './apps';
-import { accessGrantedMail, accessRequestMail, storeLabel, type Mail } from './messages';
+import { accessDeclinedMail, accessGrantedMail, accessRequestMail, storeLabel, type Mail } from './messages';
 
 export interface MemberRow {
   status: MemberStatus;
@@ -275,8 +275,11 @@ export async function updateAccess(
 
 /**
  * Decline a request, or remove access. Both leave the row 'revoked' (deactivate, never
- * delete), keep its role and stores as the record, email nobody, and leave the
- * person's global switch alone: they may hold another app (RBAC §48). They can ask again.
+ * delete), keep its role and stores as the record, and leave the person's global switch
+ * alone: they may hold another app (RBAC §48). They can ask again.
+ *
+ * A DECLINE emails the person (owner's call, 2026-09-25, reversing §48's silence).
+ * A REMOVAL still emails nobody.
  */
 export async function endAccess(
   deps: AccessDeps,
@@ -285,10 +288,11 @@ export async function endAccess(
   email: string,
   expected: 'pending' | 'active',
 ): Promise<AdminOutcome> {
-  if (!appByKey(appKey)) return 'invalid';
-  return deps.store.transaction(async (tx) => {
+  const app = appByKey(appKey);
+  if (!app) return 'invalid';
+  const outcome = await deps.store.transaction(async (tx) => {
     const member = await tx.findMember(appKey, email);
-    if (!member || member.status !== expected) return 'changed';
+    if (!member || member.status !== expected) return 'changed' as const;
     await tx.updateMember(appKey, email, { status: 'revoked', grantedBy: admin });
     await tx.audit({
       actorEmail: admin,
@@ -297,6 +301,12 @@ export async function endAccess(
       targetEmail: email,
       detail: { before: { status: member.status, role: member.role, stores: member.stores } },
     });
-    return 'done';
+    return 'done' as const;
   });
+  if (outcome !== 'done' || expected !== 'pending') return outcome;
+
+  const mail = accessDeclinedMail({ email, appName: app.name.fr, portalUrl: deps.urls.app('/') });
+  const sent = await deps.send({ ...mail, to: [email] });
+  await deps.store.audit({ actorEmail: admin, app: appKey, event: 'notify', targetEmail: email, detail: { mail: 'declined', ...sent } });
+  return 'done';
 }

@@ -80,7 +80,7 @@ function deps(store: AccessStore, lookup: Lookup = found()) {
   const d: AccessDeps = {
     store,
     clearview: { lookupEmployee: async (n) => (lookups.push(n), lookup) },
-    send: async (m) => (mails.push(m), { sent: true, id: 'x', redirected: true }),
+    send: async (m) => (mails.push(m), { sent: true, ids: ['x'], redirected: true }),
     urls: { admin: 'https://hub.test/admin/access', app: (p) => `https://hub.test${p}` },
   };
   return { d, mails, lookups };
@@ -281,13 +281,28 @@ describe('updateAccess and endAccess', () => {
     expect(m.state.audit[0]!.event).toBe('revoke');
   });
 
-  it('declining is a revoke with its own audit name, emailing nobody', async () => {
+  it('declining revokes the request and tells the person, once, audited', async () => {
     const m = memoryStore({ members: { [`${APP}|${ME}`]: { status: 'pending', role: null, notifiedOn: null, stores: [] } } });
     const { d, mails } = deps(m.store);
     expect(await endAccess(d, ADMIN, APP, ME, 'pending')).toBe('done');
     expect(m.member()!.status).toBe('revoked');
-    expect(m.state.audit[0]!.event).toBe('decline');
-    expect(mails).toHaveLength(0);
+    expect(m.state.audit.map((a) => a.event)).toEqual(['decline', 'notify']);
+    expect(mails).toHaveLength(1);
+    expect(mails[0]!.to).toEqual([ME]);
+    expect(mails[0]!.subject).toBe('Votre demande d’accès à Cash Balancing');
+    expect(mails[0]!.text).toContain('n’a pas été acceptée');
+    // A decline that lost the race tells nobody.
+    expect(await endAccess(d, ADMIN, APP, ME, 'pending')).toBe('changed');
+    expect(mails).toHaveLength(1);
+  });
+
+  it('a decline whose email fails is still a decline', async () => {
+    const m = memoryStore({ members: { [`${APP}|${ME}`]: { status: 'pending', role: null, notifiedOn: null, stores: [] } } });
+    const { d } = deps(m.store);
+    d.send = async () => ({ sent: false, reason: 'token_unauthorized_client' });
+    expect(await endAccess(d, ADMIN, APP, ME, 'pending')).toBe('done');
+    expect(m.member()!.status).toBe('revoked');
+    expect(m.state.audit.at(-1)!.detail).toMatchObject({ mail: 'declined', sent: false });
   });
 
   it('changed when the row is not in the state the admin saw', async () => {

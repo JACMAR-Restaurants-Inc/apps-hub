@@ -11,6 +11,7 @@ const env = (over: Partial<GmailEnv> = {}): GmailEnv => ({
   sender: 'sony@jacmar-restaurants.com',
   mode: 'test',
   testInbox: 'sony@jacmar-restaurants.com',
+  testAllowlist: new Set(),
   ...over,
 });
 
@@ -46,12 +47,19 @@ describe('send', () => {
   it('in test mode goes only to the test inbox, naming the real recipient', async () => {
     const f = fake();
     const r = await createGmail(env(), f.deps).send({ ...msg, cc: ['office@jacmar-restaurants.com'] });
-    expect(r).toEqual({ sent: true, id: 'm1', redirected: true });
+    expect(r).toEqual({ sent: true, ids: ['m1'], redirected: true });
     const mime = decode(f.sent[0]!.raw);
     expect(header(mime, 'To')).toBe('sony@jacmar-restaurants.com');
     expect(header(mime, 'Cc')).toBeUndefined();
     const subject = Buffer.from(/=\?UTF-8\?B\?(.*)\?=/.exec(header(mime, 'Subject')!)![1]!, 'base64').toString('utf8');
     expect(subject).toBe('[TEST → manager@gmail.com, office@jacmar-restaurants.com] Vous avez maintenant accès à Cash Balancing');
+  });
+
+  it('in test mode, a designated tester gets it directly and a stranger is redirected, as two messages', async () => {
+    const f = fake();
+    const r = await createGmail(env({ testAllowlist: new Set(['tester@gmail.com']) }), f.deps).send({ ...msg, to: ['tester@gmail.com', 'stranger@gmail.com'] });
+    expect(r).toEqual({ sent: true, ids: ['m1', 'm1'], redirected: true });
+    expect(f.sent.map((s) => header(decode(s.raw), 'To'))).toEqual(['tester@gmail.com', 'sony@jacmar-restaurants.com']);
   });
 
   it('in live mode goes to the real recipient', async () => {
@@ -138,7 +146,13 @@ describe('readGmailEnv', () => {
     expect(readGmailEnv({ GMAIL_SERVICE_ACCOUNT: key, GMAIL_SENDER: 's@x.com', EMAIL_MODE: 'live' }).mode).toBe('live');
   });
 
-  it('names what is missing or malformed, without echoing it', () => {
+  it('reads the designated testers from EMAIL_TEST_ALLOWLIST', () => {
+    const e = readGmailEnv({ GMAIL_SERVICE_ACCOUNT: key, GMAIL_SENDER: 's@x.com', EMAIL_TEST_ALLOWLIST: 'Tester.One@gmail.com, pierrej@jacmar-restaurants.com' });
+    expect(e.testAllowlist).toEqual(new Set(['testerone@gmail.com', 'pierrej@jacmar-restaurants.com']));
+    expect(readGmailEnv({ GMAIL_SERVICE_ACCOUNT: key, GMAIL_SENDER: 's@x.com' }).testAllowlist.size).toBe(0);
+  });
+
+    it('names what is missing or malformed, without echoing it', () => {
     expect(() => readGmailEnv({ GMAIL_SENDER: 's@x.com' })).toThrow('GMAIL_SERVICE_ACCOUNT not set');
     expect(() => readGmailEnv({ GMAIL_SERVICE_ACCOUNT: 'bm90IGpzb24=', GMAIL_SENDER: 's' })).toThrow(/not a base64-encoded JSON key$/);
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accessGrantedMail, accessRequestMail, GRANT_PANEL_LABELS, type Mail } from './messages';
+import { accessDeclinedMail, accessGrantedMail, accessRequestMail, GRANT_PANEL_LABELS, type Mail } from './messages';
 
 const request = (over: Partial<Parameters<typeof accessRequestMail>[0]> = {}) =>
   accessRequestMail({
@@ -14,7 +14,14 @@ const request = (over: Partial<Parameters<typeof accessRequestMail>[0]> = {}) =>
 const granted = () =>
   accessGrantedMail({ email: 'manager@gmail.com', appName: 'Cash Balancing', url: 'https://hub.test/cash', stores: ['1647 - Hull', '3472 - Aylmer'] });
 
-const all = (): Mail[] => [request(), request({ employee: null, storeTicked: false, askedAgain: true }), request({ employee: { number: '1', fullName: 'X', active: false, storeLabel: null } }), granted()];
+const declined = () => accessDeclinedMail({ email: 'manager@gmail.com', appName: 'Cash Balancing', portalUrl: 'https://hub.test/' });
+const all = (): Mail[] => [
+  request(),
+  request({ employee: null, storeTicked: false, askedAgain: true }),
+  request({ employee: { number: '1', fullName: 'X', active: false, storeLabel: null } }),
+  granted(),
+  declined(),
+];
 const visible = (m: Mail) => [m.subject, m.text, m.html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ')];
 
 describe('the access emails', () => {
@@ -61,5 +68,15 @@ describe('the access emails', () => {
     expect(m.html).toContain('<strong>manager@gmail.com</strong>');
     expect(m.text).toContain('https://hub.test/cash');
     expect(m.text).toContain('1647 - Hull, 3472 - Aylmer');
+  });
+});
+
+describe('the decline email', () => {
+  it('says so kindly, says they may ask again, and names the address used', () => {
+    const m = declined();
+    expect(m.text).toContain('n’a pas été acceptée');
+    expect(m.text).toContain('refaire une demande');
+    expect(m.text).toContain('manager@gmail.com');
+    expect(m.html).toContain('href="https://hub.test/"');
   });
 });
