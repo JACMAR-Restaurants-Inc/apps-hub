@@ -18,8 +18,8 @@ describe('the dictionary', () => {
     }
   });
 
-  it('puts a non-breaking space before French ? and :', () => {
-    for (const [key, v] of entries) expect(`${key}: ${v.fr}`.slice(key.length + 2)).not.toMatch(/[^ ][?:]/);
+  it('puts a non-breaking space (plain or narrow) before French ? and :', () => {
+    for (const [key, v] of entries) expect(`${key}: ${v.fr}`.slice(key.length + 2)).not.toMatch(/[^\u00a0\u202f][?:]/);
   });
 
   it('has the labels the request email tells admins to press', () => {

@@ -1,112 +1,128 @@
 'use client';
 
 import { requestAccessAction, type RequestState } from '@/app/actions';
+import type { HomeCard } from '@/lib/home';
 import { t, type Key, type Lang } from '@/lib/i18n';
-import Link from 'next/link';
 import { useActionState, useState } from 'react';
-
-export type CardState =
-  | { kind: 'held'; href: string }
-  | { kind: 'waiting'; since: string }
-  | { kind: 'askable' }
-  /** Holds it, but their switch is off: asking again would only say "already asked". */
-  | { kind: 'off' };
+import { ArchesSvg } from './arches';
 
 /**
- * One app, and where the person stands with it, in the same place on every card
- * (RBAC §45): held -> Open; asked -> Requested, waiting, with the day; otherwise
- * Request access. Asking takes two taps, so a stray one emails nobody.
+ * One app, the Apps Script portal's card (Cards.html; §45/§55/§76/§82). The foot says
+ * where the person stands, in the same place on every card:
+ *   held     Ouvrir l'application ↗ / Ouvrir ↗, filled: it is the action
+ *   pending  Demandé · en attente du bureau, with the date asked
+ *   revoked  "Your access was removed. You can ask again." then Request access
+ *   askable  Demander l'accès, outlined, two taps so a stray one emails nobody
  */
-export function AppCard(props: { lang: Lang; appKey: string; name: string; description: string; state: CardState }) {
-  const { lang, appKey, name, description, state } = props;
+export function AppCard({ lang, card }: { lang: Lang; card: HomeCard }) {
   const [asking, setAsking] = useState(false);
   const [result, formAction, pending] = useActionState<RequestState, FormData>(requestAccessAction, {
     outcome: null,
     employeeNumber: '',
   });
+  const name = lang === 'fr' ? card.nameFr : card.name;
 
-  const waiting = state.kind === 'waiting' || result.outcome === 'pending' || result.outcome === 'duplicate';
+  // Once a request is saved (or was already there) the card is waiting, without a reload.
+  const sent = result.outcome === 'pending' || result.outcome === 'duplicate';
+  const state = sent ? 'pending' : card.state;
   const refusal: Key | null =
     result.outcome === 'employee_required' || result.outcome === 'employee_not_found' || result.outcome === 'clearview_unavailable'
       ? result.outcome
       : result.outcome === 'error' || result.outcome === 'unknown_app' || result.outcome === 'not_signed_in'
         ? 'requestFailed'
         : null;
-  const fieldId = `emp-${appKey}`;
+  const fieldId = `emp-${card.key}`;
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <div>
-        <h3 className="font-semibold">{name}</h3>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{description}</p>
-      </div>
-
-      {state.kind === 'held' ? (
-        <Link
-          href={state.href}
-          className="self-start rounded-md bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
-          {t(lang, 'open')}
-        </Link>
-      ) : state.kind === 'off' ? (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{t(lang, 'inactive')}</p>
-      ) : waiting ? (
-        <p className="text-sm" role="status">
-          {t(lang, 'requested')}
-          {state.kind === 'waiting' && (
-            <span className="block text-zinc-600 dark:text-zinc-400">
-              {t(lang, 'requestedOn')}
-              {state.since}
-            </span>
-          )}
-        </p>
-      ) : !asking ? (
-        <button
-          type="button"
-          className="self-start rounded-md border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-          onClick={() => setAsking(true)}
-        >
-          {t(lang, 'requestAccess')}
-        </button>
-      ) : (
-        <form action={formAction} className="flex flex-col gap-2">
-          <input type="hidden" name="app" value={appKey} />
-          <label htmlFor={fieldId} className="text-sm font-medium">
-            {t(lang, 'employeeNumber')}
-          </label>
-          <input
-            id={fieldId}
-            name="employeeNumber"
-            inputMode="numeric"
-            autoComplete="off"
-            required
-            defaultValue={result.employeeNumber}
-            aria-describedby={`${fieldId}-help${refusal ? ` ${fieldId}-error` : ''}`}
-            aria-invalid={refusal ? true : undefined}
-            className="w-40 rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <p id={`${fieldId}-help`} className="text-sm text-zinc-600 dark:text-zinc-400">
-            {t(lang, 'employeeNumberHelp')}
-          </p>
-          {refusal && (
-            <p id={`${fieldId}-error`} role="alert" className="text-sm text-red-700 dark:text-red-400">
-              {t(lang, refusal)}
-            </p>
-          )}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded-md bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-            >
-              {pending ? t(lang, 'sending') : t(lang, 'send')}
-            </button>
-            <button type="button" disabled={pending} className="rounded-md px-4 py-2" onClick={() => setAsking(false)}>
-              {t(lang, 'cancel')}
-            </button>
+    <article className={`app${state === 'pending' ? ' pending' : ''}`} id={`app-${card.key}`}>
+      <div className="apptop">
+        {card.logo === 'arches' ? (
+          <span className="applogo arches">
+            <ArchesSvg />
+          </span>
+        ) : card.logo ? (
+          <span className={`applogo ${card.logo}`} aria-hidden="true" />
+        ) : (
+          <div className="sq s40" style={{ background: card.tint ?? undefined, color: card.ink ?? undefined }} aria-hidden="true">
+            {card.mark}
           </div>
-        </form>
-      )}
-    </li>
+        )}
+        <h3>
+          <span>{name}</span>
+          {card.adminOnly && <span className="mini">{t(lang, 'adminsOnly')}</span>}
+        </h3>
+      </div>
+      <p className="bl">{lang === 'fr' ? card.blurbFr : card.blurb}</p>
+      <div className="appfoot">
+        {state === 'held' ? (
+          !card.url ? (
+            <span className="soon">{t(lang, 'notConnected')}</span>
+          ) : (
+            <a
+              className="btn-go"
+              href={card.url}
+              {...(card.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+            >
+              <span>{t(lang, card.label === 'open' ? 'open' : 'openApp')}</span>
+              <span aria-hidden="true">↗</span>
+              {card.newTab && <span className="sr-only"> {t(lang, 'opensNewTab')}</span>}
+            </a>
+          )
+        ) : state === 'pending' ? (
+          <>
+            <div className="waiting" role="status">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" />
+                <path d="M12 7.5V12l3 2" />
+              </svg>
+              <span>{t(lang, 'requested')}</span>
+              {card.askedAt && !sent && <small>{card.askedAt}</small>}
+            </div>
+            {sent && <p className="sent">{t(lang, 'requestSent')}</p>}
+          </>
+        ) : asking ? (
+          <form className="askbox" action={formAction}>
+            <p>{t(lang, 'askQuestion').replace('{app}', name)}</p>
+            <input type="hidden" name="app" value={card.key} />
+            <label htmlFor={fieldId}>
+              {t(lang, 'employeeNumber')}
+              <input
+                id={fieldId}
+                name="employeeNumber"
+                inputMode="numeric"
+                autoComplete="off"
+                defaultValue={result.employeeNumber}
+                aria-describedby={`${fieldId}-hint${refusal ? ` ${fieldId}-err` : ''}`}
+                aria-invalid={refusal ? true : undefined}
+                autoFocus
+              />
+              <span className="hint" id={`${fieldId}-hint`}>
+                {t(lang, 'employeeNumberHelp')}
+              </span>
+            </label>
+            {refusal && (
+              <p className="askerr" id={`${fieldId}-err`} role="alert">
+                {t(lang, refusal)}
+              </p>
+            )}
+            <div className="askrow">
+              <button type="submit" className="btn-go" disabled={pending}>
+                {pending ? t(lang, 'sending') : t(lang, 'send')}
+              </button>
+              <button type="button" className="btn-x" disabled={pending} onClick={() => setAsking(false)}>
+                {t(lang, 'cancel')}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            {state === 'revoked' && <p className="gone">{t(lang, 'accessRemoved')}</p>}
+            <button type="button" className="btn-ask" onClick={() => setAsking(true)}>
+              {t(lang, 'requestAccess')}
+            </button>
+          </>
+        )}
+      </div>
+    </article>
   );
 }
