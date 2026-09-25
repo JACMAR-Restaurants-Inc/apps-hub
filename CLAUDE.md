@@ -27,9 +27,15 @@ say what it used to say. A file that disagrees with reality is worse than none.
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
   Data API off. Migrations 0000–0001 are applied and the tables are empty.
   Connection strings live only in `.env.local` (see §6).
+- Google Cloud project `apps-hub`: consent screen External, one web client
+  `apps-hub-staging` (redirect `http://localhost:3000/api/auth/callback/google`),
+  but left in "Testing", so on staging only listed test users can sign in. That
+  is fine for the demo. Publishing needs a home page and privacy policy on our domain,
+  so it is a cutover step (`docs/CUTOVER.md`), not a staging one. The 7-day token
+  limit in Testing does not matter: we use Google only at sign-in, never its refresh tokens.
 - Not built yet: Better Auth, the roster loader, the import scripts, i18n, UI tokens,
-  every screen. Accounts not created yet: Vercel, production Supabase, domain, OAuth
-  client, Gmail service account.
+  every screen. Accounts not created yet: Vercel, production Supabase, domain,
+  production OAuth client, Gmail service account.
 
 ## 2. Layout
 
