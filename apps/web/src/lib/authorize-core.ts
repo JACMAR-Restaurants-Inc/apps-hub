@@ -1,4 +1,4 @@
-import { explain, type Decision, type RosterSnapshot } from '@hub/rbac';
+import { explain, isSystemAdmin, type Decision, type RosterSnapshot } from '@hub/rbac';
 
 export class AccessDenied extends Error {
   constructor(readonly reason: string) {
@@ -58,4 +58,32 @@ export async function authorizeWith(
     }
   }
   throw new AccessDenied(decision.reason);
+}
+
+/**
+ * For the admin screens: granting, changing and removing access. Only a system admin
+ * may (RBAC §48, requireAdmin), decided by the same isSystemAdmin can() uses,
+ * break-glass included. Same rules as authorizeWith: fails closed, audits a signed-in
+ * refusal, never audits a caller with no session.
+ */
+export async function requireAdminWith(deps: AuthorizeDeps, action: string): Promise<{ email: string }> {
+  let email: string | null = null;
+  let reason: string;
+  try {
+    email = await deps.signedInEmail();
+    if (!email) reason = 'not_signed_in';
+    else if (isSystemAdmin(await deps.roster(), email)) return { email };
+    else reason = 'not_admin';
+  } catch (error) {
+    deps.log('requireAdmin: could not decide, denying', error);
+    reason = 'error';
+  }
+  if (email) {
+    try {
+      await deps.recordDenial({ actorEmail: email, app: 'portal', restaurantId: null, detail: { resource: 'admin', action, reason } });
+    } catch (error) {
+      deps.log('requireAdmin: could not audit a denial', error);
+    }
+  }
+  throw new AccessDenied(reason);
 }

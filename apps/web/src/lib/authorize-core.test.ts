@@ -1,6 +1,6 @@
 import { memberKey, permissionKey, type RosterSnapshot } from '@hub/rbac';
 import { describe, expect, it } from 'vitest';
-import { AccessDenied, authorizeWith, type AuthorizeDeps, type Denial } from './authorize-core';
+import { AccessDenied, authorizeWith, requireAdminWith, type AuthorizeDeps, type Denial } from './authorize-core';
 
 const roster: RosterSnapshot = {
   admins: new Set(['admin@jacmar-restaurants.com']),
@@ -75,5 +75,35 @@ describe('authorize', () => {
     const { d, logged } = deps({ recordDenial: async () => Promise.reject(new Error('audit down')) });
     expect(await reasonOf(authorizeWith(d, 'cash', 'count', 'create', '3472'))).toBe('store_inactive');
     expect(logged).toEqual(['authorize: could not audit a denial']);
+  });
+});
+
+describe('requireAdmin', () => {
+  const admins = { ...roster, admins: new Set(['admin@jacmar-restaurants.com']) };
+
+  it('lets a system admin through, and nobody else, auditing a signed-in refusal', async () => {
+    const ok = deps({ signedInEmail: async () => 'admin@jacmar-restaurants.com', roster: async () => admins });
+    await expect(requireAdminWith(ok.d, 'grant')).resolves.toEqual({ email: 'admin@jacmar-restaurants.com' });
+
+    const manager = deps({ roster: async () => admins });
+    expect(await reasonOf(requireAdminWith(manager.d, 'grant'))).toBe('not_admin');
+    expect(manager.denials).toEqual([
+      { actorEmail: 'manager@gmail.com', app: 'portal', restaurantId: null, detail: { resource: 'admin', action: 'grant', reason: 'not_admin' } },
+    ]);
+  });
+
+  it('break-glass counts only while the admins table is empty', async () => {
+    const empty = deps({ signedInEmail: async () => 'sony@jacmar-restaurants.com', roster: async () => ({ ...roster, admins: new Set() }) });
+    await expect(requireAdminWith(empty.d, 'grant')).resolves.toBeDefined();
+    const filled = deps({ signedInEmail: async () => 'sony@jacmar-restaurants.com', roster: async () => admins });
+    expect(await reasonOf(requireAdminWith(filled.d, 'grant'))).toBe('not_admin');
+  });
+
+  it('fails closed, and does not audit a caller with no session', async () => {
+    const broken = deps({ roster: async () => Promise.reject(new Error('down')) });
+    expect(await reasonOf(requireAdminWith(broken.d, 'grant'))).toBe('error');
+    const anon = deps({ signedInEmail: async () => null });
+    expect(await reasonOf(requireAdminWith(anon.d, 'grant'))).toBe('not_signed_in');
+    expect(anon.denials).toEqual([]);
   });
 });

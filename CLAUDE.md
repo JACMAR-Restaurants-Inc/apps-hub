@@ -24,10 +24,12 @@ say what it used to say. A file that disagrees with reality is worse than none.
 - Built: `@hub/core`, `@hub/rbac` (`can()`), `@hub/email` (routing), `@hub/db` (schema
   and migrations), the Next.js shell, CI, and Google sign-in with Better Auth (a
   placeholder home page shows who you are and your roster standing), the roster
-  loader, `authorize()` for server actions, and the spreadsheet import. Code is at
+  loader, `authorize()` for server actions, the spreadsheet import, and request access:
+  the portal catalogue, the request form (employee number checked in Clearview), the
+  Grant panel for admins, and the two French emails sent through Gmail. Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
-  Data API off. Migrations 0000–0003 are applied. It holds the 2026-09-25 snapshot:
+  Data API off. Migrations 0000–0004 are applied. It holds the 2026-09-25 snapshot:
   552 counts and their lines, the 7 restaurants, 40 tills, and 2 admins (no one else is
   on the roster; see §5).
   Connection strings live only in `.env.local` (see §6).
@@ -37,7 +39,10 @@ say what it used to say. A file that disagrees with reality is worse than none.
   is fine for the demo. Publishing needs a home page and privacy policy on our domain,
   so it is a cutover step (`docs/CUTOVER.md`), not a staging one. The 7-day token
   limit in Testing does not matter: we use Google only at sign-in, never its refresh tokens.
-- Not built yet: request access and approval (needed on day one, §5), moving the 256
+- Clearview and Gmail credentials are not in `.env.local` yet (2026-09-25). Until they
+  are, a request answers "cannot check your number right now" and every email is
+  audited as `not_configured`: nothing crashes and nothing is sent.
+- Not built yet: moving the 256
   attachments from Drive to Storage (they are imported with their Drive file id and no
   `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel,
   production Supabase, domain, production OAuth client, Gmail service account.
@@ -50,6 +55,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
     packages/db       Drizzle schema (rbac, cash, identity), migrations, the client,
                       loadRoster()
     packages/import   the spreadsheet import: xlsx -> transform -> load -> verify
+    packages/clearview  employee lookup in Clearview (HR): name, HR email, active, store
+    apps/web/src/lib/requests  asking for access and granting it: rules, store, emails
     packages/email    where an email actually goes (test vs live)
     docs/CUTOVER.md   the approval-day checklist
 
@@ -83,6 +90,20 @@ the session or roster cannot be read, and audits denials by signed-in people (RB
 not grants, and not calls with no session, which would let anyone grow the table).
 Where it touches an existing record, pass the restaurant ON THE RECORD, not one the
 caller names. A perfect UI proves nothing.
+
+**A request grants nothing.** Asking adds the person with `active = false` and a
+`pending` row with no role; `can()` refuses both. Only a system admin can grant,
+change, decline or remove (`requireSystemAdmin`, RBAC §48), and every admin write
+checks under a row lock that the row is still what the page showed, or answers
+`changed`. A declined or removed person may ask again (RBAC §45). The rules live in
+`lib/requests/service.ts`, tested on an in-memory roster AND against Postgres
+(`store.db.test.ts`, inside a transaction that is always rolled back; it runs when
+`.env.local` has a `DATABASE_URL` and is skipped in CI). The employee number is required
+and checked in Clearview (RBAC §65), and "wrong number" is kept apart from "Clearview is
+down". From Clearview only name, HR email, active and store are kept (`toEmployee`
+picks them by name; a test feeds it a full record with birth date, address, phone and
+SIN and checks none come out). `rbac.users.active = false` alone is therefore NOT
+"switched off": the portal says that only to someone who holds an app while off.
 
 **The roster is loaded once per request, never cached across requests**
 (`loadRoster` in `@hub/db`, `getRoster()` in `viewer.ts`), so deactivation takes effect
@@ -136,6 +157,12 @@ service-role key never goes near the browser.
 
 `EMAIL_MODE` must be exactly `live` to email real people; anything else, including
 unset, sends everything to `EMAIL_TEST_INBOX` with the real recipients in the subject.
+Mail goes through Gmail as `GMAIL_SENDER`, using a service account with domain-wide
+delegation for `gmail.send` only (`packages/email/src/gmail.ts`, no Google SDK). A send
+never throws: the request or grant it follows has already happened, and the outcome is
+audited. `.invalid` addresses are never sent to. The emails are French only, ported
+from RBAC Notify.gs (§46), and name the Grant panel's real button labels; a test holds
+them to it.
 The redirect happens at SEND time. Never rewrite addresses in the data: the roster email
 is how sign-in recognises people, and approval day should be one setting, not an edit.
 
@@ -212,7 +239,8 @@ match the schema.
 the time-zone gap above was found. Done for the break-glass admin, fail-closed, store
 holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, the
 sign-in rules (no domain restriction, Google only, no Google tokens stored), the
-roster loader, `authorize()`, the import transforms (14, all caught), and RLS on every
+roster loader, `authorize()`, the import transforms (14, all caught), the access rules
+(14), the Clearview client, the Gmail sender and the admin check (10), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

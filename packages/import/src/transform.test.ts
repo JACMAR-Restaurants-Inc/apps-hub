@@ -81,7 +81,7 @@ describe('who is carried over', () => {
   it('only admins, with their Users row; nobody from App_* and no other user', () => {
     const { plan, problems } = transform(access(), cash());
     expect(problems).toEqual([]);
-    expect(plan.admins).toEqual([{ email: 'boss@jacmar-restaurants.com' }]);
+    expect(plan.admins).toEqual([{ email: 'boss@jacmar-restaurants.com', notify: true }]);
     expect(plan.users.map((u) => u.email)).toEqual(['boss@jacmar-restaurants.com']);
     expect(JSON.stringify(plan)).not.toContain('manager@gmail.com');
     expect(JSON.stringify(plan)).not.toContain('someone@gmail.com'); // the Audit tab stays behind
