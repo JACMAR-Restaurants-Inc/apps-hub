@@ -80,7 +80,7 @@ function deps(store: AccessStore, lookup: Lookup = found()) {
   const d: AccessDeps = {
     store,
     clearview: { lookupEmployee: async (n) => (lookups.push(n), lookup) },
-    send: async (m) => (mails.push(m), { sent: true, ids: ['x'], redirected: true }),
+    send: async (m) => (mails.push(m), { sent: true, id: 'x', redirected: true }),
     urls: { admin: 'https://hub.test/admin/access', app: (p) => `https://hub.test${p}` },
   };
   return { d, mails, lookups };

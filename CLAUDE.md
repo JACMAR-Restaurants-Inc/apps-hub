@@ -19,8 +19,9 @@ say what it used to say. A file that disagrees with reality is worse than none.
 **Staging only. Nothing here touches production.** The demo to leadership is
 2026-10-08; the switch happens after approval, by `docs/CUTOVER.md`.
 
-- Staging reads a SNAPSHOT of the production spreadsheets. It never writes to them,
-  never runs `clasp`, and never emails a real person (§4).
+- Staging reads a SNAPSHOT of the production spreadsheets. It never writes to them and
+  never runs `clasp`. It DOES email real people, with `EMAIL_MODE=live` (§4): the owner's
+  call, 2026-09-25. This used to say staging "never emails a real person".
 - Built: `@hub/core`, `@hub/rbac` (`can()`), `@hub/email` (routing), `@hub/db` (schema
   and migrations), the Next.js shell, CI, and Google sign-in with Better Auth (a
   placeholder home page shows who you are and your roster standing), the roster
@@ -153,15 +154,23 @@ service-role key never goes near the browser.
 
 **Never store or log SIN, address or birth date** from Clearview. Drop them on arrival.
 
-## 4. Email: test until approval
+## 4. Email: live on staging, by the owner's choice
 
 `EMAIL_MODE` must be exactly `live` to email real people. Anything else, including
-unset, is test mode: addresses on `EMAIL_TEST_ALLOWLIST` (the designated testers and the
-admins) get their email directly, and everyone else's goes to `EMAIL_TEST_INBOX` with the
-real recipients in the subject. This used to send EVERYTHING to the test inbox; the owner
-changed it 2026-09-25 ("I don't want to be receiving everything, I have designated
-testers"). An empty allowlist is the old behaviour. A real manager who is not on the
-list is still never emailed from staging.
+unset, is test mode: everything goes to `EMAIL_TEST_INBOX` with the real recipients in
+the subject. So a missing or misspelled setting fails safe.
+
+**Staging runs `live`** (owner's call, 2026-09-25): "any user who requests access [is]
+emailed as per normal; no one will get a link to this app unless I give it to them. I
+want the switch to production as easy as launch." So there is no list of testers: the
+people the owner hands the link to ARE the users, and they get exactly the emails
+production will send. Google sign-in is still in "Testing" on staging, so only listed
+test users can sign in at all, which is a second gate. An allowlist of testers was built
+and removed the same day for this reason; do not bring it back without asking.
+
+**Mind this when Cash Balancing is built:** `live` covers every email. A practice count
+filed on staging would send its report to the REAL restaurant and accountant addresses
+imported from the spreadsheet. Decide how staging handles reports before building them.
 Mail goes through Gmail as `GMAIL_SENDER`, using a service account with domain-wide
 delegation for `gmail.send` only (`packages/email/src/gmail.ts`, no Google SDK). A send
 never throws: the request or grant it follows has already happened, and the outcome is
@@ -171,8 +180,8 @@ is the owner's call, 2026-09-25, reversing RBAC §48, where a decline told nobod
 removing access or changing it still emails nobody. The emails are French only, ported
 from RBAC Notify.gs (§46), and name the Grant panel's real button labels; a test holds
 them to it.
-The redirect happens at SEND time. Never rewrite addresses in the data: the roster email
-is how sign-in recognises people, and approval day should be one setting, not an edit.
+In test mode the redirect happens at SEND time. Never rewrite addresses in the data:
+the roster email is how sign-in recognises people.
 
 ## 5. Data carried over from the spreadsheets
 
@@ -248,8 +257,8 @@ the time-zone gap above was found. Done for the break-glass admin, fail-closed, 
 holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, the
 sign-in rules (no domain restriction, Google only, no Google tokens stored), the
 roster loader, `authorize()`, the import transforms (14, all caught), the access rules
-(14), the Clearview client, the Gmail sender and the admin check (10), the test allowlist and
-the decline email (8), and RLS on every
+(14), the Clearview client, the Gmail sender and the admin check (10), the decline
+email, and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

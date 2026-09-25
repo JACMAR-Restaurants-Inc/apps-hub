@@ -38,7 +38,7 @@ describe.skipIf(!db)('access rules on Postgres (rolled back)', () => {
               employee: { number: '0014', fullName: 'Test Person', hrEmail: 'hr@example.invalid', active: true, storeNumber: '1647', storeLabel: '1647 - Hull' },
             }),
           },
-          send: async (m) => (mails.push(m.subject), { sent: true, ids: ['x'], redirected: true }),
+          send: async (m) => (mails.push(m.subject), { sent: true, id: 'x', redirected: true }),
           urls: { admin: 'https://hub.test/admin', app: (p) => `https://hub.test${p}` },
         };
         const person = async () => (await tx.select().from(users).where(eq(users.email, EMAIL)))[0];
