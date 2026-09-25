@@ -40,9 +40,15 @@ say what it used to say. A file that disagrees with reality is worse than none.
   is fine for the demo. Publishing needs a home page and privacy policy on our domain,
   so it is a cutover step (`docs/CUTOVER.md`), not a staging one. The 7-day token
   limit in Testing does not matter: we use Google only at sign-in, never its refresh tokens.
-- Clearview and Gmail credentials are not in `.env.local` yet (2026-09-25). Until they
-  are, a request answers "cannot check your number right now" and every email is
-  audited as `not_configured`: nothing crashes and nothing is sent.
+- **MUST DO, week of 2026-09-28: Gmail domain-wide delegation.** Clearview works
+  (credentials in `.env.local`, checked 2026-09-25). Gmail does not: the key is in
+  `.env.local`, but Google answers `unauthorized_client` until a Workspace super admin
+  (the owner's boss; the owner is asking Monday) adds, in admin.google.com → Security →
+  API controls → Domain-wide Delegation: Client ID `117203550704415068036`, scope
+  `https://www.googleapis.com/auth/gmail.send`. Then send one test email to confirm.
+  Until then every email is skipped and audited as not sent; requests and approvals work
+  without it (admins see requests in the portal). Someone approved meanwhile never gets
+  the grant email.
 - Not built yet: moving the 256
   attachments from Drive to Storage (they are imported with their Drive file id and no
   `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel,
