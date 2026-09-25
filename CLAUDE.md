@@ -142,6 +142,14 @@ is how sign-in recognises people, and approval day should be one setting, not an
 - `Config_Managers` is NOT imported. Its `login` / `password` columns are plaintext
   credentials and must not be copied anywhere. The pseudo-restaurants `ALL` and `ADMIN`
   were login rows and are dropped.
+- **Only admins are carried over from the roster.** Owner's decision, 2026-09-25: the
+  import brings the Access Control `Admins` (and their `Users` rows), `Restaurants` and
+  the `Perm_*` tabs, which are configuration, not people. It does NOT bring `App_*`
+  members or any other user. Everyone else, office staff included, signs in with their
+  own Google account and requests access, so Request access and approval must work on
+  day one. This replaces the old usernames and passwords, and old grants are not carried
+  over unreviewed. Cash Balancing history still imports in full: a count's
+  `manager_name` is text and needs no roster row.
 - A count and its children are written in ONE transaction.
 - Imports must be safe to run again: staging will run them many times, production once,
   on the day, from a fresh snapshot.
