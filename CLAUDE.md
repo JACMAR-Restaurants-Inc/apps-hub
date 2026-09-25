@@ -22,14 +22,21 @@ say what it used to say. A file that disagrees with reality is worse than none.
 - Staging reads a SNAPSHOT of the production spreadsheets. It never writes to them,
   never runs `clasp`, and never emails a real person (§4).
 - Built: `@hub/core`, `@hub/rbac` (`can()`), `@hub/email` (routing), `@hub/db` (schema
-  and migrations), the Next.js shell, CI. Code is at
+  and migrations), the Next.js shell, CI, and Google sign-in with Better Auth (a
+  placeholder home page shows who you are and your roster standing). Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
-  Data API off. Migrations 0000–0001 are applied and the tables are empty.
+  Data API off. Migrations 0000–0002 are applied; the roster tables are empty.
   Connection strings live only in `.env.local` (see §6).
-- Not built yet: Better Auth, the roster loader, the import scripts, i18n, UI tokens,
-  every screen. Accounts not created yet: Vercel, production Supabase, domain, OAuth
-  client, Gmail service account.
+- Google Cloud project `apps-hub`: consent screen External, one web client
+  `apps-hub-staging` (redirect `http://localhost:3000/api/auth/callback/google`),
+  but left in "Testing", so on staging only listed test users can sign in. That
+  is fine for the demo. Publishing needs a home page and privacy policy on our domain,
+  so it is a cutover step (`docs/CUTOVER.md`), not a staging one. The 7-day token
+  limit in Testing does not matter: we use Google only at sign-in, never its refresh tokens.
+- Not built yet: the roster loader, the import scripts, i18n, UI tokens,
+  every screen. Accounts not created yet: Vercel, production Supabase, domain,
+  production OAuth client, Gmail service account.
 
 ## 2. Layout
 
@@ -82,7 +89,18 @@ trim, and strip dots ONLY for Gmail (Yahoo and Hotmail dots are significant).
 
 **Sign-in accepts any Google account.** Floor managers work for McDonald's directly and
 cannot have Workspace accounts (RBAC §2); many use personal Gmail. Never restrict
-sign-in to a domain. The roster decides who gets in.
+sign-in to a domain (no `hd` on the Google provider; a test fails if one appears).
+
+**Signing in grants nothing; the roster decides what you see.** Anyone with a Google
+account can sign in, because someone not yet on the roster must be signed in to ask
+for access (RBAC §2). So sign-in is not refused for being off the roster: pages ask
+`getViewer()` (`apps/web/src/lib/viewer.ts`), which reads the roster fresh on every
+request, so deactivation takes effect on the next click. Better Auth's tables live in
+the `identity` schema (Supabase owns `auth`). Its `users.email` is Google's address as
+given, because Better Auth finds returning people by Google account id; normalise it
+before joining to the roster. Google's tokens are blanked before they are stored: we
+never call Google after sign-in. This used to say "The roster decides who gets in",
+which read as "refuse sign-in", and that would have locked out access requests.
 
 **The database is only reached from the server.** Supabase's Data API is OFF, and every
 table enables RLS with no policies as a backstop, so the Data API roles see nothing
@@ -121,7 +139,10 @@ is how sign-in recognises people, and approval day should be one setting, not an
     npm run db:generate   after any schema change; commit the migration
     npm run db:migrate    staging first, always
 
-drizzle-kit does not read `.env.local`. Load it first:
+There is one `.env.local`, at the repo root. `next.config.ts` loads it with
+`process.loadEnvFile`, because Next looks only in `apps/web`, and `@next/env`'s
+`loadEnvConfig` is a silent no-op there: Next has already called it and it returns
+the cached result. drizzle-kit does not read it at all. Load it first:
 `set -a && . ./.env.local && set +a && npm run db:migrate`. In Supabase, go to
 Connect → Direct → URI. `DATABASE_URL` is the **Transaction pooler** (6543).
 `DIRECT_URL` is the **Session pooler** (5432), not "Direct connection": that one is
@@ -134,5 +155,6 @@ match the schema.
 
 **Mutation-check new tests.** Break the rule, confirm a test fails, restore. It is how
 the time-zone gap above was found. Done for the break-glass admin, fail-closed, store
-holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, and RLS on
-every table.
+holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, the
+sign-in rules (no domain restriction, Google only, no Google tokens stored), and RLS
+on every table.

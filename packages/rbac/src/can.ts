@@ -52,7 +52,7 @@ export interface Decision {
   reason: string;
 }
 
-export function isSystemAdmin(roster: RosterSnapshot, email: string): boolean {
+export function isSystemAdmin(roster: Pick<RosterSnapshot, 'admins'>, email: string): boolean {
   const e = normalizeEmail(email);
   if (roster.admins.size === 0) return e === BREAK_GLASS_ADMIN;
   return roster.admins.has(e);

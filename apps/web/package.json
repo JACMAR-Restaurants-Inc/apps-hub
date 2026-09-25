@@ -9,9 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@hub/core": "^0.0.0",
+    "@hub/db": "^0.0.0",
+    "@hub/rbac": "^0.0.0",
+    "better-auth": "^1.7.6",
     "next": "16.3.6",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
