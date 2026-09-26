@@ -185,7 +185,8 @@ export async function requestAccess(deps: AccessDeps, email: string, appKey: str
   return 'pending';
 }
 
-export type AdminOutcome = 'done' | 'changed' | 'invalid';
+/** 'done_unsent': granted, but the email to the person did not go (the page says to tell them). */
+export type AdminOutcome = 'done' | 'done_unsent' | 'changed' | 'invalid';
 
 // Every admin write checks, under a row lock, that the row is still in the state the
 // admin saw, or answers 'changed': two admins, or a page left open, cannot grant over a
@@ -242,7 +243,7 @@ export async function grantAccess(
   const sent = await deps.send({ ...mail, to: [email] });
   if (sent.sent) await store.updateMember(appKey, email, { notifiedOn: new Date() });
   await store.audit({ actorEmail: admin, app: appKey, event: 'notify', targetEmail: email, detail: { mail: 'granted', ...sent } });
-  return 'done';
+  return sent.sent ? 'done' : 'done_unsent';
 }
 
 /** Change the role or restaurants of somebody who has access. Emails nobody; the person's switch is untouched. */

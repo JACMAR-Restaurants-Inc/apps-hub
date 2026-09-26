@@ -1,0 +1,1172 @@
+/*
+ * JM Portal's stylesheet, taken whole from the Apps Script portal: RBAC/portal/Ui.html,
+ * lines 14-1178, as of RBAC library v30 / Portal @119 (2026-09-25). Every value and
+ * comment is the old portal's, so the design notes in RBAC/CLAUDE.md §44-§84 still
+ * explain it. The one change: the mark's image, a template value there, is
+ * /brand/jm-portal-mark.png here. Change it here from now on, and say why in a comment.
+ */
+  /* ------------------------------------------------------------------
+     The signed-in shell: the owner's blue dashboard, from Figma
+     ("Jacmar Portal Dashboard", node 1:2), 2026-09-10.
+
+     LIGHT ONLY. The Figma has no dark version, and a palette nobody designed is
+     worse than none. The theme switch left the account menu with it; the door
+     was already light only, so the portal now has one appearance throughout.
+
+     The values are the Figma's, darkened where white or grey text on them read
+     under 4.5:1. Every pair was computed, not eyeballed:
+       white on --stat-blue  #1A6BD6  5.10    white on --stat-pink   #CF3A56  4.78
+       white on --stat-green #1B7F62  4.93    white on --stat-orange #B5561C  4.87
+       white on --gold       #1668E3  5.09    --text-dim on --dark-bg         4.67
+     The Figma's own values went as low as 2.47:1, white on its orange.
+
+     THE TOKEN NAMES ARE HISTORICAL. --gold is the primary blue and --dark-bg is
+     the page ground. Renaming them would touch every roster rule for no
+     behavioural gain; redefining the VALUES moves the whole shell in one edit.
+     Read them as roles, not colours.
+
+     An app's mark is the app's identity, not the hub's: Cash Balancing draws its
+     own logo (.applogo below), and an app without one gets a lettered square in a
+     colour of its own from Portal.gs. --mark is only the square's fallback. */
+  :root {
+    --gold:#1668E3; --dark-gold:#1A5FC2; --red:#B42D46;
+    --charcoal:#FFFFFF; --dark-bg:#F3F6FB; --card-bg:#FFFFFF;
+    --card-bg-light:#F7F9FC; --border:#E4EAF2; --line2:#EDF1F6;
+    --gutter:16px;
+    --text:#25344B; --text-muted:#4F5D70; --text-dim:#627081;
+    --green:#1E7A58; --orange:#A4521C; --blue:#1668E3;
+    --mark:#FFC72C; --tint:#EAF2FF;
+    --btnBg:#1668E3; --btnInk:#FFFFFF;
+    --okSoft:#E8F6EF; --attSoft:#FDECEF; --warnSoft:#FFF3E8; --offSoft:#EEF1F5;
+    --stat-blue:#1A6BD6; --stat-pink:#CF3A56; --stat-green:#1B7F62; --stat-orange:#B5561C;
+  }
+
+  * { box-sizing: border-box; }
+  /* An element with the hidden attribute stays hidden whatever display a class gives
+     it. The dashboard's filter hides cards and sections this way, and .app is flex. */
+  [hidden] { display:none !important; }
+  html, body {
+    margin:0; padding:0; min-height:100vh;
+    font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+    font-size:14px; line-height:1.5;
+    background:var(--dark-bg); color:var(--text);
+  }
+  body { display:flex; flex-direction:column; }
+  body.shell { font-family:Inter,'Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif; }
+  a { color:var(--gold); text-decoration:none; }
+  :focus-visible { outline:2px solid var(--gold); outline-offset:2px; border-radius:4px; }
+
+  /* 620px is a reading measure, and it is right for prose - past roughly 75
+     characters a line is measurably slower to read. It is wrong for a table,
+     which is why the roster opts out. */
+  .wrap { width:100%; max-width:620px; margin:0 auto; padding:20px 18px 30px; }
+  .stack { display:flex; flex-direction:column; gap:18px; }
+
+  /* ------------------------------------------------------------ the bar
+     A top bar, not the Figma's sidebar: the owner's call after seeing both,
+     2026-09-10. A bar can hold no menu at all, and a floor manager has one page,
+     so theirs is the logo and their account. The menu appears once there is
+     somewhere else to go - a sidebar cannot do that without an empty column.
+
+     Mobile first, like the door: the phone renders the base rules, and the
+     inline menu is what gets ADDED at 761px. Below that the same <nav> drops
+     down from under the bar behind the menu button - one element, not a copy
+     per width that could drift. */
+  .bar { position:sticky; top:0; z-index:20; flex-shrink:0;
+         background:var(--charcoal); border-bottom:1px solid var(--border); }
+  /* FULL WIDTH, owner's call 2026-09-10: no cap, on the bar or the page. They
+     share one gutter instead, so the logo still sits directly over the left edge
+     of the first card however wide the window is. The gutter widens with the
+     screen rather than the content narrowing. */
+  .barin { position:relative; width:100%; height:60px; padding:0 var(--gutter);
+           display:flex; align-items:center; gap:10px; }
+  /* Interactive only where it leads somewhere. A manager has one screen, so
+     their brand is a plain div - a control that does nothing is worse than no
+     control. An admin can be on the directory, so theirs is a button home. On an
+     error page there is no session to return to, so it is a link that restarts. */
+  .brand { display:flex; align-items:center; gap:10px; color:var(--text); }
+  button.brand, a.brand {
+    background:none; border:0; padding:0; margin:0; color:inherit;
+    font:inherit; text-align:left; cursor:pointer; text-decoration:none;
+  }
+  /* JM PORTAL's own mark, owner's design 2026-09-10: an open door with a keyhole,
+     and the apps through the doorway. It replaced the Figma's J square and the
+     stacked "Jacmar / Restaurants Inc.", which named the company rather than the
+     product. The company keeps the footer and the door's lockup.
+
+     The image is designs/branding/portal-logo.png, snapped to five exact colours
+     (#0B2556 #1668E3 #1A5FC2 #8AB8FF #9DB0CE), trimmed to the artwork and reduced
+     to a 96px indexed PNG - 3x the 32px it is drawn at. It comes from PORTAL_ICON
+     in Portal.gs, the same constant the browser tab uses, printed raw because it
+     is our own constant and the escaping printer would mangle a data: URL. In
+     the stylesheet, not a src attribute, for the same reason as .applogo. No tile
+     behind it: the door is its own shape. The test decodes it.
+
+     The NAME is text, not part of the image: it stays sharp at any zoom, and it is
+     set in the page's own face. Two tones, the mark's two: navy for JM, the
+     primary blue for Portal (5.09:1 on the white bar). */
+  .pmark { display:block; width:32px; height:32px; flex:none;
+           background:url("/brand/jm-portal-mark.png") center / contain no-repeat; }
+  .pname { font-size:17px; font-weight:600; letter-spacing:-.01em; line-height:1;
+           white-space:nowrap; color:var(--gold); }
+  .pname b { font-weight:700; color:#0B2556; }
+  .bar .sp { flex:1; }
+
+  .menubtn { width:40px; height:40px; flex:none; cursor:pointer;
+             display:flex; align-items:center; justify-content:center;
+             background:var(--card-bg); color:var(--text-muted);
+             border:1px solid var(--border); border-radius:8px; }
+  .menubtn svg { width:18px; height:18px; flex:none; fill:none; stroke:currentColor;
+                            stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+  .tnav { display:none; position:absolute; top:100%; left:0; right:0; z-index:21;
+          flex-direction:column; gap:4px; padding:8px 14px 14px;
+          background:var(--charcoal); border-bottom:1px solid var(--border);
+          box-shadow:0 20px 30px -20px rgba(16,24,40,.4); }
+  .bar.open .tnav { display:flex; }
+  .scrim { display:none; position:fixed; inset:0; z-index:19; background:rgba(16,24,40,.38); }
+  .bar.open + .scrim { display:block; }
+  .navl { display:flex; align-items:center; gap:10px; width:100%; height:42px; padding:0 12px;
+          font:inherit; font-size:14px; font-weight:500; color:var(--text-muted);
+          background:none; border:1px solid transparent; border-radius:8px;
+          cursor:pointer; white-space:nowrap; text-align:left; }
+  .navl:hover { background:var(--card-bg-light); }
+  .navl[aria-current="page"] { background:var(--tint); border-color:#D6E6FF; color:var(--dark-gold); }
+  .navl .count { margin-left:auto; padding:1px 8px; border-radius:999px;
+                 font-size:12px; font-weight:700; background:var(--attSoft); color:var(--red); }
+
+  @media (min-width:761px) {
+    .barin { height:64px; gap:12px; }
+    .menubtn { display:none; }
+    .bar.open + .scrim { display:none; }
+    .tnav, .bar.open .tnav {
+      display:flex; position:static; flex-direction:row; align-items:center; gap:4px;
+      margin-right:8px; padding:0; border:0; box-shadow:none; background:none;
+    }
+    .tnav .navl { width:auto; height:40px; gap:8px; }
+    .tnav .navl .count { margin-left:4px; }
+  }
+
+  .sq {
+    background:var(--mark); color:#1A1A1A; font-weight:700;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .sq.s28 { width:28px; height:28px; border-radius:8px; font-size:12px; letter-spacing:-.02em; }
+  .sq.s40 { width:40px; height:40px; border-radius:8px; font-size:15px; letter-spacing:-.02em; }
+  .sq.s64 { width:64px; height:64px; border-radius:16px; font-size:23px; letter-spacing:-.02em; }
+
+  /* An app's own logo, where it has one, in place of the lettered square. NO TILE
+     BEHIND IT: Cash Balancing's mark carries its own ring, and a square around a
+     ring is a second container saying the same thing (its BRAND.md, section 5).
+
+     The image is safe-count's --brand-mark for LIGHT grounds, copied byte for
+     byte: an 8-colour 102px PNG, colours snapped to #1B5E37 / #192821 / #6ABA8B /
+     #FFFFFF. In the stylesheet rather than printed into a src attribute, so the
+     template's contextual escaping never gets a chance to rewrite a data: URL.
+     The two variants arrived from the generator with their names swapped once,
+     so the test decodes this and reads the palette rather than trusting a name. */
+  .applogo { display:block; width:40px; height:40px; flex:none;
+             background:center / contain no-repeat; }
+  /* GitHub's own mark, mark-github from Primer Octicons 19.36.0 (MIT), copied as
+     designs/branding/github-mark-24.svg - not redrawn, because a brand mark redrawn by
+     hand is how it ends up subtly wrong. Black, alone, unstretched: GitHub's logo
+     guidelines allow "a permitted GitHub logo to link to GitHub" in white, black, or
+     in a few cases grey or green, and forbid recolouring it or adding design elements
+     - which is why it has no tile behind it. The test decodes it and compares the
+     shape with that file. */
+  .applogo.github { background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjMDAwMDAwIiBkPSJNMTAuMjI2IDE3LjI4NGMtMi45NjUtLjM2LTUuMDU0LTIuNDkzLTUuMDU0LTUuMjU2IDAtMS4xMjMuNDA0LTIuMzM2IDEuMDc4LTMuMTQ0LS4yOTItLjc0MS0uMjQ3LTIuMzE0LjA5LTIuOTY1Ljg5OC0uMTEyIDIuMTExLjM2IDIuODMgMS4wMS44NTMtLjI2OSAxLjc1Mi0uNDA0IDIuODUzLS40MDQgMS4xIDAgMS45OTkuMTM1IDIuODA3LjM4Mi42OTYtLjYyOSAxLjkzMi0xLjEgMi44My0uOTg4LjMxNS42MDYuMzYgMi4xNzkuMDY3IDIuOTQyLjcyLjg1NCAxLjEwMSAyIDEuMTAxIDMuMTY3IDAgMi43NjMtMi4wODkgNC44NTItNS4wOTggNS4yMzQuNzYzLjQ5NCAxLjI4IDEuNTcyIDEuMjggMi44MDd2Mi4zMzZjMCAuNjc0LjU2MSAxLjA1NiAxLjIzNS43ODYgNC4wNjYtMS41NSA3LjI1NS01LjYxNSA3LjI1NS0xMC42NDZDMjMuNSA2LjE4OCAxOC4zMzQgMSAxMS45NzggMSA1LjYyIDEgLjUgNi4xODguNSAxMi41NDVjMCA0Ljk4NiAzLjE2NyA5LjEyIDcuNDM1IDEwLjY2OS42MDYuMjI1IDEuMTktLjE4IDEuMTktLjc4NlYyMC42M2EyLjkgMi45IDAgMCAxLTEuMDc4LjIyNGMtMS40ODMgMC0yLjM1OS0uODA4LTIuOTg3LTIuMzEzLS4yNDctLjYwNy0uNTE3LS45NjYtMS4wMzQtMS4wMzMtLjI3LS4wMjMtLjM1OS0uMTM1LS4zNTktLjI3IDAtLjI3LjQ1LS40NzEuODk4LS40NzEuNjUyIDAgMS4yMTMuNDA0IDEuNzk3IDEuMjM1LjQ1LjY1MS45MjEuOTQzIDEuNDgzLjk0My41NjEgMCAuOTItLjIwMiAxLjQzNy0uNzE5LjM4Mi0uMzgxLjY3NC0uNzE4Ljk0NC0uOTQzIi8+PC9zdmc+"); }
+  /* The Golden Arches on the @mcd card. The brand file's own sizing (§5): at least
+     15px tall, and clear space of width x 0.36 on all four sides, with nothing
+     inside it. At 22px wide the mark is 19px tall and needs 7.92px; the 40px box
+     leaves 9px across and 10.5px down. If the width changes, recompute. No plate,
+     no tile - it sits on the card. */
+  .applogo.arches { display:flex; align-items:center; justify-content:center; }
+  .applogo.arches svg { display:block; width:22px; height:auto; }
+  /* Project Management's own mark, the three arcs its sign-in page and browser tab
+     show. Built by designs/branding/mkprojects.py: the ghost white square behind the
+     ring dropped, colours snapped to the app's own #3B82F6 / #10B981 / #1F2741. The
+     test decodes it and reads the palette. */
+  .applogo.projects { background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAABHVBMVEUAAAAQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEQuYEfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0EfJ0E7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvY7gvZTJLsrAAAAX3RSTlMACBAYICgwOEBIUFhgaHB4gIiQmKCosLjAyNDY4Ojw/wgQGCAoMDhASFBYYGhweICIkJigqLC4wNDY4Ojw+P8IEBggKDA4QEhQWGBocHiAiJCYoKiwuMDI0Njg6PD4/69IMLQAAAQmSURBVHja7ZhpW+IwEMc5RFEB7xNLFYUV8QBdlcugokVURPGAVez3/xiLUDBJp6Fp4rOPz/p/OST8mMxkZoLL9aPvrdPSpVYua5el06/5+nL1sdnS+2o161VNKkq7a+igGrVLOYSL+zedoddaSRhx3dQH6uVKCHHzqtvSn2vnXthEdDDOvLlo6Fx6Pudn1HRevVc5EaWm7kAvXM5UWrojtcpfeVR92T2y4qMuoAd7VepFF9KjHUZD17+awmI0Hm6vtIvz0oVWua03BCjPVnXwXitSodNqVhXhbkDuwrvqmkUPqMPr2fcFCvr7/Zn1hrP7d+5EBi5h/Yzt/DngzRNzh7m6aoMTsmyKzQtzPd0EH4u2rtYTV349kItv7RaiKrmP3cNKRMQ5GhGRlm9F2z+ppfEU7isMMnDjnTMG5kvLxgFoDYfd9LK78cnexlLltuKgYbfHgsrN1dl/MrFvbCZi0r5sKDARGvPQ1mQWtZVPrclADC+oH4pMEta1I2QoHxdnBNWelnBn+gyECsJnFlA/tYCdFcKUEWR4IxhEHevbMzgEJcQgEzhDne/nFcFA+2KQRQKi9qKyS0KOxCArJCRgmI9JyKEYJExC5gzzCQnZE4PMkhCla42TDLQhBhklIaqvY90mGVnRexIhIeMdY5qEHIhCqPSapK/7h3ZEIVNQ5LMkZFNmWWlrsWPMS427y+UnIWEog9eFCz2Uw1QGC3cUHwmJ/DNIVPJxdSEFyYEfISErX5LC4yRkCSrC26KQSRVoWweSy8o8CZnuGPckF0iFhAQ7xgSSehup5FL9HWuUguxKDUmvyeeknhfVfpcNMxV59EtmY5wy7FtI4iSxAIakPQlTEBSTdt2NovKhQyRt8lqiIDP9T+jzcl5aqJLyeVrm5ohyDuu9h7qIRlvsKkW74rC2zNGOBLEP12kI2pIwQrTD7sY/pq8KOomJZ1Zv5rJ4PXyEhbuE+RSTI9TT9MBM4ezDQysmR0LUkmjBRMly+eIzM8KmRbsmCNdLeMR0Vqo6al6WMVNQkv9VbX7+4IoBEHRoKzDeeYCheKGlexClYGOuCEYABva4JnQMUVAuucoiuANhCGHMD2ZFcyAF5dOWbcw/rYAI48EAKX6CLFQ43qcLjXt8ZjGiWmjFY+17AjGUIzABRbWW4mOd8DaLgj++pxkINTLCzpQdJmWLdS8+Gf5B+cj0JW8kmici4AfYiwFXAqx4DNu5v/G8NSQN/rVBvBS89grR+rEl5Dc4uOPTidt2TU1ZQfYtenkvHOM83SGegSFGJQvBjHkvZzPdLUAQoygPQYjwGP9YEE1bnhYUeSXkbIpaT1HeZPszn4cqveGg2+VUq0k80TJYBxtaxsI963eJKbp10H2D58j/qNyh7uSwNCVK6DkU20wA/yH4xkZ9rh99T/0FuB418wIZ6FUAAAAASUVORK5CYII="); }
+  .applogo.cashbalancing { background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGYAAABmCAMAAAAOARRQAAAAD1BMVEUAAAAbXjcZKCFquov///8Yp1VcAAAABXRSTlMA/////xzQJlIAAAJFSURBVHja7ZrbcsQgCIYR8/7P3Glm25w4/IA6nWm42w34xYhAMESvvPL3pJ1kPmESq5myBDIGJI85mOSMNIiDDFIGwfYlUMQ2zYka5kCqVfyCT4m5VpiDUOocCGKolCi/mG3zNuwISt+2Xuf4c/mWKkfVOii9HxxKchxK259Ytx4bARhVRVgYWzdFOS9N7178h4K6iem7B/Q6xksr/cKhOMe6eF6Pbno0NpSD2Rfm5AjJ5+KsW/849OaFyezCXYKANxlvZ/iJbgM8wN3nSGFxrH+Lb0E/RCCJ4Kaej0RwBagnvlili2gnJhOtZiWtcnLFMTPevPIY5jQGL3x4F8o9NRjDjHMgDGtiXvIxMCXEsf/gHIaDmEWz+RmMNLivW8ConpbHyI7Lxt9JDGkDSn9SDvPZISiGhHvCMCSZaismBTvMoeU4KWNIuicIQ6Kp4uZi7IaigBL2RQyJ94RgSDYVMMfvKIZVUwfDLqYpGfI26gOj6rr5hvMYNpPYHaMn/ztG/+WVHMbtPjDG3Lw6TV9jCaPp2uVgl0XGWMpNq27HY4xqp45x3ggWYE5zNCk3F4hS7OnonhbFWNOxtmeQcrmiU57BRtT1uj9PYz/fPHWzzRSn5BjWGwphkIZJHdPyDbUwJq1gl//xhgkEUUFwC6RVMIV+NzP4flbq3jPDnMJZBDPMCZysPFo/OCZ0TlQ89ptokDRaY7Lq3DN4Alw5Ll5zJn3pbBaVii3UOR8mnAYb/p1Fays+5gBAg5u90z+0mbQer/wj+QJyUBCG7PgtPgAAAABJRU5ErkJggg=="); }
+
+  /* ------------------------------------------------------- the account
+     The signed-in address, the language and sign out, behind the initials at
+     the right of the bar. The address is wanted about once a month - usually to
+     answer "am I on the right Google account?" - so it opens on demand rather
+     than taking a line of every page. */
+  .acct { position:relative; flex:none; }
+  .acctbtn { display:flex; align-items:center; gap:8px; padding:3px; cursor:pointer;
+             font:inherit; font-size:13px; font-weight:600; color:var(--text-muted);
+             background:var(--card-bg-light); border:1px solid var(--border); border-radius:999px; }
+  .acctbtn:hover { border-color:#C7D6EA; }
+  .acctbtn .role, .acctbtn .car { display:none; }
+  .acctbtn .car { width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:2; }
+  .av { width:32px; height:32px; border-radius:50%; flex:none;
+        display:flex; align-items:center; justify-content:center;
+        background:var(--gold); color:#FFFFFF; font-size:12px; font-weight:700; letter-spacing:.02em; }
+  @media (min-width:761px) {
+    .acctbtn { padding:4px 12px 4px 4px; }
+    .acctbtn .role, .acctbtn .car { display:inline; }
+  }
+  .acctcard {
+    position:absolute; top:48px; right:0; z-index:30; width:290px; max-width:calc(100vw - 28px);
+    background:var(--card-bg); border:1px solid var(--border); border-radius:12px;
+    padding:14px 16px; box-shadow:0 18px 44px -14px rgba(38,56,87,.3); text-align:left;
+  }
+  .acctcard .lbl { font-size:12px; color:var(--text-dim); margin:2px 0 0; }
+  /* The whole point is reading the address, so it wraps rather than truncating. */
+  .acctcard .addr { font-size:13.5px; font-weight:600; color:var(--text); margin:0; line-height:1.4;
+                    overflow-wrap:anywhere; }
+  .acctdiv { height:1px; background:var(--line2); margin:12px -16px 10px; }
+  .optrow { display:flex; align-items:center; justify-content:space-between;
+            gap:14px; font-size:13.5px; font-weight:500; color:var(--text-muted); padding:4px 0; }
+  .optseg { display:flex; gap:2px; background:var(--card-bg-light); border:1px solid var(--border);
+            border-radius:9px; padding:3px; flex:none; }
+  .optseg button {
+    display:flex; align-items:center; justify-content:center; width:44px; height:28px;
+    font:inherit; font-size:12.5px; font-weight:700; letter-spacing:.02em;
+    border:0; border-radius:6px; background:none; color:var(--text-muted); cursor:pointer;
+  }
+  .optseg button.on { background:var(--gold); color:#FFFFFF; }
+  .acctout {
+    display:flex; align-items:center; gap:10px; width:100%; font:inherit; font-size:13.5px;
+    font-weight:500; color:var(--text-dim); text-decoration:none; padding:8px 0 2px;
+  }
+  .acctout:hover { color:var(--red); }
+  .acctout svg { width:17px; height:17px; flex:none; fill:none; stroke:currentColor;
+                 stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* --------------------------------------------------------- app parts */
+  .h1 {
+    font-size:20px; font-weight:700; margin:0; letter-spacing:-.01em;
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .sechead {
+    font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--text-dim); margin:0;
+  }
+  .soon {
+    display:inline-block; font-size:12px; font-weight:600;
+    color:var(--text-dim); background:var(--card-bg-light);
+    border:1px solid var(--border); border-radius:7px; padding:7px 12px; white-space:nowrap;
+  }
+  @media (min-width:640px) {
+    .wrap { padding:30px 22px 40px; }
+    .h1 { font-size:24px; }
+  }
+
+  /* ------------------------------------------------------------ the page
+     The dashboard and the access directory run the full width, on the bar's
+     gutter, so all three edges line up. */
+  .page { width:100%; padding:18px var(--gutter) 28px;
+          display:flex; flex-direction:column; gap:14px; }
+  .welcome { display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
+  .welcome h1 { margin:0; font-size:21px; font-weight:600; letter-spacing:-.01em; color:var(--text); }
+  .welcome p { margin:2px 0 0; font-size:14px; color:var(--text-dim); }
+  .welcome .grow { flex:1; }
+
+  .pbtn { display:inline-flex; align-items:center; justify-content:center; gap:8px;
+          padding:10px 16px; border:0; border-radius:8px; cursor:pointer; text-decoration:none;
+          font:inherit; font-size:13.5px; font-weight:600;
+          background:var(--btnBg); color:var(--btnInk); }
+  .pbtn:hover { background:#125BCB; }
+  .pbtn svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; }
+  .welcome .pbtn { width:100%; }
+  .sbtn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; cursor:pointer;
+          font:inherit; font-size:13.5px; font-weight:600; white-space:nowrap; text-decoration:none;
+          color:var(--dark-gold); background:var(--card-bg-light);
+          border:1px solid var(--border); border-radius:7px; }
+  .sbtn:hover { background:var(--tint); border-color:#C7D6EA; }
+
+  /* Only numbers that can change. The Figma's "Account status: Active" and
+     "Admin view: Enabled" could each only ever say one thing to the person
+     reading them - somebody inactive never reaches this page, and nobody but an
+     admin sees the admin card - so they were decoration shaped like data. */
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stats .stat:last-child:nth-child(odd) { grid-column:1 / -1; }
+  .stat { min-height:112px; padding:12px 14px; border-radius:10px; color:#FFFFFF;
+          display:flex; flex-direction:column; box-shadow:0 4px 14px rgba(38,56,87,.08); }
+  /* The two that open something (§63). A button, so it needs telling not to look like
+     one - and telling that it IS one: the pointer, a lift on hover, and a focus ring
+     that shows on the card rather than inside it. */
+  button.stat { width:100%; font:inherit; text-align:left; border:0; cursor:pointer;
+                transition:transform .12s, box-shadow .12s; }
+  button.stat:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(38,56,87,.16); }
+  button.stat:active { transform:translateY(0); }
+  button.stat:focus-visible { outline:3px solid var(--btnBg); outline-offset:2px; }
+  @media (prefers-reduced-motion:reduce) { button.stat { transition:none; }
+                                           button.stat:hover { transform:none; } }
+  .stat.blue   { background:var(--stat-blue); }
+  .stat.pink   { background:var(--stat-pink); }
+  .stat.green  { background:var(--stat-green); }
+  .stat.orange { background:var(--stat-orange); }
+  .stat .k { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px;
+             font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+  .stat .tag { padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.2);
+               font-size:12px; font-weight:600; letter-spacing:.04em; }
+  .stat .v { margin-top:8px; font-size:23px; font-weight:700; line-height:1.15;
+             font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .stat .s { font-size:13px; margin-bottom:10px; }
+  .stat .rule { margin-top:auto; height:1px; background:rgba(255,255,255,.35); }
+
+  .row { display:grid; grid-template-columns:minmax(0, 1fr); gap:14px; align-items:start; }
+  .panel { background:var(--card-bg); border:1px solid var(--border); border-radius:10px;
+           padding:14px; box-shadow:0 4px 14px rgba(38,56,87,.06); }
+  .ph { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px 12px; }
+  .ph h2 { margin:0; font-size:12px; font-weight:700; letter-spacing:.08em;
+           text-transform:uppercase; color:#3E4B5E; }
+  .ph p { margin:3px 0 0; font-size:13px; color:var(--text-dim); max-width:62ch; }
+  .ph .end { margin-left:auto; }
+  .ptag { padding:2px 9px; border-radius:999px; white-space:nowrap; text-transform:uppercase;
+          font-size:12px; font-weight:600; letter-spacing:.04em;
+          background:var(--warnSoft); color:var(--orange); }
+
+  /* ------------------------------------------------------------- the apps
+     CARDS, not rows - owner's call 2026-09-10, "just like we had before" (§40).
+     And the same rule as then: each card is capped at 360px, so one app is one
+     card-sized card rather than a banner across the page. auto-fit drops the
+     empty tracks and justify-content:start packs the row from the left, so cards
+     are added left to right as apps arrive. min(280px, 100%) lets a card shrink
+     to the screen on a phone rather than pushing the page sideways.
+
+     On the page's ground rather than inside a panel: a white card inside a white
+     panel needs a border just to exist. */
+  .appsec .ph { padding:0 2px; }
+  .appgrid { display:grid; gap:14px; margin-top:12px; justify-content:start;
+             grid-template-columns:repeat(auto-fit, minmax(min(280px, 100%), 360px)); }
+  /* ON A PHONE, ONE CARD PER ROW, FULL WIDTH (§58). The 360px cap above exists for
+     the laptop, where a lone card stretched across 1560px became a banner (§40) -
+     but on a 412px phone it left the card short of the right edge with an empty
+     strip beside it, which is what the owner saw. One column, no cap, so the card
+     runs to the gutter as the mockups draw it. The summary cards are untouched:
+     they share a row on purpose. */
+  @media (max-width:760px) {
+    .appgrid { grid-template-columns:1fr; }
+  }
+  .app { display:flex; flex-direction:column; gap:12px; padding:18px;
+         background:var(--card-bg); border:1px solid var(--border); border-radius:12px;
+         box-shadow:0 4px 14px rgba(38,56,87,.06); transition:border-color .15s, box-shadow .15s; }
+  .app:hover { border-color:#C7D6EA; box-shadow:0 12px 26px -16px rgba(38,56,87,.35); }
+  .apptop { display:flex; align-items:center; gap:12px; }
+  .apptop h3 { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:0;
+               font-size:15.5px; font-weight:600; color:#344054; }
+  .app .bl { flex:1; margin:0; font-size:13.5px; line-height:1.5; color:var(--text-dim); }
+  /* THE THREE STATES, in the foot of every card and in the same place on each:
+     Sign in, Request access, and Requested. The action spans the card - one clear
+     target per app, and on a phone a thumb-sized one.
+
+     Sign in is FILLED, because on an app you hold it is the action. Request access
+     is OUTLINED, so the two read apart at a glance on a page holding both. */
+  .appfoot { display:flex; flex-direction:column; gap:8px; }
+  .appfoot .soon { display:block; text-align:center; }
+  .btn-go { display:flex; align-items:center; justify-content:center; gap:6px; width:100%;
+            padding:10px 14px; border:0; border-radius:8px; cursor:pointer; text-decoration:none;
+            font:inherit; font-size:13.5px; font-weight:600; background:var(--btnBg); color:var(--btnInk); }
+  a.btn-go { color:var(--btnInk); }
+  .btn-go:hover { background:#125BCB; }
+  .btn-ask { display:flex; align-items:center; justify-content:center; width:100%; padding:9px 14px;
+             border:1px solid #BCD2F3; border-radius:8px; background:var(--card-bg); cursor:pointer;
+             font:inherit; font-size:13.5px; font-weight:600; color:var(--dark-gold); }
+  .btn-ask:hover { background:var(--tint); }
+  .btn-x { padding:9px 12px; border:0; background:none; cursor:pointer;
+           font:inherit; font-size:13.5px; font-weight:600; color:var(--text-dim); }
+  /* Waiting is the one state a person comes BACK to check, so it is the one with a
+     colour of its own. #A4521C on #FFF3E8 is 5.06:1. */
+  .app.pending { background:#FFFDF9; border-color:#F1DFC7; }
+  .waiting { display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:8px;
+             background:var(--warnSoft); color:var(--orange); font-size:13.5px; font-weight:600; }
+  .waiting svg { width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
+  .waiting small { margin-left:auto; font-size:12px; font-weight:500; white-space:nowrap; }
+  .gone, .sent, .failed, .sending { margin:0; font-size:12.5px; color:var(--text-dim); }
+  .sent { color:var(--green); }
+  .failed { color:var(--red); }
+  .askbox { display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:8px;
+            background:var(--card-bg-light); border:1px solid var(--border); }
+  .askbox p { margin:0; font-size:13px; color:var(--text-muted); }
+  .askbox label { display:flex; flex-direction:column; gap:4px; font-size:12.5px; font-weight:600; color:var(--text-muted); }
+  .askbox input { font:inherit; font-size:16px; font-weight:400; padding:8px 10px; color:var(--text);
+                  background:#FFFFFF; border:1px solid #CBD5E1; border-radius:7px; }
+  .askbox .hint { font-size:12px; font-weight:400; color:var(--text-dim); }
+  /* A refused number (section 65). Two selectors deep, so it wins over .askbox p. */
+  .askbox .askerr { color:var(--red); font-weight:600; }
+  .askrow { display:flex; gap:8px; }
+  .askrow .btn-go { flex:1; }
+
+  /* SIXTEEN PIXELS, EVERY FIELD SOMEBODY TYPES IN (§60). Safari on an iPhone zooms
+     the page in whenever a field is focused whose text is smaller than 16px, and it
+     never zooms back out - so a manager who tapped the search box stayed zoomed in
+     afterwards. The cure is the size, not `maximum-scale=1`, which would stop
+     everybody pinching to zoom anywhere on the page. Android does not do this.
+     A test holds every field at 16 or more, so a new one cannot bring it back. */
+
+  /* ------------------------------------------------ search and categories
+     One row above the apps: the search box, then a button per category on this
+     page, "All" first. Both apply together, in the page, as you type. */
+  .finder { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+  .searchbox { position:relative; flex:1 1 260px; max-width:420px; display:block; }
+  .searchbox svg { position:absolute; left:11px; top:50%; width:17px; height:17px; transform:translateY(-50%);
+                   fill:none; stroke:var(--text-dim); stroke-width:2; stroke-linecap:round; pointer-events:none; }
+  .searchbox input { width:100%; padding:10px 12px 10px 36px; font:inherit; font-size:16px; color:var(--text);
+                     background:var(--card-bg); border:1px solid var(--border); border-radius:10px; }
+  .searchbox input::placeholder { color:var(--text-dim); }
+  .searchbox input:focus { border-color:var(--gold); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  /* The category picker wears the directory's filter (§59), which is the shape the
+     owner asked for. It keeps .storefilter's own rules and only sets its width. */
+  .catpick { flex:0 0 auto; max-width:100%; }
+  .nomatch { display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:18px;
+             background:var(--card-bg); border:1px dashed var(--border); border-radius:12px; }
+  .nomatch p { margin:0; color:var(--text-muted); }
+  .nomatch .btn-ask { width:auto; }
+
+  /* The wave beside the greeting, as the owner's design draws it. Decoration: it
+     carries no meaning, so it is hidden from a screen reader and never translated. */
+  .wave { margin-left:8px; font-size:.86em; }
+
+  /* ---- ONE GROUP AS A PAGE (§57) ---------------------------------------
+     The owner's mockups give My apps and Other tools a page each: a title, the
+     search, and the list. It is a VIEW, not a URL - leaving this page costs a
+     sign-in (§56) - so the page is made by hiding the rest of the home view
+     rather than by drawing the cards a second time. */
+  .viewall { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:6px 4px;
+             background:none; border:0; cursor:pointer; font:inherit; font-size:13.5px;
+             font-weight:600; color:var(--dark-gold); }
+  .viewall:hover { text-decoration:underline; }
+  .pagehead { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+  .pagehead .backlink { margin-bottom:6px; }
+  .pagehead h1 { margin:0; font-size:clamp(26px, 5vw, 32px); font-weight:700; letter-spacing:-.4px;
+                 color:#0B2556; }
+  .pagehead p { margin:0; color:var(--text-muted); max-width:70ch; }
+  .pagehead .pgcount { margin-top:10px; font-weight:600; color:var(--text); }
+  /* On a group's page: its cards, and nothing else from home. The section's own
+     heading goes too, because the page's title already says it. */
+  #main[data-group] .welcome,
+  #main[data-group] .stats,
+  #main[data-group] .panel,
+  #main[data-group] .appsec .ph { display:none; }
+  #main[data-group="internal"] #sec-external,
+  #main[data-group="external"] #sec-internal { display:none; }
+  #main[data-group] .appsec { margin-top:0; padding-top:0; border-top:0; }
+
+  /* ---- ONE SECTION FROM THE NEXT (§58) ---------------------------------
+     "Other tools" sat directly on the last card of "My apps" - zero pixels between
+     them, measured - so the heading read as part of the section above it. A hairline
+     and room on both sides of it, in the same colour as a card's own border: a black
+     rule would be the loudest thing on a page whose cards are held apart by nothing
+     but white space.
+
+     Not above the FIRST section, and not on a group's page where only one shows -
+     a rule needs something on both sides of it to be separating anything. */
+  .appsec + .appsec { margin-top:30px; padding-top:26px; border-top:1px solid var(--border); }
+  /* The search can empty the section above, which would leave the rule hanging under
+     nothing. */
+  .appsec[hidden] + .appsec { margin-top:0; padding-top:0; border-top:0; }
+
+  /* The count beside a section's name. */
+  .appsec .cnt { margin-left:6px; font-weight:600; color:var(--text-muted); letter-spacing:0; }
+
+  /* Somebody with nothing. The fix for the likeliest cause - the wrong Google
+     account - is in it, not left for them to find. */
+  .banner { display:flex; gap:14px; align-items:flex-start; padding:16px 18px; border-radius:12px;
+            background:var(--tint); border:1px solid #CFE0FB; }
+  .banner .bi { width:36px; height:36px; flex:none; border-radius:10px; background:#FFFFFF;
+                color:var(--gold); display:flex; align-items:center; justify-content:center; }
+  .banner .bi svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8;
+                    stroke-linecap:round; stroke-linejoin:round; }
+  .banner h2 { margin:0 0 3px; font-size:15.5px; font-weight:600; color:#0B2556; }
+  .banner p { margin:0; color:var(--text-muted); max-width:70ch; }
+  .banner b { font-weight:600; color:var(--text); overflow-wrap:anywhere; }
+  .banner .switchacct { display:inline-block; margin-top:8px; font-weight:600; color:var(--dark-gold); }
+  .banner .switchacct:hover { text-decoration:underline; }
+  .mini { padding:1px 8px; border-radius:999px; font-size:12px; font-weight:600;
+          color:var(--text-muted); background:var(--card-bg-light); border:1px solid var(--border); }
+
+  .dtw { margin-top:12px; }
+  table.dir { width:100%; border-collapse:collapse; font-size:13px; }
+  table.dir thead { display:none; }
+  table.dir, table.dir tbody, table.dir tr, table.dir td { display:block; }
+  table.dir tr { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:2px 10px;
+                 padding:11px 0; border-bottom:1px solid var(--line2); }
+  table.dir td { padding:0; }
+  table.dir td.nm { grid-column:1; grid-row:1; font-weight:600; color:#3E4B5E; }
+  table.dir td.st { grid-column:2; grid-row:1; }
+  table.dir td.addr, table.dir td.rs { grid-column:1 / -1; }
+  table.dir td.addr { color:var(--text-muted); overflow-wrap:anywhere; }
+  table.dir td.rs { color:var(--text-muted); font-variant-numeric:tabular-nums; }
+  table.dir .dim { color:var(--text-dim); font-weight:500; }
+  .dirfoot { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px 12px; margin-top:10px; }
+  /* How fresh the directory is. It checks itself once a minute while it is on screen
+     and whenever the tab comes back (section 48), and this says when it last did. */
+  .fresh { margin:0 auto 0 0; font-size:12.5px; color:var(--text-dim); }
+  .fresh a { font-weight:600; color:var(--dark-gold); text-decoration:underline; }
+  .fresh.warn { color:var(--orange); }
+  #rosterFresh { margin-top:-6px; }
+  table.dir td.act { grid-column:1 / -1; margin-top:6px; }
+
+  /* --------------------------------------------------- the Grant panel (§48)
+     Review on a request, Manage on somebody with access. The panel slides in from
+     the right, so the directory stays in view behind it; on a phone it fills the
+     screen. Every class is gp- prefixed: an earlier .badge silently restyled
+     another .badge (section 40), and this panel sits over the whole page. */
+  .rowbtn { display:inline-flex; align-items:center; justify-content:center; padding:7px 12px;
+            border-radius:7px; cursor:pointer; white-space:nowrap;
+            font:inherit; font-size:13px; font-weight:600; }
+  .rowbtn.go   { background:var(--btnBg); color:var(--btnInk); border:0; }
+  .rowbtn.go:hover { background:#125BCB; }
+  .rowbtn.soft { background:var(--card-bg-light); color:var(--dark-gold); border:1px solid var(--border); }
+  .rowbtn.soft:hover { background:var(--tint); border-color:#C7D6EA; }
+  table.dtl .rowbtn { margin-left:8px; padding:4px 10px; font-size:12.5px; }
+
+  body.gp-open { overflow:hidden; }
+  .gp-scrim { position:fixed; inset:0; z-index:40; background:rgba(16,24,40,.38); }
+  .gp { position:fixed; top:0; right:0; bottom:0; z-index:41; width:100%; max-width:480px;
+        display:flex; flex-direction:column; background:var(--card-bg);
+        border-left:1px solid var(--border); box-shadow:-20px 0 50px -20px rgba(16,24,40,.35); }
+  .gp-head { display:flex; align-items:flex-start; gap:12px; padding:18px 20px 14px;
+             border-bottom:1px solid var(--line2); }
+  .gp-head h2 { margin:0; font-size:18px; font-weight:600; color:#0B2556; overflow-wrap:anywhere; }
+  .gp-head p { margin:2px 0 0; font-size:13px; color:var(--text-muted); }
+  .gp-x { margin-left:auto; flex:none; width:34px; height:34px; border-radius:8px; cursor:pointer;
+          border:1px solid var(--border); background:var(--card-bg-light);
+          font:inherit; font-size:18px; line-height:1; color:var(--text-muted); }
+  .gp-body { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:18px; }
+  .gp-who { display:grid; grid-template-columns:auto minmax(0, 1fr); gap:4px 14px; margin:0;
+            padding:12px 14px; font-size:13px; background:var(--card-bg-light);
+            border:1px solid var(--border); border-radius:10px; }
+  .gp-who dt { color:var(--text-dim); }
+  .gp-who dd { margin:0; font-weight:500; color:var(--text); overflow-wrap:anywhere; }
+  .gp-who .none { color:var(--text-dim); font-weight:400; }
+  .gp-who .cv { color:var(--green); font-weight:600; }
+  .gp-fld { margin:0; padding:0; border:0; min-width:0; }
+  .gp-fld legend { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; padding:0; margin-bottom:8px;
+                   font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#3E4B5E; }
+  .gp-fld legend span { font-size:12.5px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--text-dim); }
+  .gp-roles { display:flex; flex-direction:column; gap:8px; }
+  .gp-role { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; cursor:pointer;
+             border:1px solid var(--border); border-radius:10px; }
+  .gp-role:has(input:checked) { border-color:#BCD2F3; background:var(--tint); }
+  .gp-role input, .gp-store input { accent-color:var(--gold); }
+  .gp-role input { margin-top:3px; }
+  .gp-role b { display:block; font-size:14px; font-weight:600; color:var(--text); }
+  .gp-role small { display:block; font-size:12.5px; color:var(--text-dim); }
+  .gp-stores { display:grid; grid-template-columns:1fr; gap:6px; }
+  .gp-store { display:flex; align-items:center; gap:8px; padding:8px 10px; cursor:pointer;
+              border:1px solid var(--border); border-radius:8px; font-size:13.5px; }
+  .gp-store:has(input:checked) { border-color:#BCD2F3; background:var(--tint); }
+  .gp-store em { display:block; font-style:normal; font-size:11.5px; font-weight:600; color:var(--green); }
+  .gp-quick { display:flex; justify-content:flex-end; gap:12px; margin-top:6px; }
+  .gp-note { margin:0; padding:12px 14px; border-radius:10px; font-size:13px;
+             background:#F4F7FB; border:1px solid var(--border); color:var(--text-muted); }
+  .gp-note b { color:var(--text); font-weight:600; }
+  .gp-note.warn { background:var(--warnSoft); border-color:#F1DFC7; color:#7A4A1B; }
+  .gp-confirm { display:flex; flex-direction:column; gap:10px; padding:12px 14px; border-radius:10px;
+                background:var(--attSoft); border:1px solid #F0C9D1; font-size:13px; color:#7A1E30; }
+  .gp-confirm p { margin:0; }
+  .gp-err { margin:0; padding:12px 14px; border-radius:10px; font-size:13px;
+            background:var(--attSoft); border:1px solid #F0C9D1; color:var(--red); }
+  .gp-err a { font-weight:600; color:var(--red); text-decoration:underline; }
+  .gp-foot { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:14px 20px;
+             border-top:1px solid var(--line2); }
+  .gp-foot .sp { flex:1; }
+  .gp-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px;
+            cursor:pointer; font:inherit; font-size:14px; font-weight:600; }
+  .gp-btn.go { border:0; background:var(--btnBg); color:var(--btnInk); }
+  .gp-btn.go:hover { background:#125BCB; }
+  .gp-btn.no { background:#FFFFFF; color:var(--red); border:1px solid #F0C9D1; }
+  .gp-btn.no:hover { background:var(--attSoft); }
+  .gp-btn.plain { border:0; background:none; color:var(--text-dim); }
+  .gp-btn:disabled { background:#C9D7EC; color:#FFFFFF; border-color:transparent; cursor:not-allowed; }
+  .gp-btn.no:disabled, .gp-btn.plain:disabled { background:none; color:var(--text-dim); }
+  /* THE WAIT, made visible (owner, 2026-09-11: "I just stared at the screen"). A save
+     takes several seconds, so the button that was pressed keeps its colour and spins
+     instead of turning the pale grey that reads as "this does nothing", and a line
+     above the buttons says what is happening. */
+  .gp.is-busy { cursor:progress; }
+  .gp-btn.go.is-busy:disabled { background:var(--btnBg); color:var(--btnInk); cursor:progress; }
+  .gp-btn.no.is-busy:disabled { background:#FFFFFF; color:var(--red); border-color:#F0C9D1; cursor:progress; }
+  .gp-spin { width:15px; height:15px; flex:none; border-radius:50%;
+             border:2px solid currentColor; border-right-color:transparent;
+             animation:gp-spin .8s linear infinite; }
+  @keyframes gp-spin { to { transform:rotate(360deg); } }
+  .gp-working { flex-basis:100%; margin:0 0 2px; font-size:13px; color:var(--text-muted); }
+  @media (prefers-reduced-motion:reduce) {
+    /* Still a mark on the button, just not a moving one; the words carry the rest. */
+    .gp-spin { animation:none; border-right-color:currentColor; opacity:.6; }
+  }
+  .gp-toast { position:fixed; left:50%; bottom:20px; z-index:50; transform:translateX(-50%);
+              max-width:calc(100% - 32px); padding:10px 16px; border-radius:10px;
+              background:#0B2556; color:#FFFFFF; font-size:13.5px;
+              box-shadow:0 10px 30px -10px rgba(0,0,0,.4); }
+  @media (min-width:761px) {
+    .gp-stores { grid-template-columns:1fr 1fr; }
+    table.dir td.act { margin-top:0; text-align:right; }
+  }
+  @media (prefers-reduced-motion:no-preference) {
+    .gp { animation:gp-in .18s ease-out; }
+    @keyframes gp-in { from { transform:translateX(24px); opacity:.6; } to { transform:none; opacity:1; } }
+  }
+
+  @media (min-width:761px) {
+    .page { padding-top:24px; padding-bottom:36px; gap:18px; }
+    .welcome h1 { font-size:24px; }
+    .welcome .pbtn { width:auto; }
+    /* The cards share the row. There are only ever two or three and all are
+       always present, so 1fr cannot leave one card stretched alone across the
+       page - the failure section 40 capped the app grid against. */
+    .stats { grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+    .stats .stat:last-child:nth-child(odd) { grid-column:auto; }
+    .stat { min-height:124px; padding:14px 16px; }
+    .stat .tag { margin-left:auto; }
+    .stat .v { font-size:28px; }
+    .panel { padding:16px 18px; }
+
+    .dtw { overflow-x:auto; }
+    table.dir, table.dir tbody { display:table; width:100%; }
+    table.dir tbody { display:table-row-group; }
+    table.dir thead { display:table-header-group; }
+    table.dir tr { display:table-row; padding:0; border:0; }
+    table.dir td, table.dir th { display:table-cell; }
+    table.dir th { padding:9px 12px; text-align:left; background:#F4F7FB; color:#5F6D80;
+                   font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
+    table.dir th:first-child { border-radius:6px 0 0 6px; }
+    table.dir th:last-child { border-radius:0 6px 6px 0; }
+    table.dir td { padding:11px 12px; border-bottom:1px solid var(--line2); vertical-align:middle; }
+    table.dir th.st, table.dir td.st { text-align:right; }
+  }
+
+  .card { background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:17px; }
+  .card.info { border-left:3px solid var(--blue); background:#42A5F508; }
+  .card.warn { border-left:3px solid var(--orange); }
+  .card h2 { font-size:16px; font-weight:600; margin:0 0 9px; line-height:1.35; }
+  .card p { font-size:13px; color:var(--text-muted); margin:0 0 13px; line-height:1.5; }
+  .card p:last-child { margin-bottom:0; }
+  .card .fine { font-size:12px; color:var(--text-dim); line-height:1.5; }
+  .card .fine b { color:var(--text-muted); font-weight:600; word-break:break-all; }
+
+  /* The primary action is the Figma's blue. The door keeps its own near-black
+     Google button; behind it, the accent is the loudest thing on the page. */
+  .btn {
+    font:inherit; font-size:14px; font-weight:600;
+    background:var(--btnBg); color:var(--btnInk); border:0; border-radius:10px;
+    padding:12px 18px; cursor:pointer; transition:filter .15s; width:100%;
+  }
+  .btn:hover { filter:brightness(1.25); }
+  .btn[disabled] { background:var(--border); color:var(--text-dim); cursor:default; }
+  a.btn { display:block; text-align:center; }
+
+  /* Google's mark stays on its own white surface. It is the cue that tells a
+     manager they are about to hand credentials to Google rather than to us,
+     and Google's brand guidance asks for it. */
+  .gbtn {
+    display:flex; align-items:center; justify-content:center; gap:11px; width:100%;
+    background:#FFFFFF; color:#1F1F1F; border:0; border-radius:6px;
+    font:inherit; font-size:15px; font-weight:600;
+    padding:13px 18px; cursor:pointer; transition:background .15s;
+  }
+  .gbtn:hover { background:#EDEDED; }
+  .gbtn svg { width:18px; height:18px; flex-shrink:0; }
+
+  .textlink {
+    background:none; border:0; padding:0; font:inherit;
+    font-size:13px; font-weight:600; color:var(--gold); cursor:pointer; text-align:left;
+  }
+  .textlink:hover { color:var(--dark-gold); text-decoration:underline; }
+
+  footer {
+    margin-top:auto; padding:16px var(--gutter) 20px; font-size:12px; color:var(--text-dim);
+    border-top:1px solid var(--border);
+  }
+  @media (min-width:761px) { :root { --gutter:24px; } footer { padding-bottom:22px; } }
+  @media (min-width:1600px) { :root { --gutter:32px; } }
+
+  /* ------------------------------------------- sign-in (arrival view) */
+  .arrival {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:22px; padding:40px 26px 60px; text-align:center;
+  }
+  .arrival .wordmark { font-size:21px; font-weight:700; letter-spacing:-.01em; margin:0; }
+  .arrival .sub { font-size:14px; color:var(--text-muted); margin:0; }
+  .arrival .actions { width:100%; max-width:340px; display:flex; flex-direction:column; gap:12px; }
+  .arrival .hint { font-size:12px; color:var(--text-dim); line-height:1.5; margin:0; max-width:32ch; }
+
+  .floatlang { position:absolute; top:12px; right:12px; display:flex; gap:2px; }
+  .floatlang button {
+    font:inherit; font-size:12px; font-weight:600;
+    background:transparent; border:0; color:var(--text-dim);
+    padding:6px 9px; border-radius:4px; cursor:pointer;
+  }
+  .floatlang button:hover { color:var(--text-muted); }
+  .floatlang button.on { color:var(--gold); background:var(--tint); }
+
+  /* ------------------------------------------------ roster (admin) */
+  .backlink {
+    display:flex; align-items:center; gap:6px;
+    font:inherit; font-size:13px; font-weight:600;
+    background:none; border:0; padding:0; color:var(--gold); cursor:pointer;
+  }
+  .backlink:hover { color:var(--dark-gold); text-decoration:underline; }
+
+  .caveat {
+    background:#42A5F508; border:1px solid var(--border); border-left:3px solid var(--blue);
+    border-radius:8px; padding:14px; font-size:12px; color:var(--text-muted); line-height:1.5;
+  }
+  .caveat b { color:var(--text); font-weight:600; }
+  .caveat p { margin:0; }
+  .caveat p + p { margin-top:9px; }
+
+  .filter {
+    width:100%; font:inherit; font-size:16px;
+    background:var(--card-bg); border:1px solid var(--border); border-radius:6px;
+    padding:11px 13px; color:var(--text);
+  }
+  .filter::placeholder { color:var(--text-dim); }
+  .filter:focus { border-color:var(--gold); outline:none; }
+
+  /* THE DIRECTORY, AS CARDS ON A PHONE (§59), from the owner's mockup: the initials
+     in a circle, the name and address beside them, the role and restaurant under
+     that, and the status at the right. The table below 900px was already a card;
+     what it lacked was the avatar and a shape that reads at a glance. */
+  .dirsub { margin:0 0 4px; color:var(--text-muted); max-width:70ch; }
+  .dirtools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:12px; }
+  .dirtools .filter { flex:1 1 220px; margin:0; }
+  .storefilter { flex:0 0 auto; height:42px; padding:0 34px 0 12px; cursor:pointer;
+                 font:inherit; font-size:16px; color:var(--text); background:var(--card-bg);
+                 border:1px solid var(--border); border-radius:8px; appearance:none;
+                 background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23627081' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+                 background-repeat:no-repeat; background-position:right 10px center; background-size:14px; }
+  .storefilter:focus { border-color:var(--gold); outline:none; }
+  .people { display:flex; flex-direction:column; gap:8px; }
+  .rhead { display:none; }
+  .person {
+    background:var(--card-bg); border:1px solid var(--border); border-radius:8px;
+    padding:12px 13px; cursor:pointer; transition:border-color .15s;
+    display:grid; grid-template-columns:auto 1fr auto; gap:4px 11px;
+  }
+  .person:hover, .person.open { border-color:var(--gold); }
+  /* The initials, as the mockup draws them. Decoration: the name is right beside it,
+     so a screen reader is not made to spell it twice. */
+  .person .av { grid-column:1; grid-row:1 / span 2; align-self:start;
+                width:38px; height:38px; border-radius:50%; flex:none;
+                display:flex; align-items:center; justify-content:center;
+                font-size:13px; font-weight:700; letter-spacing:.02em;
+                background:var(--tint); color:var(--dark-gold); }
+  .person .c.name { grid-column:2; font-size:13px; font-weight:600; line-height:1.35; overflow-wrap:anywhere; }
+  .person .c.name.dim { font-weight:500; }
+  .person .c.pills { grid-column:3; grid-row:1; justify-self:end; display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+  .person .c.email { grid-column:2 / -1; font-size:12px; color:var(--text-muted); word-break:break-all; line-height:1.45; }
+  /* One line: role, a hairline bar, then the restaurants. */
+  .person .metawrap { grid-column:2 / -1; display:flex; align-items:baseline; flex-wrap:wrap;
+                      column-gap:9px; row-gap:2px; }
+  .person .metawrap .c.stores::before { content:'|'; margin-right:9px; color:var(--line2);
+                                        font-weight:400; }
+  .person .c.role,
+  .person .c.stores { font-size:12px; color:var(--text-muted); line-height:1.45; }
+  .person .c.dim { color:var(--text-dim); }
+  .person .c.role .pill { display:inline-block; }
+  /* Bold plain text, no chip and no border - the owner's call: the badge is for the
+     admin, who is the exception, and giving every role one would flatten that. */
+  .rolename { font-weight:700; color:var(--text); text-transform:capitalize; }
+  .person .c.act:empty { display:none; }
+  .person .c.act { grid-column:2 / -1; margin-top:2px; }
+  .person .detail { grid-column:1 / -1; }
+  /* The mark goes home and the menu is a tap away, so a third way back is clutter
+     on a small screen. Above the bar's own breakpoint it stays: §26. */
+  @media (max-width:760px) { #roster > .backlink { display:none; } }
+
+  /* Cards stop being the right shape once there are more than a handful of
+     people. At this width the same markup is a table you can scan down. */
+  @media (min-width:900px) {
+    /* ONE SET OF TRACKS, SHARED. The header and every row are separate grids, so
+       each used to size its own tracks from its own contents - and they disagreed:
+       a row WITH a Manage button gave the trailing `auto` column ~104px while a row
+       without one collapsed it to nothing (.c.act:empty is display:none) and handed
+       the five fr tracks the difference. Measured at 1400px: rows with a button sat
+       up to 57px left of rows without, and the header agreed with neither.
+
+       Three things hold it, and they were measured rather than assumed - each
+       guards a different failure, and they are not equally load-bearing:
+
+         104px on the action column   fixes the reported bug. Putting `auto` back
+                                      reproduces it: 58px of drift at 1400px.
+         88px / 124px floors under    stop the nowrap SYSTEM ADMIN pill (113px)
+         the two pill columns         spilling out of a 107px box at 900px.
+         minmax(0, ...) elsewhere,    belt and braces. The name, address and
+         with min-width:0             restaurant cells already break their text, so
+                                      today neither alone lets content move a track.
+                                      They are kept so the template is independent
+                                      of content BY RULE rather than by coincidence,
+                                      which is what the next cell added here will
+                                      quietly rely on.
+
+       And the width lives in ONE custom property, so the header and the rows - two
+       grids that must agree - cannot be changed apart. */
+    #rosterBody {
+      /*        name          address      status          role            restaurants   action */
+      --dircols: minmax(0,1.3fr) minmax(0,2fr) minmax(88px,.9fr) minmax(124px,1.15fr) minmax(0,1.65fr) 104px;
+    }
+    .rhead {
+      display:grid; grid-template-columns:var(--dircols); gap:14px;
+      /* 14, not 13: .people carries a 1px border and .rhead does not, so matching
+         the row's padding here would leave the header 1px adrift of every row. */
+      padding:0 14px 8px;
+    }
+    .rhead span {
+      font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px;
+      color:var(--text-dim);
+    }
+    .people { gap:0; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .people .person {
+      grid-template-columns:var(--dircols); align-items:center; gap:14px;
+      border:0; border-bottom:1px solid var(--border); border-radius:0;
+      background:transparent; padding:12px 13px;
+    }
+    /* A grid item's automatic minimum size is its content, which would let a long
+       address push its own track wider than the shared template says. Zero here is
+       what lets minmax(0, …) above actually hold, and what lets the text wrap
+       instead of spilling into the next column. */
+    .people .person > .c, .people .person .metawrap > .c { min-width:0; }
+    .people .person .c.role, .people .person .c.stores { overflow-wrap:anywhere; }
+    .people .person:last-child { border-bottom:0; }
+    .people .person:hover, .people .person.open { background:var(--card-bg-light); }
+    .people .person .c { grid-column:auto; grid-row:auto; }
+    /* A table row has a name column; the circle would be a sixth column of nothing,
+       and the Role and Restaurants headings already separate what the bar separates
+       on a card - so the wrapper stops being a box and its two spans go back to
+       being columns of their own. */
+    .person .av { display:none; }
+    .person .metawrap { display:contents; }
+    .person .metawrap .c.stores::before { content:none; }
+    .people .person .rolename { font-weight:400; color:inherit; text-transform:none; }
+    /* Right-alignment is correct on a phone, where the pills sit opposite the
+       email on one line. In the table it was inherited: a row with two pills
+       wrapped and hung off the right while single-pill rows sat left, so the
+       column read as ragged. Status also widened, so two sit side by side.
+       flex-wrap stays as a safety valve for a third, and wraps to the left. */
+    .people .person .c.pills { justify-self:start; justify-content:flex-start; align-items:center; }
+    .people .person .detail { grid-column:1 / -1; }
+  }
+
+  .pill {
+    font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+    padding:2px 6px; border-radius:4px; white-space:nowrap;
+  }
+  .pill.adm  { background:var(--tint); color:var(--gold); }
+  /* Soft grounds with the ink at 4.5:1 or better on each. The old values were
+     made for a dark page: #F08A80 on a light one read at about 2:1. Waiting is
+     the one an admin acts on, so it carries the attention colour. */
+  .pill.on   { background:var(--okSoft);  color:var(--green); }
+  .pill.off  { background:var(--offSoft); color:#566274; }
+  .pill.wait { background:var(--attSoft); color:var(--red); }
+
+  .detail { border-top:1px solid var(--border); margin-top:11px; padding-top:11px; }
+  table.dtl { width:100%; border-collapse:collapse; font-size:12px; }
+  table.dtl td { padding:4px 0; vertical-align:top; line-height:1.45; }
+  table.dtl td:first-child { color:var(--text-dim); white-space:nowrap; width:42%; padding-right:10px; }
+  table.dtl td:last-child { word-break:break-word; }
+  table.dtl .missing { color:var(--orange); }
+
+  .explain { margin-top:12px; border-top:1px solid var(--border); padding-top:11px; }
+  .explain .sechead { margin-bottom:9px; }
+  table.exp { width:100%; border-collapse:collapse; font-size:12px; }
+  table.exp td { padding:5px 0; vertical-align:top; line-height:1.4; border-bottom:1px solid var(--border); }
+  table.exp tr:last-child td { border-bottom:0; }
+  table.exp td:first-child { color:var(--text-muted); padding-right:10px; }
+  table.exp td:last-child { text-align:right; }
+  .verd { font-weight:600; }
+  .verd.y { color:var(--green); }
+  .verd.n { color:var(--red); font-weight:400; }
+
+  .pending { color:var(--gold); font-weight:600; font-size:13px; }
+  .hidden { display:none !important; }
+
+  @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+  /* ==================================================================
+     THE DOOR - the sign-in screen and the no-access screen.
+
+     Everything here is scoped under .door, so the topbar, tiles, roster and
+     admin views behind it are untouched by any of it.
+
+     The design is `designs/login_design.md` plus its reference image, the
+     owner's, 2026-09-03. A split pane: a deep panel carrying the brand, the
+     promise and three reassurances, and a light panel carrying the one thing a
+     person came here to do.
+
+     BLUE since 2026-09-10, owner's call, to match the dashboard behind it. The
+     composition is unchanged; only the palette moved, from forest green on warm
+     paper to the dashboard's navy and blue on its cool off-white. The token
+     names below (--grn, --onGrn) are historical: read them as "the deep panel",
+     not as a colour. Renaming them would touch every rule for nothing.
+
+     THREE THINGS IN THE BRIEF WERE NOT IMPLEMENTED LITERALLY, and each is a
+     case of the brief not knowing the system rather than a change of mind:
+
+     1. THE PHOTOGRAPH. The reference blends a restaurant scene into the lower
+        right of the green panel, including a mug carrying the Golden Arches.
+        That artwork is AI-drawn, and "do not flip, separate, or alter the
+        Arches in any way" (p8) forbids exactly that. We also hold no approved
+        photograph. The brief's own fallback applies: an abstract treatment,
+        no invented people. Hence the curves and the gradient, and no image.
+
+     2. THE BRAND PLACEHOLDER. The brief reserves a dashed box for a mark it
+        assumed we might not have. We have it. It sits in the right-hand
+        column rather than top-left, because the left panel is hidden below
+        960px and the Arches would vanish on precisely the devices most
+        managers use. One instance, always visible, is worth more than one
+        instance in the prettier position.
+
+     3. THE PALE CIRCLE. The reference frames its portal glyph in a soft mint
+        disc. Fine around a glyph of our own; not around the Arches, where it
+        becomes a plate with a gradient (3b, and p8's "no gradient, no
+        outline, no glow"). The mark takes that position without the disc.
+
+     Contrast, computed rather than assumed. A light accent that reads on the
+     navy panel cannot read on the off-white one, so there are two: --acc
+     #8AB8FF for the panel (7.35:1, and 5.39:1 even over its lighter glow) and
+     --accText #1A5FC2 for the light side (5.60:1). Same hue, legible on both.
+     The panel's smallest text, --onGrn3, is 6.75:1 and 4.95:1 over the glow. */
+  /* LIGHT ONLY. The dark palette went on 2026-09-03, owner's call. The door is
+     the one screen everybody meets and it now has a single appearance; the
+     dashboard behind it keeps both, in the account menu.
+
+     No theme control here any more either - a toggle with one state to toggle to
+     is worse than none. */
+  .door {
+    --grn:#0B2556; --grn2:#16397F; --grn3:#0E2B63;
+    --acc:#8AB8FF; --accText:#1A5FC2; --accSoft:#EAF2FF;
+    --surf:#F3F6FB; --card:#FFFFFF;
+    --tx:#25344B; --tx2:#4F5D70; --tx3:#627081;
+    --line:#E4EAF2; --gbtnBg:#0F1A2E; --gbtnTx:#FFFFFF;
+    --onGrn:#FFFFFF; --onGrn2:#C9D6EC; --onGrn3:#9DB0CE;
+    --grnLine:rgba(138,184,255,.16); --rad:14px; --radCard:16px;
+  }
+
+  /* Mobile first. The phone renders the base rules and needs no media query to
+     be right; the split is what gets ADDED at 960. Most users are managers on
+     personal phones, so the common case is the one without the query. */
+  .door { display:flex; flex-direction:column; min-height:100vh; min-height:100svh;
+          background:var(--surf); color:var(--tx); }
+  .door :focus-visible { outline:2px solid var(--accText); outline-offset:3px; border-radius:8px; }
+
+  /* ---- the deep panel ----------------------------------------------- */
+  .door .side {
+    position:relative; overflow:hidden; display:none;
+    background:
+      radial-gradient(120% 90% at 8% 8%, var(--grn2) 0%, transparent 60%),
+      radial-gradient(90% 70% at 90% 95%, var(--grn3) 0%, transparent 55%),
+      var(--grn);
+  }
+  /* Curved line artwork, inline and inert. Sweeps from the lower left up to
+     the right, as in the reference. Low-opacity strokes only, so it can never
+     compete with the copy sitting on top of it. */
+  .door .curves { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .door .curves path { fill:none; stroke:var(--grnLine); stroke-width:1.25; }
+
+  .door .side > *:not(.curves) { position:relative; z-index:1; }
+  .door .brandrow { display:flex; align-items:center; flex:none; }
+  .door .brandrow .wm { display:flex; flex-direction:column; line-height:1; gap:3px; }
+  .door .brandrow b { font-size:15px; font-weight:800; letter-spacing:.16em;
+                      text-transform:uppercase; color:var(--onGrn); }
+  .door .brandrow span { font-size:7px; font-weight:600; letter-spacing:.075em;
+                         opacity:.7; text-transform:uppercase; color:var(--onGrn); }
+
+  .door .pitch h2 {
+    font-size:clamp(38px, 4.4vw, 60px); font-weight:600; line-height:1.04;
+    letter-spacing:-1.8px; margin:0; color:var(--onGrn);
+  }
+  .door .pitch h2 em { font-style:normal; display:block; color:var(--acc); }
+  .door .pitch p { font-size:clamp(16px, 1.35vw, 21px); line-height:1.6;
+                   margin:22px 0 0; color:var(--onGrn2); max-width:26em; }
+
+  /* A GRID, not a wrapping flex row. Three equal columns that cannot reflow, so
+     the row is one row in both languages by construction rather than by luck.
+
+     It used to be flex-wrap:wrap with max-width:190px per item, which needs
+     3x190 + 2x34 = 638px. The panel has about 390px of content at 960px, so the
+     third item dropped to a second row - in French first, because French runs
+     longer, which is exactly the kind of difference that should never depend on
+     the language. English was fitting by accident.
+
+     align-items:start rather than stretch: the columns keep identical widths and
+     positions in both languages, and only the number of text lines differs, which
+     is the closest two languages can get. */
+  .door .feats { display:grid; grid-template-columns:repeat(3, 1fr);
+                 gap:clamp(14px, 1.8vw, 32px); align-items:start; }
+  .door .feat svg { width:26px; height:26px; display:block; color:var(--acc);
+                    fill:none; stroke:currentColor; stroke-width:1.6;
+                    stroke-linecap:round; stroke-linejoin:round; }
+  .door .feat b { display:block; font-size:14.5px; font-weight:700; margin:12px 0 5px;
+                  color:var(--onGrn); }
+  .door .feat span { display:block; font-size:13px; line-height:1.45; color:var(--onGrn3);
+                     text-wrap:pretty; }
+
+  /* ---- the off-white panel ------------------------------------------- */
+  .door .pane {
+    position:relative; flex:1; display:flex; flex-direction:column;
+    background:var(--surf); padding:72px 24px 28px;
+  }
+
+  .door .ltop { position:absolute; top:18px; right:18px; display:flex; gap:10px; z-index:2; }
+  /* Real buttons, not labels over hidden checkboxes: the brief asks for it and
+     so does anyone navigating by keyboard. */
+  .door .ltop button {
+    font:inherit; cursor:pointer; color:var(--tx2); background:var(--card);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, color .15s;
+  }
+  .door .ltop button:hover { color:var(--tx); border-color:var(--tx3); }
+  .door .ltop .pill { gap:7px; height:44px; padding:0 14px; border-radius:999px;
+                      font-size:14px; font-weight:600; min-width:88px; }
+  .door .ltop .pill svg { width:16px; height:16px; flex:none; fill:none;
+                          stroke:currentColor; stroke-width:1.7; }
+  .door .ltop .pill .chev { width:13px; height:13px; opacity:.75; }
+  .door .ltop .icon { width:44px; height:44px; border-radius:50%; }
+  .door .ltop .icon svg { width:19px; height:19px; fill:none; stroke:currentColor;
+                          stroke-width:1.7; stroke-linecap:round; }
+
+  .door .lmid { flex:1; display:flex; align-items:center; justify-content:center; }
+  .door .lcol { width:100%; max-width:480px; text-align:center; }
+
+  /* The mark sits on the ground. No disc, no gradient, no glow - see the note
+     at the top. Clear space is 2x one leg = width x 0.36, which is where the
+     padding comes from and why it is not a round number. */
+  .door .lockup { display:flex; flex-direction:column; align-items:center; gap:7px;
+                  padding:0 0 4px; margin-bottom:26px; }
+  .door .lockup .arches { padding:16px; }
+  .door .lockup .arches svg { display:block; width:44px; height:auto; }
+  .door .lockup .rule { width:24px; height:2px; background:#FFBC0D; border-radius:2px; }
+  .door .jacmark { display:flex; flex-direction:column; line-height:1; gap:3px; flex:none;
+                   align-items:center; color:var(--tx); }
+  .door .jacmark b { font-weight:800; letter-spacing:.16em; font-size:15px;
+                     text-transform:uppercase; }
+  .door .jacmark span { font-size:7px; letter-spacing:.075em; font-weight:600; opacity:.7;
+                        white-space:nowrap; text-transform:uppercase; }
+
+  .door .h { font-size:clamp(27px, 3vw, 37px); font-weight:600; letter-spacing:-.7px;
+             line-height:1.18; margin:0 0 12px; color:var(--tx); }
+  .door .sub { font-size:clamp(15px, 1.2vw, 17.5px); line-height:1.6; margin:0 0 30px;
+               color:var(--tx2); }
+
+  .door .gbtn {
+    display:flex; align-items:center; justify-content:center; gap:14px; width:100%;
+    min-height:66px; padding:0 20px; border-radius:var(--rad);
+    background:var(--gbtnBg); color:var(--gbtnTx); border:0; cursor:pointer;
+    font:inherit; font-size:16.5px; font-weight:600; text-decoration:none;
+    transition:filter .15s, transform .06s;
+  }
+  .door .gbtn:hover { filter:brightness(1.14); }
+  .door .gbtn:active { transform:translateY(1px); }
+  /* Google's mark keeps its own four colours on any face, in either theme. It
+     is the cue that credentials go to Google rather than to us. */
+  .door .gbtn svg { width:22px; height:22px; flex:none; display:block; }
+
+  .door .lfoot { display:flex; align-items:center; justify-content:center; gap:8px;
+                 font-size:13px; color:var(--tx3); flex:none; padding-top:26px; }
+  .door .lfoot svg { width:15px; height:15px; flex:none; fill:none; stroke:currentColor;
+                     stroke-width:1.7; }
+
+  @media (min-width:700px) {
+    .door .pane { padding:80px 40px 32px; }
+  }
+
+  /* The split. 700px would be two cramped columns rather than one comfortable
+     one, so the tablet keeps the phone's composition and only grows. */
+  @media (min-width:960px) {
+    .door { flex-direction:row; }
+    .door .side { display:flex; flex-direction:column; justify-content:space-between;
+                  width:52%; padding:54px clamp(36px, 3.6vw, 56px); }
+    .door .pane { width:48%; flex:none; padding:56px 56px 30px; }
+    .door .lcol { max-width:460px; }
+    /* Both mark sizes move together or the wide one quietly loses its clear
+       space. 56 x 0.36 = 20.16. */
+    .door .lockup .arches svg { width:56px; }
+    .door .lockup .arches { padding:20px; }
+  }
+  @media (min-width:1400px) {
+    .door .side { padding:64px 84px; }
+    .door .pane { padding:64px 72px 34px; }
+  }
+  .door .nolink { display:inline-block; margin-top:20px; font:inherit; font-size:14px;
+                 font-weight:600; color:var(--accText);
+                 text-decoration:none; padding:8px 4px; }
+  .door .nolink:hover { text-decoration:underline; }
+
+  /* ---- THE PHONE'S DOOR ---------------------------------------------
+     Owner's design, 2026-09-17: designs/views/draft/mobile .png. The deep panel
+     IS the phone screen, rather than being hidden below 960 while the phone got
+     the light card alone. What a manager meets on their own phone is now the
+     same screen the laptop shows on its left.
+
+     THE PROPORTIONS ARE MEASURED OFF THE DRAFT, not judged by eye - the first
+     attempt was judged by eye and came back. On the draft's 388x881 screen: the
+     Arches are 15.5% of the width and start 13.8% down, the headline runs
+     32.2%-43.9% (about 42px at this width), the button sits at 55.2%, the three
+     points at 74.9% and the footer at 94.6%. So: a big headline, a generous gap
+     above the mark, and the points pushed to the foot of the screen rather than
+     following the button.
+
+     ONE COPY OF EVERYTHING. The mark, the headline and the features live in two
+     different containers because the desktop puts them in two columns. Rather
+     than repeat any of it, the containers themselves stop being boxes here
+     (display:contents) and their children become children of .door, ordered.
+     A second copy is how two versions of a screen quietly drift apart (§34).
+
+     The pane's own "Welcome to the portal." is hidden, not deleted: on the wide
+     screen it heads the sign-in column, and here the panel's headline says it. */
+  @media (max-width:959.98px) {
+    .door {
+      position:relative; color:var(--onGrn);
+      padding:calc(14px + env(safe-area-inset-top, 0px)) 22px calc(28px + env(safe-area-inset-bottom, 0px));
+      background:
+        radial-gradient(120% 90% at 8% 8%, var(--grn2) 0%, transparent 60%),
+        radial-gradient(90% 70% at 90% 95%, var(--grn3) 0%, transparent 55%),
+        var(--grn);
+    }
+    .door .side, .door .pane, .door .lmid, .door .lcol { display:contents; }
+    /* Its box is gone, so it anchors on .door - which is why that is relative. */
+    .door .curves { display:block; }
+    /* The wordmark is already under the Arches in the lockup; twice is once too many. */
+    .door .brandrow { display:none; }
+    .door .h, .door .sub { display:none; }
+
+    .door .ltop { position:absolute; top:calc(14px + env(safe-area-inset-top, 0px)); right:14px; }
+    .door .ltop button { color:var(--onGrn2); background:rgba(255,255,255,.09);
+                         border-color:rgba(255,255,255,.22); }
+    .door .ltop button:hover { color:var(--onGrn); border-color:rgba(255,255,255,.4); }
+
+    /* The draft's 13.8% above the mark. In vh so it holds its share of the screen,
+       clamped so a short screen gives this up first rather than pushing the footer
+       off the bottom. */
+    .door .lockup { order:2; margin:clamp(10px, 9vh, 88px) 0 clamp(20px, 4.6vh, 44px); }
+    .door .lockup .arches svg { width:60px; }
+    /* Clear space is the width x 0.36 (MCDONALDS_BRAND_USAGE.md): 60 needs 21.6, so
+       the padding moves with the width. A test computes it, and caught this line. */
+    .door .lockup .arches { padding:22px; }
+    /* The wordmark under the Arches is drawn for the light card; on the navy it
+       has to be light or it disappears into the ground. */
+    .door .jacmark b, .door .jacmark span { color:var(--onGrn); }
+    .door .jacmark b { font-size:16px; }
+
+    .door .pitch { order:3; text-align:left; }
+    .door .pitch h2 { font-size:clamp(33px, 10.6vw, 46px); line-height:1.17; margin:0 0 12px; }
+    /* Three lines in French where the draft's English takes two, so the gap under
+       it is a little tighter than the draft's to keep the button near the middle. */
+    .door .pitch p { font-size:15px; line-height:1.5; color:var(--onGrn2);
+                     margin:0 0 clamp(18px, 3.1vh, 30px); }
+    /* White, as the reference draws it and as §34 settled: the Google button keeps
+       a white face on a dark ground, because it is the cue that credentials go to
+       Google rather than to us. */
+    .door .gbtn { order:4; background:#FFFFFF; color:#0F1A2E; min-height:58px; }
+    .door .nolink { order:5; align-self:center; color:var(--onGrn); text-decoration:underline;
+                    text-underline-offset:3px; margin-top:clamp(12px, 2.6vh, 26px); }
+    /* The three points sit at the FOOT of the screen, not under the button: the gap
+       above them is whatever is left over. */
+    .door .feats { order:6; margin-top:auto; gap:12px; }
+    .door .feats .feat { text-align:center; }
+    .door .feat svg { width:23px; height:23px; margin:0 auto; }
+    .door .feat b { color:var(--onGrn); margin:9px 0 4px; font-size:14px; }
+    .door .feat span { color:var(--onGrn3); font-size:12.5px; }
+    .door .lfoot { order:7; margin-top:clamp(16px, 6.6vh, 62px); padding-top:0;
+                   color:var(--onGrn3); }
+  }
+

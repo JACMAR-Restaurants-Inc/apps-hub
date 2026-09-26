@@ -14,7 +14,10 @@ export function createDb(url: string | undefined = process.env.DATABASE_URL) {
   if (!url) throw new Error('DATABASE_URL is not set');
   // prepare: false - Supabase's transaction pooler (port 6543), which serverless
   // functions must use, does not support prepared statements.
-  const client = postgres(url, { prepare: false });
+  // idle_timeout: close a connection idle for 20 s. Serverless functions and dev's
+  // hot reloads both leave pools behind; this drains them instead of holding pooler
+  // slots open.
+  const client = postgres(url, { prepare: false, idle_timeout: 20 });
   return drizzle(client, { schema, casing: 'snake_case' });
 }
 

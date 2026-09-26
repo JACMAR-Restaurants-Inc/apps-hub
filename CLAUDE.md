@@ -27,7 +27,11 @@ say what it used to say. A file that disagrees with reality is worse than none.
   placeholder home page shows who you are and your roster standing), the roster
   loader, `authorize()` for server actions, the spreadsheet import, and request access:
   the portal catalogue, the request form (employee number checked in Clearview), the
-  Grant panel for admins, and the two French emails sent through Gmail. Code is at
+  Grant panel for admins, and the two French emails sent through Gmail. On branch
+  `portal-parity`: the whole portal at parity with the Apps Script one
+  (`docs/PORTAL_PARITY.md`): its stylesheet, door, bar, all 18 apps, search and
+  categories, the access directory and Grant drawer, and an Administration page for
+  what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
   Data API off. Migrations 0000–0004 are applied. It holds the 2026-09-25 snapshot:
@@ -49,6 +53,15 @@ say what it used to say. A file that disagrees with reality is worse than none.
   Until then every email is skipped and audited as not sent; requests and approvals work
   without it (admins see requests in the portal). Someone approved meanwhile never gets
   the grant email.
+- **OPEN, decide before production: the transaction pooler hangs.** 2026-09-25, in
+  `next dev`, queries through `DATABASE_URL` (Supabase's TRANSACTION pooler, 6543) began
+  to hang: Postgres showed them `active`, waiting on the client (`ClientRead`), and once
+  a few were stuck every page queued behind them. The same pages through the SESSION
+  pooler (5432, `DIRECT_URL`) answered in 0.1 s, round after round; 25 parallel queries
+  from a plain script through 6543 were fine. So it is the long-running server plus the
+  transaction pooler, not the page code. For now dev runs with
+  `DATABASE_URL="$DIRECT_URL" npm run dev`. Before Vercel: test both poolers there, and
+  pick one (likely the session pooler with a small `max`), with a load test.
 - Not built yet: moving the 256
   attachments from Drive to Storage (they are imported with their Drive file id and no
   `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel,
@@ -111,6 +124,14 @@ down". From Clearview only name, HR email, active and store are kept (`toEmploye
 picks them by name; a test feeds it a full record with birth date, address, phone and
 SIN and checks none come out). `rbac.users.active = false` alone is therefore NOT
 "switched off": the portal says that only to someone who holds an app while off.
+
+**The spreadsheet's jobs have screens now, with guards** (`lib/admin/settings.ts`,
+tested on Postgres in rolled-back transactions). Nobody can switch themselves off or
+remove themselves as admin, the last admin cannot be removed (with none, the
+break-glass address would silently become the only admin), and a new restaurant is
+added CLOSED so it grants nothing until someone opens it. Restaurants are closed, never
+deleted. Removing an admin deletes the `admins` row (a role, not history); the audit
+row keeps who, whom and when.
 
 **The roster is loaded once per request, never cached across requests**
 (`loadRoster` in `@hub/db`, `getRoster()` in `viewer.ts`), so deactivation takes effect
