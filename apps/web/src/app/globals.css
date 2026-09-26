@@ -45,3 +45,8 @@ body.shell { font-family: var(--font-inter), 'Segoe UI', -apple-system, BlinkMac
 .setcheck input { margin-top: 3px; accent-color: var(--gold); }
 .setcheck b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); }
 .setcheck small { display: block; font-size: 12.5px; color: var(--text-dim); }
+
+/* Supprimer in the directory: plainly a button, and plainly a dangerous one. It was the
+   light button with red text, which read as disabled beside a filled one (owner, 2026-09-26). */
+.rowbtn.danger { background: #FFFFFF; color: var(--red); border: 1px solid #F0C9D1; }
+.rowbtn.danger:hover { background: var(--attSoft); border-color: #E7AFBA; }

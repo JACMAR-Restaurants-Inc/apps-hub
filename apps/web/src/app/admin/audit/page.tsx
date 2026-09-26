@@ -8,7 +8,7 @@ import { getViewer } from '@/lib/viewer';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-const EVENTS = ['request', 'grant', 'update', 'decline', 'revoke', 'notify', 'denied', 'user_active', 'admin_add', 'admin_remove', 'admin_notify', 'restaurant_add', 'restaurant_active', 'signed_in_no_grants', 'name_corrected'];
+const EVENTS = ['request', 'grant', 'update', 'decline', 'revoke', 'notify', 'denied', 'user_active', 'admin_add', 'admin_remove', 'admin_notify', 'restaurant_add', 'restaurant_active', 'signed_in_no_grants', 'name_corrected', 'person_deleted'];
 
 /**
  * The audit log, read-only, newest first (RBAC §7: "the only record you control of who

@@ -19,7 +19,7 @@ import { explain } from '@hub/rbac';
 import { db } from '@/lib/db';
 import { APPS } from '@/lib/requests/apps';
 import { getRoster, getSignedInEmail } from '@/lib/viewer';
-import { addAdmin, addRestaurant, portalAllows, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
+import { addAdmin, addRestaurant, deletePerson, portalAllows, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
 
 const ROLES: readonly Role[] = ['office', 'manager', 'viewer'];
 const str = (v: FormDataEntryValue | null, max: number) => (typeof v === 'string' && v.length <= max ? v : null);
@@ -136,7 +136,7 @@ export async function explainAction(rawEmail: string): Promise<Check[] | { denie
   return out;
 }
 
-export type SettingsIntent = 'person_active' | 'admin_add' | 'admin_remove' | 'admin_notify' | 'restaurant_add' | 'restaurant_active';
+export type SettingsIntent = 'person_delete' | 'person_active' | 'admin_add' | 'admin_remove' | 'admin_notify' | 'restaurant_add' | 'restaurant_active';
 
 /**
  * The spreadsheet's jobs (parity checklist D): the kill switch, admins and notify, and
@@ -144,7 +144,7 @@ export type SettingsIntent = 'person_active' | 'admin_add' | 'admin_remove' | 'a
  */
 export async function settingsAction(
   intent: SettingsIntent,
-  args: { email?: string; name?: string; id?: string; on?: boolean },
+  args: { email?: string; name?: string; id?: string; on?: boolean; confirm?: string },
 ): Promise<{ outcome: SettingsOutcome | 'denied' | 'error' }> {
   let admin: string;
   try {
@@ -161,6 +161,9 @@ export async function settingsAction(
     const d = db();
     let outcome: SettingsOutcome;
     switch (intent) {
+      case 'person_delete':
+        outcome = await deletePerson(d, admin, s(args.email, 320), s(args.confirm, 320));
+        break;
       case 'person_active':
         outcome = await setPersonActive(d, admin, s(args.email, 320), on);
         break;

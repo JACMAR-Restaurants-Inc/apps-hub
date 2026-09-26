@@ -16,13 +16,13 @@
  */
 
 import { normalizeEmail } from '@hub/core';
-import { admins, audit, restaurants, users, type Db } from '@hub/db';
+import { admins, appMembers, audit, authAccounts, authSessions, authUsers, memberStores, restaurants, users, type Db } from '@hub/db';
 import { and, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 type Conn = Db | Tx;
 
-export type SettingsOutcome = 'done' | 'unchanged' | 'not_found' | 'self' | 'last_admin' | 'invalid' | 'exists';
+export type SettingsOutcome = 'done' | 'unchanged' | 'not_found' | 'self' | 'last_admin' | 'invalid' | 'exists' | 'is_admin' | 'mismatch';
 
 async function inTx<T>(db: Conn, fn: (tx: Tx) => Promise<T>): Promise<T> {
   return (db as Db).transaction(fn);
@@ -159,4 +159,59 @@ export async function readAudit(db: Conn, opts: { q?: string; event?: string; li
     .limit(limit)) as AuditRow[];
   const [{ n }] = (await db.select({ n: count() }).from(audit)) as [{ n: number }];
   return { rows, total: Number(n) };
+}
+
+/**
+ * Delete a person, so their next sign-in is a first visit (owner's call, 2026-09-26).
+ * The ONE exception to "nothing is deleted" (CLAUDE.md §3), guarded because it cannot
+ * be undone:
+ * - the admin must type the person's address (`confirm`), not just click;
+ * - never an admin (remove the admin role first), never yourself;
+ * - the journal keeps a full copy of what they held at that moment (name, HR email,
+ *   employee number, switch, every app row with role and restaurants), so the record of
+ *   what they could do moves into the audit instead of being lost;
+ * - their sign-in (Better Auth's rows) goes too, which signs them out at once.
+ * Past counts keep the manager's name as text and the journal keeps addresses as text,
+ * so no history points at the rows removed.
+ */
+export async function deletePerson(db: Conn, admin: string, rawEmail: string, confirm: string): Promise<SettingsOutcome> {
+  const email = normalizeEmail(rawEmail);
+  if (!email.includes('@')) return 'invalid';
+  if (normalizeEmail(confirm) !== email) return 'mismatch';
+  if (email === normalizeEmail(admin)) return 'self';
+  return inTx(db, async (tx) => {
+    const [person] = await tx.select().from(users).where(eq(users.email, email)).for('update');
+    if (!person) return 'not_found';
+    const [isAdmin] = await tx.select({ email: admins.email }).from(admins).where(eq(admins.email, email));
+    if (isAdmin) return 'is_admin';
+
+    const memberships = await tx.select().from(appMembers).where(eq(appMembers.email, email));
+    const stores = await tx.select().from(memberStores).where(eq(memberStores.email, email));
+    const snapshot = {
+      person: { fullName: person.fullName, hrEmail: person.hrEmail, employeeNumber: person.employeeNumber, clearviewStore: person.clearviewStore, active: person.active, addedAt: person.addedAt, addedBy: person.addedBy },
+      apps: memberships.map((m) => ({
+        app: m.app,
+        status: m.status,
+        role: m.role,
+        grantedBy: m.grantedBy,
+        stores: stores.filter((x) => x.app === m.app).map((x) => x.restaurantId).sort(),
+      })),
+    };
+
+    // Children first: there are no cascades, on purpose.
+    await tx.delete(memberStores).where(eq(memberStores.email, email));
+    await tx.delete(appMembers).where(eq(appMembers.email, email));
+    await tx.delete(users).where(eq(users.email, email));
+
+    // Their sign-in. Better Auth keeps Google's address as given, so match normalised.
+    const identities = (await tx.select({ id: authUsers.id, email: authUsers.email }).from(authUsers)).filter((u) => normalizeEmail(u.email) === email);
+    for (const u of identities) {
+      await tx.delete(authSessions).where(eq(authSessions.userId, u.id));
+      await tx.delete(authAccounts).where(eq(authAccounts.userId, u.id));
+      await tx.delete(authUsers).where(eq(authUsers.id, u.id));
+    }
+
+    await tx.insert(audit).values({ actorEmail: admin, event: 'person_deleted', targetEmail: email, detail: { ...snapshot, signedOut: identities.length > 0 } });
+    return 'done';
+  });
 }

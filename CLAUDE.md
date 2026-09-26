@@ -161,8 +161,16 @@ granted. Any exception denies. `explain()` gives the reason for logs and admin s
 **A blank never grants** (RBAC §4), and here the database enforces it: `active` and
 `status` are NOT NULL, and a store grant is a row, so there is no "denied" to mistype.
 
-**Nothing is deleted.** People are deactivated, memberships revoked. There are no
-cascading deletes, so a careless delete fails instead of taking history with it.
+**Nothing is deleted, with ONE guarded exception.** People are deactivated,
+memberships revoked. There are no cascading deletes, so a careless delete fails instead
+of taking history with it. The exception (owner's call, 2026-09-26): an admin can DELETE
+a person from the directory, so their next sign-in is a first visit. It is guarded
+(`deletePerson` in `lib/admin/settings.ts`): the admin must type the person's address,
+it is never allowed on an admin or on yourself, their Better Auth sign-in goes too (so
+they are signed out at once), and the audit row `person_deleted` keeps a full copy of
+what they held (name, HR email, employee number, switch, every app row with role and
+restaurants). So the record of what they could do moves into the journal rather than
+being lost. This used to say, without exception, "Nothing is deleted".
 
 **Emails are normalised on every read and write** with `normalizeEmail`: lowercase,
 trim, and strip dots ONLY for Gmail (Yahoo and Hotmail dots are significant).
