@@ -419,19 +419,23 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
                             </div>
                           ) : (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                              {p.active ? (
-                                <button type="button" className="rowbtn soft" onClick={() => setConfirmOff(p.email)}>
-                                  {t(lang, 'switchOff')}
-                                </button>
-                              ) : (
-                                <button type="button" className="rowbtn go" disabled={switching === p.email} onClick={() => setActive(p, true)}>
-                                  {switching === p.email ? t(lang, 'gpSaving') : t(lang, 'switchOn')}
-                                </button>
-                              )}
+                              {/* The switch is for someone who HOLDS an app (RBAC §30). A person
+                                  with nothing granted (pending, declined, no app) has only
+                                  Examiner and Supprimer: "Réactiver" on somebody who never had
+                                  access switched them on for nothing (owner, 2026-09-26). */}
+                              {p.apps.some((a) => a.status === 'active') &&
+                                (p.active ? (
+                                  <button type="button" className="rowbtn soft" onClick={() => setConfirmOff(p.email)}>
+                                    {t(lang, 'switchOff')}
+                                  </button>
+                                ) : (
+                                  <button type="button" className="rowbtn go" disabled={switching === p.email} onClick={() => setActive(p, true)}>
+                                    {switching === p.email ? t(lang, 'gpSaving') : t(lang, 'switchOn')}
+                                  </button>
+                                ))}
                               <button
                                 type="button"
-                                className="rowbtn soft"
-                                style={{ color: 'var(--red)' }}
+                                className="rowbtn danger"
                                 onClick={() => {
                                   setConfirmOff(null);
                                   setTyped('');
