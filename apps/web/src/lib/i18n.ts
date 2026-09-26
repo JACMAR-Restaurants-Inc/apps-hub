@@ -342,10 +342,9 @@ export const dict = {
   add: { fr: 'Ajouter', en: 'Add' },
   restaurantsTitle: { fr: 'Restaurants', en: 'Restaurants' },
   restaurantsHelp: {
-    fr: 'Un restaurant fermé n’accorde rien, quoi que disent les accès. Rien n’est supprimé\u00a0: les décomptes gardent leur restaurant.',
-    en: 'A closed restaurant grants nothing, whatever the access says. Nothing is deleted: counts keep their restaurant.',
+    fr: 'Un restaurant fermé n’accorde rien, quoi que disent les accès. Un nouveau restaurant est ajouté fermé\u00a0: ouvrez-le quand il est prêt. Fermer un restaurant ne se fait pas ici\u00a0: demandez-le. Rien n’est supprimé.',
+    en: 'A closed restaurant grants nothing, whatever the access says. A new restaurant is added closed: open it when it is ready. Closing a restaurant is not done here: ask for it. Nothing is deleted.',
   },
-  close: { fr: 'Fermer', en: 'Close' },
   isOpen: { fr: 'ouvert', en: 'open' },
   isClosed: { fr: 'fermé', en: 'closed' },
   addRestaurant: { fr: 'Ajouter un restaurant', en: 'Add a restaurant' },

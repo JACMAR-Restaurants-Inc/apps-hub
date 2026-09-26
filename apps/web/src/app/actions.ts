@@ -19,7 +19,7 @@ import { explain } from '@hub/rbac';
 import { db } from '@/lib/db';
 import { APPS } from '@/lib/requests/apps';
 import { getRoster, getSignedInEmail } from '@/lib/viewer';
-import { addAdmin, addRestaurant, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
+import { addAdmin, addRestaurant, portalAllows, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
 
 const ROLES: readonly Role[] = ['office', 'manager', 'viewer'];
 const str = (v: FormDataEntryValue | null, max: number) => (typeof v === 'string' && v.length <= max ? v : null);
@@ -155,6 +155,8 @@ export async function settingsAction(
   }
   const s = (v: unknown, max: number) => (typeof v === 'string' && v.length <= max ? v : '');
   const on = args?.on === true;
+  // Refused here, not only hidden on the page: an action is callable with anything.
+  if (!portalAllows(intent, on)) return { outcome: 'invalid' };
   try {
     const d = db();
     let outcome: SettingsOutcome;

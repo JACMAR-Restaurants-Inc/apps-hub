@@ -107,6 +107,16 @@ export async function addRestaurant(db: Conn, admin: string, rawId: string, rawN
   });
 }
 
+/**
+ * Whether the PORTAL may do this. Closing a restaurant is not offered there (owner's
+ * call, 2026-09-25): one stray click stopped everyone at that restaurant, and it is a
+ * once-in-years job, done on request. setRestaurantActive can still close one, for a
+ * deliberate script; the portal's action refuses to.
+ */
+export function portalAllows(intent: string, on: boolean): boolean {
+  return !(intent === 'restaurant_active' && !on);
+}
+
 /** Open or close a restaurant. Closed denies whatever any row says (can() step 5). */
 export async function setRestaurantActive(db: Conn, admin: string, id: string, active: boolean): Promise<SettingsOutcome> {
   return inTx(db, async (tx) => {

@@ -109,7 +109,8 @@ These had no screen in the old portal; now there is no spreadsheet.
 
 - [x] Kill switch: switch a person off or back on, for every app (§30/§31)
 - [x] Admins: add or remove, and turn `notify` on or off
-- [x] Restaurants: open or close them, and add one
+- [x] Restaurants: open them, and add one. Closing is NOT offered (owner's call,
+      2026-09-25): done on request, by script
 - [x] App URLs (configuration, see B)
 - [x] Reading the audit log
 - Deferred by the owner, 2026-09-25 ("leave those for now"): editing the Perm_ matrix,
