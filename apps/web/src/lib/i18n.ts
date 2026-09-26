@@ -330,6 +330,13 @@ export const dict = {
     en: 'Full access to everything, with no app row. Notify: emailed at every access request.',
   },
   notifyLabel: { fr: 'Avis par courriel', en: 'Email notifications' },
+  notifyOn: { fr: 'avis\u00a0: oui', en: 'notify: on' },
+  notifyOff: { fr: 'avis\u00a0: non', en: 'notify: off' },
+  notifyHelp: {
+    fr: 'Recevoir un courriel à chaque demande d’accès. Cochez ou décochez, puis enregistrez.',
+    en: 'Get an email at every access request. Tick or untick, then save.',
+  },
+  removeAdminLong: { fr: 'Retirer des administrateurs', en: 'Remove as admin' },
   removeAdmin: { fr: 'Retirer', en: 'Remove' },
   confirmRemoveAdmin: {
     fr: 'Retirer {who} des administrateurs\u00a0? La personne reste inscrite, avec ses autres accès.',
