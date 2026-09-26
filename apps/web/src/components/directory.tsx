@@ -76,6 +76,9 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
   // The kill switch: which person is being asked "are you sure?", and which is saving.
   const [confirmOff, setConfirmOff] = useState<string | null>(null);
   const [switching, setSwitching] = useState<string | null>(null);
+  // Deleting: which person's confirmation is open, and what has been typed so far.
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [typed, setTyped] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const lastTry = useRef(0);
 
@@ -153,6 +156,20 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
     setSwitching(null);
     setConfirmOff(null);
     // The refresh brings a new fetchedAt, which resets the refresh timer.
+    router.refresh();
+  };
+
+  const remove = async (p: DirPerson) => {
+    setSwitching(p.email);
+    try {
+      const { outcome } = await settingsAction('person_delete', { email: p.email, confirm: typed });
+      setToast(outcome === 'done' ? t(lang, 'toastDeleted') : t(lang, `out_${outcome}` as Key));
+    } catch {
+      setToast(t(lang, 'out_error'));
+    }
+    setSwitching(null);
+    setConfirmDelete(null);
+    setTyped('');
     router.refresh();
   };
 
@@ -361,14 +378,69 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
                                 </button>
                               </div>
                             </div>
-                          ) : p.active ? (
-                            <button type="button" className="rowbtn soft" onClick={() => setConfirmOff(p.email)}>
-                              {t(lang, 'switchOff')}
-                            </button>
+                          ) : confirmDelete === p.email ? (
+                            <div className="gp-confirm">
+                              <p>{t(lang, 'confirmDelete').replace('{who}', p.fullName ?? p.email)}</p>
+                              {/* Typed, not clicked: this one cannot be undone. */}
+                              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12.5, fontWeight: 600 }}>
+                                {t(lang, 'typeToConfirm')}
+                                <input
+                                  className="filter"
+                                  style={{ margin: 0, fontSize: 16 }}
+                                  autoComplete="off"
+                                  spellCheck={false}
+                                  autoFocus
+                                  placeholder={p.email}
+                                  value={typed}
+                                  onChange={(e) => setTyped(e.target.value)}
+                                />
+                              </label>
+                              <div className="askrow">
+                                <button
+                                  type="button"
+                                  className="gp-btn no"
+                                  disabled={switching === p.email || typed.trim().toLowerCase() !== p.email.toLowerCase()}
+                                  onClick={() => remove(p)}
+                                >
+                                  {switching === p.email ? t(lang, 'gpSaving') : t(lang, 'deletePersonLong')}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="gp-btn plain"
+                                  disabled={switching === p.email}
+                                  onClick={() => {
+                                    setConfirmDelete(null);
+                                    setTyped('');
+                                  }}
+                                >
+                                  {t(lang, 'cancel')}
+                                </button>
+                              </div>
+                            </div>
                           ) : (
-                            <button type="button" className="rowbtn go" disabled={switching === p.email} onClick={() => setActive(p, true)}>
-                              {switching === p.email ? t(lang, 'gpSaving') : t(lang, 'switchOn')}
-                            </button>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                              {p.active ? (
+                                <button type="button" className="rowbtn soft" onClick={() => setConfirmOff(p.email)}>
+                                  {t(lang, 'switchOff')}
+                                </button>
+                              ) : (
+                                <button type="button" className="rowbtn go" disabled={switching === p.email} onClick={() => setActive(p, true)}>
+                                  {switching === p.email ? t(lang, 'gpSaving') : t(lang, 'switchOn')}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="rowbtn soft"
+                                style={{ color: 'var(--red)' }}
+                                onClick={() => {
+                                  setConfirmOff(null);
+                                  setTyped('');
+                                  setConfirmDelete(p.email);
+                                }}
+                              >
+                                {t(lang, 'deletePerson')}
+                              </button>
+                            </div>
                           )}
                         </div>
                       )}

@@ -110,3 +110,48 @@ describe('what the portal may do', () => {
     expect(portalAllows('admin_notify', false)).toBe(true);
   });
 });
+
+describe.skipIf(!db)('deleting a person (rolled back)', () => {
+  it('removes them, their access and their sign-in, and keeps a copy in the journal', async () => {
+    const { deletePerson } = await import('./settings');
+    const { appMembers, memberStores, authUsers, authSessions, authAccounts } = await import('@hub/db');
+    await rolledBack(async (tx) => {
+      await tx.insert(users).values({ email: NEW, active: true, fullName: 'Test Person', employeeNumber: '0014' });
+      await tx.insert(appMembers).values({ app: 'SafeCount', email: NEW, status: 'active', role: 'manager' });
+      await tx.insert(memberStores).values({ app: 'SafeCount', email: NEW, restaurantId: '1647' });
+      await tx.insert(authUsers).values({ id: 'del-test', name: 'Test', email: 'Settings-Test@Example.invalid', emailVerified: true });
+      await tx.insert(authSessions).values({ id: 'del-s', token: 'del-token', userId: 'del-test', expiresAt: new Date(Date.now() + 60_000) });
+      await tx.insert(authAccounts).values({ id: 'del-a', accountId: 'g-del', providerId: 'google', userId: 'del-test' });
+
+      expect(await deletePerson(tx, ME, NEW, 'wrong@example.invalid')).toBe('mismatch');
+      expect((await tx.select().from(users).where(eq(users.email, NEW))).length).toBe(1);
+
+      expect(await deletePerson(tx, ME, NEW, ' Settings-Test@Example.invalid ')).toBe('done');
+      expect(await tx.select().from(users).where(eq(users.email, NEW))).toEqual([]);
+      expect(await tx.select().from(appMembers).where(eq(appMembers.email, NEW))).toEqual([]);
+      expect(await tx.select().from(memberStores).where(eq(memberStores.email, NEW))).toEqual([]);
+      expect(await tx.select().from(authUsers).where(eq(authUsers.id, 'del-test'))).toEqual([]);
+      expect(await tx.select().from(authSessions).where(eq(authSessions.id, 'del-s'))).toEqual([]);
+
+      const entry = await lastEvent(tx);
+      expect(entry).toMatchObject({ event: 'person_deleted', actorEmail: ME, targetEmail: NEW });
+      expect(entry!.detail).toMatchObject({
+        person: { fullName: 'Test Person', employeeNumber: '0014', active: true },
+        apps: [{ app: 'SafeCount', status: 'active', role: 'manager', stores: ['1647'] }],
+        signedOut: true,
+      });
+      expect(await deletePerson(tx, ME, NEW, NEW)).toBe('not_found');
+    });
+  });
+
+  it('never an admin, never yourself', async () => {
+    const { deletePerson } = await import('./settings');
+    await rolledBack(async (tx) => {
+      const [anAdmin] = await tx.select().from(admins).where(eq(admins.email, 'pierrej@jacmar-restaurants.com'));
+      expect(anAdmin).toBeDefined();
+      expect(await deletePerson(tx, ME, anAdmin!.email, anAdmin!.email)).toBe('is_admin');
+      expect(await deletePerson(tx, ME, ME, ME)).toBe('self');
+      expect((await tx.select().from(users).where(eq(users.email, anAdmin!.email))).length).toBe(1);
+    });
+  });
+});
