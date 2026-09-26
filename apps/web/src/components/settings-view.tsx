@@ -25,6 +25,34 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [newAdmin, setNewAdmin] = useState({ email: '', name: '' });
   const [newStore, setNewStore] = useState({ id: '', name: '' });
+  // Adding an admin or a restaurant is rare, so each form stays closed behind a button
+  // until asked for (owner's call, 2026-09-25): no fields sitting open to invite it.
+  const [adding, setAdding] = useState<'admin' | 'store' | null>(null);
+  const openButton = (which: 'admin' | 'store', label: string) => (
+    <button
+      type="button"
+      className="btn-ask"
+      style={{ width: 'auto', marginTop: 12 }}
+      onClick={() => {
+        setMessage(null);
+        setAdding(which);
+      }}
+    >
+      + {label}
+    </button>
+  );
+  const cancelButton = (reset: () => void) => (
+    <button
+      type="button"
+      className="btn-x"
+      onClick={() => {
+        reset();
+        setAdding(null);
+      }}
+    >
+      {t(lang, 'cancel')}
+    </button>
+  );
 
   const run = async (key: string, intent: SettingsIntent, args: Parameters<typeof settingsAction>[1], done?: () => void) => {
     setBusy(key);
@@ -112,12 +140,18 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
             );
           })}
         </div>
+        {adding !== 'admin' ? (
+          openButton('admin', t(lang, 'addAdmin'))
+        ) : (
         <form
           className="askbox"
           style={{ marginTop: 12 }}
           onSubmit={(e) => {
             e.preventDefault();
-            run('admin:new', 'admin_add', newAdmin, () => setNewAdmin({ email: '', name: '' }));
+            run('admin:new', 'admin_add', newAdmin, () => {
+              setNewAdmin({ email: '', name: '' });
+              setAdding(null);
+            });
           }}
         >
           <p>
@@ -125,7 +159,7 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
           </p>
           <label>
             {t(lang, 'addAdminEmail')}
-            <input type="email" required autoComplete="off" value={newAdmin.email} onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })} />
+            <input type="email" required autoFocus autoComplete="off" value={newAdmin.email} onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })} />
           </label>
           <label>
             {t(lang, 'addAdminName')}
@@ -135,8 +169,10 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
             <button type="submit" className="btn-go" disabled={busy === 'admin:new'}>
               {busy === 'admin:new' ? t(lang, 'gpSaving') : t(lang, 'add')}
             </button>
+            {cancelButton(() => setNewAdmin({ email: '', name: '' }))}
           </div>
         </form>
+        )}
       </section>
 
       <section className="panel" aria-labelledby="stores">
@@ -168,12 +204,18 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
             );
           })}
         </div>
+        {adding !== 'store' ? (
+          openButton('store', t(lang, 'addRestaurant'))
+        ) : (
         <form
           className="askbox"
           style={{ marginTop: 12 }}
           onSubmit={(e) => {
             e.preventDefault();
-            run('store:new', 'restaurant_add', newStore, () => setNewStore({ id: '', name: '' }));
+            run('store:new', 'restaurant_add', newStore, () => {
+              setNewStore({ id: '', name: '' });
+              setAdding(null);
+            });
           }}
         >
           <p>
@@ -181,7 +223,7 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
           </p>
           <label>
             {t(lang, 'restaurantNumber')}
-            <input inputMode="numeric" required autoComplete="off" value={newStore.id} onChange={(e) => setNewStore({ ...newStore, id: e.target.value })} />
+            <input inputMode="numeric" required autoFocus autoComplete="off" value={newStore.id} onChange={(e) => setNewStore({ ...newStore, id: e.target.value })} />
           </label>
           <label>
             {t(lang, 'restaurantName')}
@@ -191,8 +233,10 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
             <button type="submit" className="btn-go" disabled={busy === 'store:new'}>
               {busy === 'store:new' ? t(lang, 'gpSaving') : t(lang, 'add')}
             </button>
+            {cancelButton(() => setNewStore({ id: '', name: '' }))}
           </div>
         </form>
+        )}
       </section>
     </main>
   );
