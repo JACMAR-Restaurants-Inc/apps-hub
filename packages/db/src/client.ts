@@ -17,7 +17,10 @@ export function createDb(url: string | undefined = process.env.DATABASE_URL) {
   // idle_timeout: close a connection idle for 20 s. Serverless functions and dev's
   // hot reloads both leave pools behind; this drains them instead of holding pooler
   // slots open.
-  const client = postgres(url, { prepare: false, idle_timeout: 20 });
+  // max: the session pooler allows 15 clients for the whole project, across every
+  // process; a pool of 5 leaves room for migrations, imports and a second server.
+  const max = Number(process.env.DB_POOL_MAX) || 5;
+  const client = postgres(url, { prepare: false, idle_timeout: 20, max });
   return drizzle(client, { schema, casing: 'snake_case' });
 }
 

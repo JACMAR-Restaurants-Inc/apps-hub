@@ -62,6 +62,13 @@ say what it used to say. A file that disagrees with reality is worse than none.
   transaction pooler, not the page code. For now dev runs with
   `DATABASE_URL="$DIRECT_URL" npm run dev`. Before Vercel: test both poolers there, and
   pick one (likely the session pooler with a small `max`), with a load test.
+  **The session pooler allows 15 clients for the whole project** (Free plan), across
+  every process: dev, imports, migrations, and each Vercel instance. Exceeding it fails
+  every query with `EMAXCONNSESSION max clients reached in session mode`, which is how
+  the access directory broke on 2026-09-25 when each module copy briefly had its own
+  pool. So: ONE pool per process on `globalThis` (`apps/web/src/lib/db.ts`), capped by
+  `DB_POOL_MAX` (default 5). On Vercel, instances x `max` must stay under 15, which is
+  the strongest argument for testing the transaction pooler properly.
 - Not built yet: moving the 256
   attachments from Drive to Storage (they are imported with their Drive file id and no
   `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel,
