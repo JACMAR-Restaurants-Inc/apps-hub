@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanEmployeeNumber, createClearview, toEmployee, type ClearviewDeps } from './clearview';
+import { cleanEmployeeNumber, createClearview, toEmployee, withoutNumber, type ClearviewDeps } from './clearview';
 
 const env = { clientId: 'id', clientSecret: 'secret', authKey: 'key' };
 
@@ -147,5 +147,29 @@ describe('lookupEmployee', () => {
     const { cv } = fake({ employee: () => new Response('employee 0014 Jane Doe SIN 123', { status: 500 }) });
     const r = await cv.lookupEmployee('0014');
     expect(JSON.stringify(r)).not.toMatch(/Jane|SIN|123/);
+  });
+});
+
+describe('the employee number Clearview appends to lastName', () => {
+  it('is dropped when it is exactly this person\'s number, leading zeros aside', () => {
+    expect(withoutNumber('Doe 3791', '3791')).toBe('Doe');
+    expect(withoutNumber('KARISA 9111', '9111')).toBe('KARISA');
+    expect(withoutNumber('Tremblay 14', '0014')).toBe('Tremblay');
+  });
+
+  it('is left alone when it is some other number, or there is none', () => {
+    expect(withoutNumber('Doe 3792', '3791')).toBe('Doe 3792');
+    expect(withoutNumber('Doe', '3791')).toBe('Doe');
+    expect(withoutNumber('Louis 14', '3791')).toBe('Louis 14');
+    expect(withoutNumber(null, '3791')).toBeNull();
+  });
+
+  it('never leaves an empty surname behind', () => {
+    expect(withoutNumber('3791', '3791')).toBe('3791'); // nothing before it: not a suffix
+  });
+
+  it('gives a clean full name from a record shaped like the real one', () => {
+    const e = toEmployee('9111', { standardInformation: { firstName: 'SONY', lastName: 'KARISA 9111', employeeNumber: '9111', status: 'A' } }, null)!;
+    expect(e.fullName).toBe('SONY KARISA');
   });
 });

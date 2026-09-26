@@ -129,7 +129,10 @@ checks under a row lock that the row is still what the page showed, or answers
 and checked in Clearview (RBAC §65), and "wrong number" is kept apart from "Clearview is
 down". From Clearview only name, HR email, active and store are kept (`toEmployee`
 picks them by name; a test feeds it a full record with birth date, address, phone and
-SIN and checks none come out). `rbac.users.active = false` alone is therefore NOT
+SIN and checks none come out). Clearview often appends the employee number to
+`lastName` ("Doe 3791"); `withoutNumber` drops it, but only when it is exactly that
+person's number, so a real surname is never cut. The one roster name saved before this
+fix was corrected on 2026-09-25, audited as `name_corrected`. `rbac.users.active = false` alone is therefore NOT
 "switched off": the portal says that only to someone who holds an app while off.
 
 **The spreadsheet's jobs have screens now, with guards** (`lib/admin/settings.ts`,

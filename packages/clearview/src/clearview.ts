@@ -64,15 +64,29 @@ export function cleanEmployeeNumber(raw: string): string | null {
 type Json = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
+/**
+ * Clearview's lastName often carries the employee number after it ("Doe 3791" for
+ * employee 3791: a data-entry convention, clearview-api-response-shapes.md §6). It is
+ * not part of the name, so it is dropped, but ONLY when it is exactly this person's
+ * number (leading zeros aside): a surname is never cut on a guess.
+ */
+export function withoutNumber(lastName: string | null, employeeNumber: string): string | null {
+  if (!lastName) return lastName;
+  const m = /^(.*?)\s+(\d+)$/.exec(lastName);
+  if (!m || Number(m[2]) !== Number(employeeNumber) || !Number.isFinite(Number(employeeNumber))) return lastName;
+  return m[1]!.trim() || null;
+}
+
 /** The four facts, picked out by name. Pure. Nothing else in `raw` survives. */
 export function toEmployee(number: string, raw: Json, store: Json | null): Employee | null {
   const s = raw.standardInformation;
   if (!s || typeof s !== 'object') return null;
   const info = s as Json;
-  const fullName = [str(info.firstName), str(info.lastName)].filter(Boolean).join(' ');
+  const employeeNumber = str(info.employeeNumber) ?? number;
+  const fullName = [str(info.firstName), withoutNumber(str(info.lastName), employeeNumber)].filter(Boolean).join(' ');
   const storeNumber = store && store.storeNumber != null ? String(store.storeNumber) : null;
   return {
-    number: str(info.employeeNumber) ?? number,
+    number: employeeNumber,
     fullName,
     hrEmail: str(info.email)?.toLowerCase() ?? null,
     active: info.status === 'A',

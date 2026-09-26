@@ -387,6 +387,7 @@ export const dict = {
   ev_restaurant_add: { fr: 'restaurant ajouté', en: 'restaurant added' },
   ev_restaurant_active: { fr: 'restaurant ouvert ou fermé', en: 'restaurant opened or closed' },
   ev_signed_in_no_grants: { fr: 'connexion sans accès', en: 'signed in with no grants' },
+  ev_name_corrected: { fr: 'nom corrigé', en: 'name corrected' },
   out_self: { fr: 'Impossible sur votre propre compte.', en: 'You cannot do that to your own account.' },
   out_last_admin: { fr: 'Il faut au moins un administrateur.', en: 'There must be at least one admin.' },
   out_exists: { fr: 'Existe déjà.', en: 'Already exists.' },
