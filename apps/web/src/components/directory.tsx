@@ -208,9 +208,9 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
 
   return (
     <main id="roster" className="page" lang={lang}>
-      <button type="button" className="backlink" onClick={() => router.push('/')}>
-        <span aria-hidden="true">←</span> <span>{t(lang, 'navHome')}</span>
-      </button>
+      {/* No "← Accueil" here (owner's call, 2026-09-25): the mark and the menu's Accueil
+          already go home. It used to be kept for the laptop (RBAC §59), when the menu was
+          the only other way back. */}
       <div className="ph">
         <div>
           <h1 className="h1">
