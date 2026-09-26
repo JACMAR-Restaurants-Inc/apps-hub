@@ -112,7 +112,8 @@ These had no screen in the old portal; now there is no spreadsheet.
 - [x] Restaurants: open or close them, and add one
 - [x] App URLs (configuration, see B)
 - [x] Reading the audit log
-- [ ] Owner to decide: editing the Perm_ matrix, and offboarding by HR email
+- Deferred by the owner, 2026-09-25 ("leave those for now"): editing the Perm_ matrix,
+  and offboarding by HR email. Not built; raise again after Cash Balancing.
 
 ## Not rebuilt: Apps Script workarounds (§49–§57, §68, §78–§80)
 
