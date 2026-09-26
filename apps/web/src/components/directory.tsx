@@ -1,6 +1,6 @@
 'use client';
 
-import { explainAction, type Check } from '@/app/actions';
+import { explainAction, settingsAction, type Check } from '@/app/actions';
 import { dict, t, type Key, type Lang } from '@/lib/i18n';
 import type { Role } from '@hub/rbac';
 import { useRouter } from 'next/navigation';
@@ -65,7 +65,7 @@ function initialsOf(p: DirPerson) {
  * on screen and when the tab comes back, never while a panel is open, and never
  * lets an older answer overwrite a newer one (the router keeps only the latest).
  */
-export function Directory({ lang, data }: { lang: Lang; data: DirData }) {
+export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: string }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [store, setStore] = useState('');
@@ -73,6 +73,9 @@ export function Directory({ lang, data }: { lang: Lang; data: DirData }) {
   const [checks, setChecks] = useState<Record<string, Check[] | 'loading' | 'failed'>>({});
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // The kill switch: which person is being asked "are you sure?", and which is saving.
+  const [confirmOff, setConfirmOff] = useState<string | null>(null);
+  const [switching, setSwitching] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const lastTry = useRef(0);
 
@@ -137,6 +140,20 @@ export function Directory({ lang, data }: { lang: Lang; data: DirData }) {
     } catch {
       setChecks((c) => ({ ...c, [email]: 'failed' }));
     }
+  };
+
+  const setActive = async (p: DirPerson, on: boolean) => {
+    setSwitching(p.email);
+    try {
+      const { outcome } = await settingsAction('person_active', { email: p.email, on });
+      setToast(outcome === 'done' ? t(lang, on ? 'toastSwitchedOn' : 'toastSwitchedOff') : t(lang, `out_${outcome}` as Key));
+    } catch {
+      setToast(t(lang, 'out_error'));
+    }
+    setSwitching(null);
+    setConfirmOff(null);
+    // The refresh brings a new fetchedAt, which resets the refresh timer.
+    router.refresh();
   };
 
   const actionFor = (a: DirApp): 'review' | 'manage' | null =>
@@ -328,6 +345,33 @@ export function Directory({ lang, data }: { lang: Lang; data: DirData }) {
                           })}
                         </tbody>
                       </table>
+                      {/* The kill switch (RBAC §30/§31): every app at once. Not for an admin,
+                          who bypasses it anyway, and not for yourself. */}
+                      {!p.isAdmin && p.email !== me && (
+                        <div style={{ margin: '12px 0 0' }}>
+                          {confirmOff === p.email ? (
+                            <div className="gp-confirm">
+                              <p>{t(lang, 'confirmSwitchOff').replace('{who}', p.fullName ?? p.email)}</p>
+                              <div className="askrow">
+                                <button type="button" className="gp-btn no" disabled={switching === p.email} onClick={() => setActive(p, false)}>
+                                  {switching === p.email ? t(lang, 'gpSaving') : t(lang, 'switchOff')}
+                                </button>
+                                <button type="button" className="gp-btn plain" disabled={switching === p.email} onClick={() => setConfirmOff(null)}>
+                                  {t(lang, 'cancel')}
+                                </button>
+                              </div>
+                            </div>
+                          ) : p.active ? (
+                            <button type="button" className="rowbtn soft" onClick={() => setConfirmOff(p.email)}>
+                              {t(lang, 'switchOff')}
+                            </button>
+                          ) : (
+                            <button type="button" className="rowbtn go" disabled={switching === p.email} onClick={() => setActive(p, true)}>
+                              {switching === p.email ? t(lang, 'gpSaving') : t(lang, 'switchOn')}
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <p style={{ margin: '12px 0 0' }}>
                         <button type="button" className="textlink" onClick={() => runExplain(p.email)}>
                           {t(lang, 'whatCan')}

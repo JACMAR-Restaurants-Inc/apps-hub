@@ -27,7 +27,11 @@ say what it used to say. A file that disagrees with reality is worse than none.
   placeholder home page shows who you are and your roster standing), the roster
   loader, `authorize()` for server actions, the spreadsheet import, and request access:
   the portal catalogue, the request form (employee number checked in Clearview), the
-  Grant panel for admins, and the two French emails sent through Gmail. Code is at
+  Grant panel for admins, and the two French emails sent through Gmail. On branch
+  `portal-parity`: the whole portal at parity with the Apps Script one
+  (`docs/PORTAL_PARITY.md`): its stylesheet, door, bar, all 18 apps, search and
+  categories, the access directory and Grant drawer, and an Administration page for
+  what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
   Data API off. Migrations 0000–0004 are applied. It holds the 2026-09-25 snapshot:
@@ -120,6 +124,14 @@ down". From Clearview only name, HR email, active and store are kept (`toEmploye
 picks them by name; a test feeds it a full record with birth date, address, phone and
 SIN and checks none come out). `rbac.users.active = false` alone is therefore NOT
 "switched off": the portal says that only to someone who holds an app while off.
+
+**The spreadsheet's jobs have screens now, with guards** (`lib/admin/settings.ts`,
+tested on Postgres in rolled-back transactions). Nobody can switch themselves off or
+remove themselves as admin, the last admin cannot be removed (with none, the
+break-glass address would silently become the only admin), and a new restaurant is
+added CLOSED so it grants nothing until someone opens it. Restaurants are closed, never
+deleted. Removing an admin deletes the `admins` row (a role, not history); the audit
+row keeps who, whom and when.
 
 **The roster is loaded once per request, never cached across requests**
 (`loadRoster` in `@hub/db`, `getRoster()` in `viewer.ts`), so deactivation takes effect

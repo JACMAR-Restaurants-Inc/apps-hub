@@ -3,12 +3,23 @@ import { ArchesSvg } from './arches';
 import { DoorLangPill } from './lang-switch';
 import { SignInButton } from '@/app/sign-in-buttons';
 
+/** A sign-in error from Better Auth's ?error=, in the old portal's words. */
+export type DoorError = 'cancelled' | 'expired' | 'other';
+export function doorError(code: string | undefined): { kind: DoorError; code: string | null } | null {
+  if (!code) return null;
+  // Only something shaped like a code is ever shown back: a link can carry any text.
+  const safe = /^[a-z_]{1,40}$/.test(code) ? code : null;
+  if (code === 'access_denied') return { kind: 'cancelled', code: null };
+  if (['state_mismatch', 'please_restart_the_process', 'invalid_code', 'oauth_state'].includes(code)) return { kind: 'expired', code: null };
+  return { kind: 'other', code: safe };
+}
+
 /**
  * The sign-in door, the Apps Script portal's markup (RBAC/portal/Ui.html, the
  * `redirect` view; §40/§44/§54). A navy panel with the pitch beside a light pane with
  * the sign-in, split at 960px; on a phone, one screen. portal.css styles every class.
  */
-export function Door({ lang }: { lang: Lang }) {
+export function Door({ lang, error }: { lang: Lang; error?: ReturnType<typeof doorError> }) {
   return (
     <div className="door" lang={lang}>
       <div className="side">
@@ -81,6 +92,14 @@ export function Door({ lang }: { lang: Lang }) {
               </div>
             </div>
 
+            {error && (
+              <div className="gp-err" role="alert" style={{ textAlign: 'left' }}>
+                <b>{t(lang, error.kind === 'cancelled' ? 'errCancelledTitle' : error.kind === 'expired' ? 'errExpiredTitle' : 'errOtherTitle')}</b>
+                <br />
+                {t(lang, error.kind === 'cancelled' ? 'errCancelledBody' : error.kind === 'expired' ? 'errExpiredBody' : 'errOtherBody')}
+                {error.code && <small style={{ display: 'block', marginTop: 4, opacity: 0.8 }}>{error.code}</small>}
+              </div>
+            )}
             <h1 className="h">{t(lang, 'doorWelcome')}</h1>
             <p className="sub">{t(lang, 'doorSub')}</p>
 

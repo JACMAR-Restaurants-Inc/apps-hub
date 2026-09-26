@@ -62,5 +62,8 @@ export function authOptions(env: AuthEnv): Omit<BetterAuthOptions, 'database'> {
       },
     },
     telemetry: { enabled: false },
+    // A failed or cancelled sign-in comes back to the door with ?error=<code>, which
+    // says what happened in words, instead of Better Auth's bare error page (§40).
+    onAPIError: { errorURL: `${env.baseURL.replace(/\/$/, '')}/` },
   };
 }

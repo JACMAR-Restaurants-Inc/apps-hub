@@ -19,6 +19,7 @@ import { explain } from '@hub/rbac';
 import { db } from '@/lib/db';
 import { APPS } from '@/lib/requests/apps';
 import { getRoster, getSignedInEmail } from '@/lib/viewer';
+import { addAdmin, addRestaurant, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
 
 const ROLES: readonly Role[] = ['office', 'manager', 'viewer'];
 const str = (v: FormDataEntryValue | null, max: number) => (typeof v === 'string' && v.length <= max ? v : null);
@@ -133,4 +134,56 @@ export async function explainAction(rawEmail: string): Promise<Check[] | { denie
     }
   }
   return out;
+}
+
+export type SettingsIntent = 'person_active' | 'admin_add' | 'admin_remove' | 'admin_notify' | 'restaurant_add' | 'restaurant_active';
+
+/**
+ * The spreadsheet's jobs (parity checklist D): the kill switch, admins and notify, and
+ * restaurants. System admins only; every argument checked; each change audited.
+ */
+export async function settingsAction(
+  intent: SettingsIntent,
+  args: { email?: string; name?: string; id?: string; on?: boolean },
+): Promise<{ outcome: SettingsOutcome | 'denied' | 'error' }> {
+  let admin: string;
+  try {
+    ({ email: admin } = await requireSystemAdmin(`settings:${intent}`));
+  } catch (e) {
+    if (e instanceof AccessDenied) return { outcome: 'denied' };
+    throw e;
+  }
+  const s = (v: unknown, max: number) => (typeof v === 'string' && v.length <= max ? v : '');
+  const on = args?.on === true;
+  try {
+    const d = db();
+    let outcome: SettingsOutcome;
+    switch (intent) {
+      case 'person_active':
+        outcome = await setPersonActive(d, admin, s(args.email, 320), on);
+        break;
+      case 'admin_add':
+        outcome = await addAdmin(d, admin, s(args.email, 320), s(args.name, 120));
+        break;
+      case 'admin_remove':
+        outcome = await removeAdmin(d, admin, s(args.email, 320));
+        break;
+      case 'admin_notify':
+        outcome = await setAdminNotify(d, admin, s(args.email, 320), on);
+        break;
+      case 'restaurant_add':
+        outcome = await addRestaurant(d, admin, s(args.id, 12), s(args.name, 80));
+        break;
+      case 'restaurant_active':
+        outcome = await setRestaurantActive(d, admin, s(args.id, 12), on);
+        break;
+      default:
+        return { outcome: 'invalid' };
+    }
+    revalidatePath('/', 'layout');
+    return { outcome };
+  } catch (error) {
+    console.error('settingsAction failed', error);
+    return { outcome: 'error' };
+  }
 }

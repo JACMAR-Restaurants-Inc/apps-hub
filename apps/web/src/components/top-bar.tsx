@@ -82,6 +82,14 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
                   <span>{t(lang, 'navDirectory')}</span>
                   {viewer.waiting > 0 && <span className="count">{viewer.waiting}</span>}
                 </Link>
+                <Link
+                  href="/admin/settings"
+                  className="navl"
+                  aria-current={path.startsWith('/admin/settings') || path.startsWith('/admin/audit') ? 'page' : undefined}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <span>{t(lang, 'navSettings')}</span>
+                </Link>
               </nav>
               <button
                 type="button"

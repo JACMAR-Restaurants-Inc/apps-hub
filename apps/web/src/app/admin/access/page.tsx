@@ -39,7 +39,7 @@ export default async function AccessPage() {
   return (
     <>
       <TopBar lang={lang} viewer={home.bar} />
-      <Directory lang={lang} data={data} />
+      <Directory lang={lang} data={data} me={viewer.email} />
       <Footer lang={lang} />
     </>
   );

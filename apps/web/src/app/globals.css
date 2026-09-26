@@ -19,3 +19,20 @@
  */
 body.shell { font-family: var(--font-inter), 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
 .door { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+
+/*
+ * The Administration page's rows (parity checklist D). New: the old portal had no such
+ * screen, the spreadsheet did this. Built from its tokens and its card style, not by
+ * bending .person, whose grid belongs to the directory.
+ */
+.setlist { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.setrow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 13px;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+}
+.setrow .who { flex: 1 1 220px; min-width: 0; }
+.setrow .who b { display: block; font-size: 13px; font-weight: 600; color: var(--text); }
+.setrow .who span { font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
+.setrow .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.setrow .acts label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.setrow .gp-confirm { flex-basis: 100%; }
