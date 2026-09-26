@@ -239,7 +239,8 @@ describe('grantAccess', () => {
     const m = pending();
     const { d } = deps(m.store);
     d.send = async () => ({ sent: false, reason: 'token_x' });
-    expect(await grantAccess(d, ADMIN, APP, ME, 'manager', ['1647'])).toBe('done');
+    // Granted all the same; the page tells the admin to let the person know.
+    expect(await grantAccess(d, ADMIN, APP, ME, 'manager', ['1647'])).toBe('done_unsent');
     expect(m.member()!.notifiedOn).toBeNull();
   });
 

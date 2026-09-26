@@ -49,6 +49,15 @@ say what it used to say. A file that disagrees with reality is worse than none.
   Until then every email is skipped and audited as not sent; requests and approvals work
   without it (admins see requests in the portal). Someone approved meanwhile never gets
   the grant email.
+- **OPEN, decide before production: the transaction pooler hangs.** 2026-09-25, in
+  `next dev`, queries through `DATABASE_URL` (Supabase's TRANSACTION pooler, 6543) began
+  to hang: Postgres showed them `active`, waiting on the client (`ClientRead`), and once
+  a few were stuck every page queued behind them. The same pages through the SESSION
+  pooler (5432, `DIRECT_URL`) answered in 0.1 s, round after round; 25 parallel queries
+  from a plain script through 6543 were fine. So it is the long-running server plus the
+  transaction pooler, not the page code. For now dev runs with
+  `DATABASE_URL="$DIRECT_URL" npm run dev`. Before Vercel: test both poolers there, and
+  pick one (likely the session pooler with a small `max`), with a load test.
 - Not built yet: moving the 256
   attachments from Drive to Storage (they are imported with their Drive file id and no
   `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel,
