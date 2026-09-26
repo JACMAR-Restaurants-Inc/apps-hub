@@ -156,14 +156,13 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
                 </div>
                 <div className="acts">
                   <span className={`pill ${r.active ? 'on' : 'off'}`}>{t(lang, r.active ? 'isOpen' : 'isClosed')}</span>
-                  <button
-                    type="button"
-                    className={`rowbtn ${r.active ? 'soft' : 'go'}`}
-                    disabled={busy === key}
-                    onClick={() => run(key, 'restaurant_active', { id: r.id, on: !r.active })}
-                  >
-                    {busy === key ? t(lang, 'gpSaving') : t(lang, r.active ? 'close' : 'open')}
-                  </button>
+                  {/* Opening only. Closing is not done from here (owner's call, 2026-09-25):
+                      one stray click would stop everyone at that restaurant. */}
+                  {!r.active && (
+                    <button type="button" className="rowbtn go" disabled={busy === key} onClick={() => run(key, 'restaurant_active', { id: r.id, on: true })}>
+                      {busy === key ? t(lang, 'gpSaving') : t(lang, 'open')}
+                    </button>
+                  )}
                 </div>
               </div>
             );

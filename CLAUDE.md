@@ -137,7 +137,10 @@ tested on Postgres in rolled-back transactions). Nobody can switch themselves of
 remove themselves as admin, the last admin cannot be removed (with none, the
 break-glass address would silently become the only admin), and a new restaurant is
 added CLOSED so it grants nothing until someone opens it. Restaurants are closed, never
-deleted. Removing an admin deletes the `admins` row (a role, not history); the audit
+deleted, and the portal can OPEN one but not close one (owner's call, 2026-09-25: one
+stray click stopped everyone at that restaurant, for a job needed once in years). The
+action refuses it too (`portalAllows`), not only the page; closing is done on request,
+by a deliberate script calling `setRestaurantActive`. This used to be one click. Removing an admin deletes the `admins` row (a role, not history); the audit
 row keeps who, whom and when.
 
 **The roster is loaded once per request, never cached across requests**

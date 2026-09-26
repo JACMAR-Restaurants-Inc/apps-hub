@@ -99,3 +99,14 @@ describe.skipIf(!db)('settings on Postgres (rolled back)', () => {
     });
   });
 });
+
+describe('what the portal may do', () => {
+  it('opens a restaurant, but never closes one (owner, 2026-09-25)', async () => {
+    const { portalAllows } = await import('./settings');
+    expect(portalAllows('restaurant_active', true)).toBe(true);
+    expect(portalAllows('restaurant_active', false)).toBe(false);
+    // Everything else it offers stays allowed, both ways.
+    expect(portalAllows('person_active', false)).toBe(true);
+    expect(portalAllows('admin_notify', false)).toBe(true);
+  });
+});
