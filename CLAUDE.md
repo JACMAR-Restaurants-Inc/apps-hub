@@ -56,23 +56,30 @@ say what it used to say. A file that disagrees with reality is worse than none.
   Until then every email is skipped and audited as not sent; requests and approvals work
   without it (admins see requests in the portal). Someone approved meanwhile never gets
   the grant email.
-- **OPEN, decide before production: the transaction pooler hangs.** 2026-09-25, in
-  `next dev`, queries through `DATABASE_URL` (Supabase's TRANSACTION pooler, 6543) began
-  to hang: Postgres showed them `active`, waiting on the client (`ClientRead`), and once
-  a few were stuck every page queued behind them. The same pages through the SESSION
-  pooler (5432, `DIRECT_URL`) answered in 0.1 s, round after round; 25 parallel queries
-  from a plain script through 6543 were fine. So it is the long-running server plus the
-  transaction pooler, not the page code. Since 2026-09-26 the local `.env.local` sets
-  `DATABASE_URL` to the session pooler too (same as `DIRECT_URL`), so a plain
-  `npm run dev` is right and the owner can start it without help; the old value is kept
-  there, commented. (Before that, dev had to be started as
-  `DATABASE_URL="$DIRECT_URL" npm run dev`.) Before Vercel: test both poolers there, and
-  pick one (likely the session pooler with a small `max`), with a load test.
-  **Staging goes online on Vercel** (owner's call, 2026-09-26, before Cash Balancing):
-  `docs/DEPLOY_STAGING.md`. Hobby plan for now (move to Pro before the demo: Hobby is
-  for non-commercial use), region yul1 Montréal (`apps/web/vercel.json`), the same AWS
-  region as the database. It starts on the transaction pooler; the timings there
-  settle this item.
+- **The transaction pooler hang: found and fixed, 2026-09-26 (it used to be OPEN).**
+  2026-09-25, in `next dev`, queries through Supabase's TRANSACTION pooler (6543) began
+  to hang: Postgres showed them `active`, waiting on the client (`ClientRead`), and every
+  page queued behind them. 2026-09-26 on Vercel the same happened on the first page load.
+  The cause was the driver: postgres.js pipelines queries (sends several down one
+  connection without waiting), and through the transaction pooler that left queries
+  stuck. The database client is now node-postgres (`pg`, `packages/db/src/client.ts`),
+  one query at a time per connection. Proved locally with a production build on 6543:
+  267 signed-in page loads, bursts of up to 40 at once, none failed or hung (with
+  postgres.js the same pooler froze every page). Watch for: `pg` returns `{ rows }`
+  from `db.execute`, not the array; a cast hid that in the import verifier, whose
+  credential check would have passed without looking, so read `.rows`, typed, never
+  cast. Locally `.env.local` still sets `DATABASE_URL` to the session pooler (same as
+  `DIRECT_URL`), so a plain `npm run dev` works; the 6543 value is kept there, commented.
+  **Staging is online on Vercel** (owner's call, 2026-09-26, before Cash Balancing):
+  `https://apps-hub-web-eta.vercel.app`, set up by `docs/DEPLOY_STAGING.md`. Hobby plan
+  for now (move to Pro before the demo: Hobby is for non-commercial use), region yul1
+  Montréal (`apps/web/vercel.json`), the same AWS region as the database, on the
+  TRANSACTION pooler. It must never use the session pooler: on 2026-09-26 it briefly
+  did (the wrong line was pasted), a burst of 20 visits spread over a few instances,
+  each holding up to 5 connections while frozen between requests, and the 15-client
+  limit below was used up: every page failed, and so did the laptop. `lib/db.ts` now
+  calls Vercel's `attachDatabasePool`, which closes idle connections before an
+  instance is frozen (it understands `pg` pools, not postgres.js).
   **The session pooler allows 15 clients for the whole project** (Free plan), across
   every process: dev, imports, migrations, and each Vercel instance. Exceeding it fails
   every query with `EMAXCONNSESSION max clients reached in session mode`, which is how
@@ -90,7 +97,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
     apps/web          the one Next.js app. Portal and each app are route sections.
     packages/core     money in cents, Toronto dates, email normalisation
     packages/rbac     can() / explain(): pure, tested, no database
-    packages/db       Drizzle schema (rbac, cash, identity, portal), migrations, the client,
+    packages/db       Drizzle schema (rbac, cash, identity, portal), migrations, the client
+                      (node-postgres),
                       loadRoster()
     packages/import   the spreadsheet import: xlsx -> transform -> load -> verify
     packages/clearview  employee lookup in Clearview (HR): name, HR email, active, store

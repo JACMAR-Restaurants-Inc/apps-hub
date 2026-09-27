@@ -127,11 +127,13 @@ export async function verify(db: Db, plan: Plan): Promise<Report> {
   for (const table of ID_TABLES) {
     const { schema, name } = getTableConfig(table);
     const q = `"${schema}"."${name}"`;
-    const [row] = (await db.execute(
-      sql.raw(
+    const [row] = (
+      await db.execute<{ max_id: number | null; last_value: number | null }>(
+        sql.raw(
         `select (select max(id) from ${q}) as max_id, (select last_value from pg_sequences where schemaname = '${schema}' and sequencename = split_part(pg_get_serial_sequence('${q}', 'id'), '.', 2)) as last_value`,
-      ),
-    )) as unknown as { max_id: number | null; last_value: number | null }[];
+        ),
+      )
+    ).rows;
     if (row?.max_id != null && (row.last_value == null || Number(row.last_value) < Number(row.max_id))) {
       report.failures.push(`${schema}.${name}: sequence at ${row.last_value}, below the highest id ${row.max_id}`);
     }
@@ -140,15 +142,18 @@ export async function verify(db: Db, plan: Plan): Promise<Report> {
   // 4. No credentials came across. Config_Managers is refused before anything is
   // written; this checks nothing named like a credential exists in our data schemas,
   // and that Better Auth's password column (unused: Google only) is empty.
-  const credentialColumns = (await db.execute(
+  // .rows, typed, not a cast: with the old driver the result was the array itself, and a
+  // cast kept compiling after the switch to pg (2026-09-26) while .length read nothing,
+  // so this guard would have passed without looking.
+  const credentialColumns = (
+    await db.execute<{ table_schema: string; table_name: string; column_name: string }>(
     sql.raw(
       `select table_schema, table_name, column_name from information_schema.columns where table_schema in ('rbac','cash') and column_name ~* '(login|password|passwd|secret)'`,
     ),
-  )) as unknown as unknown[];
+    )
+  ).rows;
   if (credentialColumns.length) report.failures.push(`${credentialColumns.length} credential-like columns exist in rbac/cash`);
-  const [pw] = (await db.execute(
-    sql.raw(`select count(*)::int as n from identity.accounts where password is not null`),
-  )) as unknown as { n: number }[];
+  const [pw] = (await db.execute<{ n: number }>(sql.raw(`select count(*)::int as n from identity.accounts where password is not null`))).rows;
   if (pw && pw.n > 0) report.failures.push(`identity.accounts: ${pw.n} rows hold a password`);
   if (!credentialColumns.length && !pw?.n) report.notes.push('no login or password columns or values');
 
