@@ -68,6 +68,11 @@ say what it used to say. A file that disagrees with reality is worse than none.
   there, commented. (Before that, dev had to be started as
   `DATABASE_URL="$DIRECT_URL" npm run dev`.) Before Vercel: test both poolers there, and
   pick one (likely the session pooler with a small `max`), with a load test.
+  **Staging goes online on Vercel** (owner's call, 2026-09-26, before Cash Balancing):
+  `docs/DEPLOY_STAGING.md`. Hobby plan for now (move to Pro before the demo: Hobby is
+  for non-commercial use), region yul1 Montréal (`apps/web/vercel.json`), the same AWS
+  region as the database. It starts on the transaction pooler; the timings there
+  settle this item.
   **The session pooler allows 15 clients for the whole project** (Free plan), across
   every process: dev, imports, migrations, and each Vercel instance. Exceeding it fails
   every query with `EMAXCONNSESSION max clients reached in session mode`, which is how
@@ -77,8 +82,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
   the strongest argument for testing the transaction pooler properly.
 - Not built yet: moving the 256
   attachments from Drive to Storage (they are imported with their Drive file id and no
-  `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel,
-  production Supabase, domain, production OAuth client, Gmail service account.
+  `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel (being created for
+  staging, 2026-09-26), production Supabase, domain, production OAuth client, Gmail service account.
 
 ## 2. Layout
 
