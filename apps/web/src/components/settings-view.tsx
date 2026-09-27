@@ -5,6 +5,7 @@ import { t, type Key, type Lang } from '@/lib/i18n';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { SessionExpired } from './session-expired';
 
 export interface SettingsData {
   me: string;
@@ -23,6 +24,7 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [expired, setExpired] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ email: '', name: '' });
   const [newStore, setNewStore] = useState({ id: '', name: '' });
   // Adding an admin or a restaurant is rare, so each form stays closed behind a button
@@ -65,7 +67,8 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
       if (outcome === 'done') {
         done?.();
         router.refresh();
-      } else setMessage({ text: t(lang, `out_${outcome}` as Key), ok: false });
+      } else if (outcome === 'expired') setExpired(true);
+      else setMessage({ text: t(lang, `out_${outcome}` as Key), ok: false });
     } catch {
       setMessage({ text: t(lang, 'out_error'), ok: false });
     }
@@ -89,6 +92,7 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
           {message.text}
         </p>
       )}
+      {expired && <SessionExpired lang={lang} />}
 
       <section className="panel" aria-labelledby="admins">
         <div className="ph">

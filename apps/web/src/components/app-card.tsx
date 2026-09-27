@@ -5,6 +5,7 @@ import type { HomeCard } from '@/lib/home';
 import { t, type Key, type Lang } from '@/lib/i18n';
 import { useActionState, useState } from 'react';
 import { ArchesSvg } from './arches';
+import { SessionExpired } from './session-expired';
 
 /**
  * One app, the Apps Script portal's card (Cards.html; §45/§55/§76/§82). The foot says
@@ -28,8 +29,10 @@ export function AppCard({ lang, card }: { lang: Lang; card: HomeCard }) {
   const refusal: Key | null =
     result.outcome === 'employee_required' || result.outcome === 'employee_not_found' || result.outcome === 'clearview_unavailable'
       ? result.outcome
-      : result.outcome === 'error' || result.outcome === 'unknown_app' || result.outcome === 'not_signed_in'
-        ? 'requestFailed'
+      : result.outcome === 'not_signed_in'
+        ? 'errSession'
+        : result.outcome === 'error' || result.outcome === 'unknown_app'
+          ? 'requestFailed'
         : null;
   const fieldId = `emp-${card.key}`;
 
@@ -100,10 +103,14 @@ export function AppCard({ lang, card }: { lang: Lang; card: HomeCard }) {
                 {t(lang, 'employeeNumberHelp')}
               </span>
             </label>
-            {refusal && (
-              <p className="askerr" id={`${fieldId}-err`} role="alert">
-                {t(lang, refusal)}
-              </p>
+            {refusal === 'errSession' ? (
+              <SessionExpired lang={lang} className="askerr" />
+            ) : (
+              refusal && (
+                <p className="askerr" id={`${fieldId}-err`} role="alert">
+                  {t(lang, refusal)}
+                </p>
+              )
             )}
             <div className="askrow">
               <button type="submit" className="btn-go" disabled={pending}>

@@ -6,12 +6,15 @@ import { getLang } from '@/lib/lang';
 import { getViewer } from '@/lib/viewer';
 import { admins, restaurants, users } from '@hub/db';
 import { asc, eq } from 'drizzle-orm';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 /** Administration: the Admins tab and the restaurants (parity checklist D). Admins only. */
 export default async function SettingsPage() {
   const [viewer, lang] = await Promise.all([getViewer(), getLang()]);
-  if (viewer?.standing !== 'admin') notFound();
+  // Signed out (or the session expired, e.g. while the directory refreshed itself):
+  // back to the door. Signed in but not an admin: a 404, so the page is not advertised.
+  if (!viewer) redirect('/');
+  if (viewer.standing !== 'admin') notFound();
   const [home, adminRows, storeRows] = await Promise.all([
     loadHome(viewer, lang),
     db()

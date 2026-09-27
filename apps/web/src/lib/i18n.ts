@@ -289,6 +289,9 @@ export const dict = {
     en: 'Somebody changed this access in the meantime. The directory has been refreshed, so check it before trying again.',
   },
   errAdmin: { fr: 'Ce compte n’est plus administrateur.', en: 'This account is no longer an administrator.' },
+  errSession: { fr: 'Votre session a expiré. Reconnectez-vous pour continuer.', en: 'Your session has expired. Sign in again to continue.' },
+  signInAgain: { fr: 'Se reconnecter', en: 'Sign in again' },
+  out_expired: { fr: 'Votre session a expiré. Reconnectez-vous pour continuer.', en: 'Your session has expired. Sign in again to continue.' },
   errFailed: {
     fr: 'La modification n’a pas pu être enregistrée. Le répertoire a été actualisé\u00a0: vérifiez avant de recommencer.',
     en: 'The change could not be saved. The directory has been refreshed, so check it before trying again.',

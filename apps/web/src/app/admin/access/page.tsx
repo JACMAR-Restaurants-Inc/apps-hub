@@ -6,7 +6,7 @@ import { getLang } from '@/lib/lang';
 import { directory, people } from '@/lib/requests/queries';
 import { getRoster, getViewer } from '@/lib/viewer';
 import { isSystemAdmin } from '@hub/rbac';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 /**
  * The access directory (RBAC §48/§62), system admins only. Hiding the page is courtesy;
@@ -14,7 +14,10 @@ import { notFound } from 'next/navigation';
  */
 export default async function AccessPage() {
   const [viewer, lang] = await Promise.all([getViewer(), getLang()]);
-  if (viewer?.standing !== 'admin') notFound();
+  // Signed out (or the session expired, e.g. while the directory refreshed itself):
+  // back to the door. Signed in but not an admin: a 404, so the page is not advertised.
+  if (!viewer) redirect('/');
+  if (viewer.standing !== 'admin') notFound();
 
   const roster = await getRoster();
   const [home, list, dir] = await Promise.all([loadHome(viewer, lang), people((e) => isSystemAdmin(roster, e)), directory()]);
