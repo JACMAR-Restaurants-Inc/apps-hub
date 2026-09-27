@@ -16,7 +16,7 @@
  */
 
 import { normalizeEmail } from '@hub/core';
-import { admins, appMembers, audit, authAccounts, authSessions, authUsers, memberStores, restaurants, users, type Db } from '@hub/db';
+import { admins, appMembers, audit, authAccounts, authSessions, authUsers, favourites, memberStores, restaurants, users, type Db } from '@hub/db';
 import { and, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -198,7 +198,9 @@ export async function deletePerson(db: Conn, admin: string, rawEmail: string, co
       })),
     };
 
-    // Children first: there are no cascades, on purpose.
+    // Children first: there are no cascades, on purpose. Their stars go too, so the
+    // next visit really is a first visit.
+    const stars = await tx.delete(favourites).where(eq(favourites.email, email)).returning({ app: favourites.app });
     await tx.delete(memberStores).where(eq(memberStores.email, email));
     await tx.delete(appMembers).where(eq(appMembers.email, email));
     await tx.delete(users).where(eq(users.email, email));
@@ -211,7 +213,7 @@ export async function deletePerson(db: Conn, admin: string, rawEmail: string, co
       await tx.delete(authUsers).where(eq(authUsers.id, u.id));
     }
 
-    await tx.insert(audit).values({ actorEmail: admin, event: 'person_deleted', targetEmail: email, detail: { ...snapshot, signedOut: identities.length > 0 } });
+    await tx.insert(audit).values({ actorEmail: admin, event: 'person_deleted', targetEmail: email, detail: { ...snapshot, favourites: stars.map((f) => f.app), signedOut: identities.length > 0 } });
     return 'done';
   });
 }

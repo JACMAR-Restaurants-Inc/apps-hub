@@ -18,7 +18,8 @@ import { restaurants as restaurantsTable } from '@hub/db';
 import { explain } from '@hub/rbac';
 import { db } from '@/lib/db';
 import { APPS } from '@/lib/requests/apps';
-import { getRoster, getSignedInEmail } from '@/lib/viewer';
+import { getRoster, getSignedInEmail, getViewer } from '@/lib/viewer';
+import { setFavourite } from '@/lib/favourites';
 import { addAdmin, addRestaurant, deletePerson, portalAllows, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
 
 const ROLES: readonly Role[] = ['office', 'manager', 'viewer'];
@@ -193,6 +194,23 @@ export async function settingsAction(
     return { outcome };
   } catch (error) {
     console.error('settingsAction failed', error);
+    return { outcome: 'error' };
+  }
+}
+
+/**
+ * Star or unstar an app for the signed-in person. A star grants nothing, but the action
+ * is still public: only a catalogue app the caller may SEE is accepted, so a manager
+ * cannot star an admin-only one by calling this by hand.
+ */
+export async function favouriteAction(app: unknown, on: unknown): Promise<{ outcome: 'done' | 'invalid' | 'expired' | 'error' }> {
+  if (typeof app !== 'string' || app.length > 40 || typeof on !== 'boolean') return { outcome: 'invalid' };
+  try {
+    const viewer = await getViewer();
+    if (!viewer) return { outcome: 'expired' };
+    return { outcome: await setFavourite(db(), viewer.email, viewer.standing === 'admin', app, on) };
+  } catch (error) {
+    console.error('favouriteAction failed', error);
     return { outcome: 'error' };
   }
 }

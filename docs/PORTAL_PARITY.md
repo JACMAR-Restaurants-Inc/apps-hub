@@ -24,8 +24,9 @@ here is dropped silently.
       never translated
 - [x] Top bar, 60px, sticky, white, with these parts:
   - [x] the mark on the left, which goes home and refreshes (§56)
-  - [x] the admin menu (Home, Access directory with a waiting badge that hides at 0),
-        behind ≡ below 761px
+  - [x] the menu, behind ≡ below 761px. It was admins only (Home, Access directory
+        with a waiting badge that hides at 0); since the redesign (2026-09-26, below)
+        everybody has one
   - [x] the account button (initials and role label), whose card shows the address,
         "Signed in with Google", Language FR | EN, and Sign out
 - [x] Footer: "Jacmar Restaurants Inc. · les accès sont gérés par le bureau"
@@ -52,10 +53,13 @@ here is dropped silently.
       in a new tab with noopener (§76/§77/§82)
 - [x] Each app's URL comes from configuration, not code, since some go stale (the
       Guides URL has the year in it)
-- [x] Groups "Mes applications" / "Autres outils", each with a count, a line of
-      explanation and "Voir tout →" from 2 cards (§51/§55)
+- [x] ~~Groups "Mes applications" / "Autres outils", each with a count, a line of
+      explanation and "Voir tout →" from 2 cards (§51/§55)~~ Replaced by the redesign
+      below: one list
 - [x] Order: held, then pending, then askable, alphabetical by French name (§82)
-- [x] Group pages, real URLs now, whose filter counts only that group (§57/§64)
+- [x] ~~Group pages, real URLs now, whose filter counts only that group (§57/§64)~~
+      Replaced by one Applications page; `/apps/internal` and `/apps/external` redirect
+      to `/apps`
 - [x] Search from 3 apps: name, blurb and category in both languages, accents ignored,
       Escape clears (§47/§75)
 - [x] One category dropdown, showing only the categories on the page, each with a
@@ -123,8 +127,24 @@ cards through Google with login_hint, the one-URL "views", the loading screens f
 cold starts, the roster cache warmer, the sheet edit triggers, token-expiry logic in
 polling, data-URI favicons, the run_* editor wrappers.
 
+## Beyond parity: the owner's redesign (2026-09-26)
+
+Asked for after parity was reached, and a departure from the old portal on purpose.
+
+- [x] Favoris replaces "Mes applications": a star on every card, the starred apps
+      first on Home in the order starred. Stored per person (`portal.favourites`), so
+      they follow them between devices. A star grants nothing; only an app the person
+      may see can be starred, checked on the server. Deleting a person deletes their stars
+- [x] Applications: every app in ONE list with the search and categories, on Home
+      under Favoris and as its own page, `/apps`
+- [x] A menu for everybody: Accueil · Applications · Demandes (badge: their own
+      pending requests). Admins: Accueil · Applications · Répertoire des accès ·
+      Administration
+- [x] Demandes (`/requests`): the person's PENDING requests with the date asked, or
+      "Aucune demande en attente". The "Vos demandes" summary card went with it
+
 ## Parked in the old portal too (§57, §59, §85)
 
-Favourites, the card "…" menu, a sort control, a Google Workspace card, role and status
+Favourites (built since, above), the card "…" menu, a sort control, a Google Workspace card, role and status
 filters in the directory. The fixed category list is waiting on a meeting with the
 owner's boss and users (§81).

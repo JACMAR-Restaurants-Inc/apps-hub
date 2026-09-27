@@ -2,7 +2,7 @@
 
 import { setLanguage } from '@/app/actions';
 import { authClient } from '@/lib/auth-client';
-import { t, type Lang } from '@/lib/i18n';
+import { t, type Key, type Lang } from '@/lib/i18n';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -13,7 +13,8 @@ export interface BarViewer {
   /** 'admin' | 'office' | 'manager' | 'viewer' | null: the label beside the initials. */
   role: 'admin' | 'office' | 'manager' | 'viewer' | null;
   isAdmin: boolean;
-  /** Requests waiting, for the admin menu's badge. Hidden at 0. */
+  /** The badge: for an admin the office's queue (Répertoire), for anyone else their own
+   *  pending requests (Demandes). Hidden at 0. */
   waiting: number;
 }
 
@@ -22,8 +23,10 @@ const ROLE_KEY = { admin: 'roleAdmin', office: 'role_office', manager: 'role_man
 /**
  * The top bar, the Apps Script portal's markup (Ui.html, "the bar"; §44/§56/§59).
  * - The mark goes home, and refreshes the page's data (§56), for everybody.
- * - An admin has a menu, inline from 761px and behind ≡ below it. A manager has none:
- *   "A menu with one entry is not a menu."
+ * - Everybody has the menu (owner's redesign, 2026-09-26), inline from 761px and behind
+ *   ≡ below it: Accueil · Applications · Demandes, and for an admin Accueil ·
+ *   Applications · Répertoire des accès · Administration. It used to be admins only,
+ *   "a menu with one entry is not a menu"; a manager now has three.
  * - The account card: the address signed in with (the answer to "am I on the right
  *   account?"), the language, and sign out, which does NOT sign anyone out of Google.
  */
@@ -50,6 +53,18 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
     };
   }, [acctOpen]);
 
+  const at = (p: string) => path === p || path.startsWith(p + '/');
+  const links: { href: string; label: Key; current: boolean; count: number }[] = [
+    { href: '/', label: 'navHome', current: path === '/', count: 0 },
+    { href: '/apps', label: 'navApps', current: at('/apps'), count: 0 },
+    ...(viewer.isAdmin
+      ? [
+          { href: '/admin/access', label: 'navDirectory' as const, current: at('/admin/access'), count: viewer.waiting },
+          { href: '/admin/settings', label: 'navSettings' as const, current: at('/admin/settings') || at('/admin/audit'), count: 0 },
+        ]
+      : [{ href: '/requests', label: 'navRequests' as const, current: at('/requests'), count: viewer.waiting }]),
+  ];
+
   const goHome = () => {
     setMenuOpen(false);
     if (path === '/') router.refresh();
@@ -67,44 +82,32 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
             </span>
           </button>
           <div className="sp" />
-          {viewer.isAdmin && (
-            <>
-              <nav className="tnav" id="nav" aria-label="Portail / Portal">
-                <Link href="/" className="navl" aria-current={path === '/' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>
-                  <span>{t(lang, 'navHome')}</span>
-                </Link>
-                <Link
-                  href="/admin/access"
-                  className="navl"
-                  aria-current={path.startsWith('/admin/access') ? 'page' : undefined}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <span>{t(lang, 'navDirectory')}</span>
-                  {viewer.waiting > 0 && <span className="count">{viewer.waiting}</span>}
-                </Link>
-                <Link
-                  href="/admin/settings"
-                  className="navl"
-                  aria-current={path.startsWith('/admin/settings') || path.startsWith('/admin/audit') ? 'page' : undefined}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <span>{t(lang, 'navSettings')}</span>
-                </Link>
-              </nav>
-              <button
-                type="button"
-                className="menubtn"
-                onClick={() => setMenuOpen((o) => !o)}
-                aria-expanded={menuOpen}
-                aria-controls="nav"
-                aria-label="Menu"
+          <nav className="tnav" id="nav" aria-label="Portail / Portal">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="navl"
+                aria-current={l.current ? 'page' : undefined}
+                onClick={() => setMenuOpen(false)}
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 7h16M4 12h16M4 17h16" />
-                </svg>
-              </button>
-            </>
-          )}
+                <span>{t(lang, l.label)}</span>
+                {l.count > 0 && <span className="count">{l.count}</span>}
+              </Link>
+            ))}
+          </nav>
+          <button
+            type="button"
+            className="menubtn"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-expanded={menuOpen}
+            aria-controls="nav"
+            aria-label="Menu"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
           <div className="acct" ref={acctRef}>
             <button
               type="button"
@@ -167,7 +170,7 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
           </div>
         </div>
       </header>
-      {viewer.isAdmin && menuOpen && <div className="scrim" onClick={() => setMenuOpen(false)} />}
+      {menuOpen && <div className="scrim" onClick={() => setMenuOpen(false)} />}
     </>
   );
 }

@@ -17,7 +17,7 @@ export default async function Home({ searchParams }: PageProps<'/'>) {
   return (
     <>
       <TopBar lang={lang} viewer={home.bar} />
-      <HomeView lang={lang} head={home.head} sections={home.sections} categories={home.categories} group={null} />
+      <HomeView lang={lang} head={home.head} cards={home.cards} favourites={home.favourites} categories={home.categories} page="home" />
       <Footer lang={lang} />
     </>
   );

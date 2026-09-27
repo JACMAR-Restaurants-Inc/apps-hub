@@ -5,7 +5,7 @@
  * greetingPart_; Home.html); the § numbers are RBAC/CLAUDE.md's.
  */
 
-import { APP_GROUPS, CATALOGUE, CATEGORIES, appUrl, inkFor, openStyle, type CatalogueApp, type CategoryKey, type Group } from './catalogue';
+import { CATALOGUE, CATEGORIES, appUrl, inkFor, openStyle, type CatalogueApp, type CategoryKey, type Group } from './catalogue';
 
 export type CardState = 'held' | 'pending' | 'revoked' | 'askable';
 
@@ -31,15 +31,8 @@ export interface HomeCard {
   askedAt: string | null;
   /** Lowercase, accent-free text the search matches: names, blurbs, category, both languages (§47). */
   hay: string;
-}
-
-export interface HomeSection {
-  kind: Group;
-  name: string;
-  nameFr: string;
-  cards: HomeCard[];
-  /** Somebody can ask for something here: the section's line says the office is told. */
-  canAsk: boolean;
+  /** Starred by this person: shown under Favoris too. Grants nothing. */
+  favourite: boolean;
 }
 
 /** Strip accents and case, so "developpement" finds "Développement". */
@@ -70,19 +63,22 @@ export interface Membership {
 }
 
 /**
- * The sections, cards and order for one person (§45/§51/§82):
+ * Every card one person may see, as ONE list (owner's redesign, 2026-09-26: the old
+ * portal's two groups, §51, are gone), and in what state (§45/§82):
  * - An admin sees every card and holds every app (can() step 1), so never Request access.
  * - Everybody else: admin-only cards are not drawn; open-to-all cards are held; a
  *   governed card is held only with an active row AND the person switched on.
- * - Inside each group: held, then pending, then askable, alphabetical by French name.
+ * - Order: held, then pending, then askable, alphabetical by French name.
  */
-export function homeSections(input: {
+export function homeCards(input: {
   isAdmin: boolean;
   personActive: boolean;
   memberships: Membership[];
   formatDay: (d: Date) => string;
+  favourites?: readonly string[];
   env?: Record<string, string | undefined>;
-}): HomeSection[] {
+}): HomeCard[] {
+  const starred = new Set(input.favourites ?? []);
   const byApp = new Map(input.memberships.map((m) => [m.app, m]));
   const cat = new Map(CATEGORIES.map((c) => [c.key, c]));
   const rank: Record<CardState, number> = { held: 0, pending: 1, revoked: 2, askable: 2 };
@@ -117,29 +113,38 @@ export function homeSections(input: {
       state,
       askedAt: state === 'pending' && m ? input.formatDay(m.since) : null,
       hay: fold([a.name, a.nameFr, a.blurb, a.blurbFr, c.name, c.nameFr].join(' ')),
+      favourite: starred.has(a.key),
     };
   });
 
-  return APP_GROUPS.map((g) => {
-    const list = cards
-      .filter((c) => c.group === g.key)
-      .sort((x, y) => rank[x.state] - rank[y.state] || x.nameFr.localeCompare(y.nameFr, 'fr'));
-    return { kind: g.key, name: g.name, nameFr: g.nameFr, cards: list, canAsk: list.some((c) => c.state === 'askable' || c.state === 'revoked') };
-  }).filter((s) => s.cards.length > 0);
+  return cards.sort((x, y) => rank[x.state] - rank[y.state] || x.nameFr.localeCompare(y.nameFr, 'fr'));
 }
+
+/**
+ * The Favoris section: the starred cards in the order they were starred. A key that is
+ * no longer a card for this person (an admin-only app after they stopped being admin,
+ * an app taken out of the catalogue) is simply not shown.
+ */
+export function favouriteCards(cards: readonly HomeCard[], order: readonly string[]): HomeCard[] {
+  const byKey = new Map(cards.map((c) => [c.key, c]));
+  return order.flatMap((k) => byKey.get(k) ?? []);
+}
+
+/** Somebody can ask for something on this list: its line says the office is told. */
+export const canAsk = (cards: readonly HomeCard[]) => cards.some((c) => c.state === 'askable' || c.state === 'revoked');
 
 /**
  * Holds nothing the roster governs, and is not an admin (§66/§72): the welcome banner
  * instead of the summary cards. Open-to-all cards do not count, or the banner would
  * leave exactly the person it is for, whose likeliest problem is the wrong account.
  */
-export const holdsNothing = (isAdmin: boolean, sections: HomeSection[]) =>
-  !isAdmin && !sections.some((s) => s.cards.some((c) => c.governed && c.state === 'held'));
+export const holdsNothing = (isAdmin: boolean, cards: readonly HomeCard[]) =>
+  !isAdmin && !cards.some((c) => c.governed && c.state === 'held');
 
 /** The categories on this page, in CATEGORIES order, each with its count (§61). */
-export function pageCategories(sections: HomeSection[]) {
+export function pageCategories(cards: readonly HomeCard[]) {
   const counts = new Map<CategoryKey, number>();
-  for (const s of sections) for (const c of s.cards) counts.set(c.category, (counts.get(c.category) ?? 0) + 1);
+  for (const c of cards) counts.set(c.category, (counts.get(c.category) ?? 0) + 1);
   return CATEGORIES.filter((c) => counts.has(c.key)).map((c) => ({ ...c, count: counts.get(c.key)! }));
 }
 

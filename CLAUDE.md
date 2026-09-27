@@ -31,10 +31,13 @@ say what it used to say. A file that disagrees with reality is worse than none.
   `portal-parity`: the whole portal at parity with the Apps Script one
   (`docs/PORTAL_PARITY.md`): its stylesheet, door, bar, all 18 apps, search and
   categories, the access directory and Grant drawer, and an Administration page for
-  what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Code is at
+  what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Then
+  the owner's redesign (2026-09-26): Favoris (a star on each card, stored in
+  `portal.favourites`), one Applications list and page, a menu for everybody, and a
+  Demandes page of the person's pending requests. Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
-  Data API off. Migrations 0000–0004 are applied. It holds the 2026-09-25 snapshot:
+  Data API off. Migrations 0000–0005 are applied. It holds the 2026-09-25 snapshot:
   552 counts and their lines, the 7 restaurants, 40 tills, and 2 admins (no one else is
   on the roster; see §5).
   Connection strings live only in `.env.local` (see §6).
@@ -82,7 +85,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
     apps/web          the one Next.js app. Portal and each app are route sections.
     packages/core     money in cents, Toronto dates, email normalisation
     packages/rbac     can() / explain(): pure, tested, no database
-    packages/db       Drizzle schema (rbac, cash, identity), migrations, the client,
+    packages/db       Drizzle schema (rbac, cash, identity, portal), migrations, the client,
                       loadRoster()
     packages/import   the spreadsheet import: xlsx -> transform -> load -> verify
     packages/clearview  employee lookup in Clearview (HR): name, HR email, active, store
@@ -189,8 +192,9 @@ a person from the directory, so their next sign-in is a first visit. It is guard
 it is never allowed on an admin or on yourself, their Better Auth sign-in goes too (so
 they are signed out at once), and the audit row `person_deleted` keeps a full copy of
 what they held (name, HR email, employee number, switch, every app row with role and
-restaurants). So the record of what they could do moves into the journal rather than
-being lost. This used to say, without exception, "Nothing is deleted".
+restaurants) and the apps they had starred. Their stars (`portal.favourites`) are deleted
+too. So the record of what they could do moves into the journal rather than being lost.
+Unstarring an app also deletes its row: a star is a preference, not history. This used to say, without exception, "Nothing is deleted".
 
 **Emails are normalised on every read and write** with `normalizeEmail`: lowercase,
 trim, and strip dots ONLY for Gmail (Yahoo and Hotmail dots are significant).
@@ -339,7 +343,8 @@ holding, the live-mode switch, the test-mode cc, Gmail-only dot stripping, the
 sign-in rules (no domain restriction, Google only, no Google tokens stored), the
 roster loader, `authorize()`, the import transforms (14, all caught), the access rules
 (14), the Clearview client, the Gmail sender and the admin check (10), the decline
-email, and RLS on every
+email, favourites (only a visible app can be starred, the order starred, a deleted
+person's stars go), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`
