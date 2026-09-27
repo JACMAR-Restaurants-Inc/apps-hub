@@ -56,6 +56,14 @@ export const dict = {
   },
   errOtherTitle: { fr: 'Une erreur est survenue', en: 'Something went wrong' },
   errOtherBody: { fr: 'La connexion n’a pas abouti. Réessayez.', en: 'Signing in did not work. Please try again.' },
+  // The friendly error page (app/error.tsx), for a page that fails to load.
+  pageErrorTitle: { fr: 'Une erreur est survenue', en: 'Something went wrong' },
+  pageErrorBody: {
+    fr: 'Le portail n’a pas pu charger cette page, souvent à cause d’une connexion interrompue. Réessayez dans un instant.',
+    en: 'The portal could not load this page, usually because a connection dropped. Try again in a moment.',
+  },
+  retry: { fr: 'Réessayer', en: 'Try again' },
+  errorCode: { fr: 'Code à transmettre si le problème continue\u00a0:', en: 'Code to pass on if it keeps happening:' },
   signedInAs: { fr: `Connecté avec${NBSP}:`, en: 'Signed in as' },
   wrongAccount: {
     fr: `Pas le bon compte${NBSP}? Déconnectez-vous et choisissez celui que le bureau connaît.`,
