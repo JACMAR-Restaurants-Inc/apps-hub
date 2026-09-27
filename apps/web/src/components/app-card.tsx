@@ -14,8 +14,11 @@ import { SessionExpired } from './session-expired';
  *   pending  Demandé · en attente du bureau, with the date asked
  *   revoked  "Your access was removed. You can ask again." then Request access
  *   askable  Demander l'accès, outlined, two taps so a stray one emails nobody
+ * The star in the corner puts the app in Favoris (2026-09-26). It grants nothing, so any
+ * card may carry one, including an app the person has yet to ask for.
  */
-export function AppCard({ lang, card }: { lang: Lang; card: HomeCard }) {
+export function AppCard(props: { lang: Lang; card: HomeCard; favourite: boolean; onStar: (on: boolean) => void }) {
+  const { lang, card, favourite } = props;
   const [asking, setAsking] = useState(false);
   const [result, formAction, pending] = useActionState<RequestState, FormData>(requestAccessAction, {
     outcome: null,
@@ -54,6 +57,18 @@ export function AppCard({ lang, card }: { lang: Lang; card: HomeCard }) {
           <span>{name}</span>
           {card.adminOnly && <span className="mini">{t(lang, 'adminsOnly')}</span>}
         </h3>
+        <button
+          type="button"
+          className={`star${favourite ? ' on' : ''}`}
+          aria-pressed={favourite}
+          aria-label={t(lang, favourite ? 'favRemove' : 'favAdd').replace('{app}', name)}
+          title={t(lang, favourite ? 'favRemove' : 'favAdd').replace('{app}', name)}
+          onClick={() => props.onStar(!favourite)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z" />
+          </svg>
+        </button>
       </div>
       <p className="bl">{lang === 'fr' ? card.blurbFr : card.blurb}</p>
       <div className="appfoot">

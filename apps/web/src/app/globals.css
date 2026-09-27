@@ -50,3 +50,32 @@ body.shell { font-family: var(--font-inter), 'Segoe UI', -apple-system, BlinkMac
    light button with red text, which read as disabled beside a filled one (owner, 2026-09-26). */
 .rowbtn.danger { background: #FFFFFF; color: var(--red); border: 1px solid #F0C9D1; }
 .rowbtn.danger:hover { background: var(--attSoft); border-color: #E7AFBA; }
+
+/* The star on each app card (owner's redesign, 2026-09-26). Pushed to the card's far
+   corner, clear of the Admins seulement badge that sits beside the name. The portal's
+   blue, filled when starred: NOT yellow or gold, which belong to Cash Balancing and the
+   Arches (RBAC §85). An empty star is grey, dark enough (3:1) to be seen on white. */
+.apptop h3 { flex: 1; min-width: 0; }
+.star {
+  flex: 0 0 auto; display: grid; place-items: center; width: 36px; height: 36px; margin: -6px -8px -6px 0;
+  background: none; border: 0; border-radius: 8px; cursor: pointer; color: #6B7686;
+}
+.star:hover { background: var(--card-bg-light); color: var(--gold); }
+.star svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.star.on { color: var(--gold); }
+.star.on svg { fill: var(--gold); }
+.favempty {
+  margin: 12px 0 0; padding: 16px 18px; font-size: 13.5px; color: var(--text-muted);
+  background: var(--card-bg); border: 1px dashed var(--border); border-radius: 12px;
+}
+#sec-apps .finder { margin-top: 12px; }
+.page > .askerr { margin: 0; color: var(--red); font-weight: 600; }
+
+/* The Demandes page: the person's own pending requests. */
+.reqlist { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.reqlist li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 13px 15px;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px;
+}
+.reqlist b { flex: 1 1 200px; font-size: 14px; font-weight: 600; color: var(--text); }
+.reqlist span { font-size: 13px; color: var(--text-muted); }

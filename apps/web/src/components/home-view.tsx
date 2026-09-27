@@ -1,9 +1,9 @@
 'use client';
 
-import type { CategoryKey, Group } from '@/lib/catalogue';
-import { fold, greetingPart, type HomeSection } from '@/lib/home';
+import { favouriteAction } from '@/app/actions';
+import type { CategoryKey } from '@/lib/catalogue';
+import { canAsk, fold, greetingPart, type HomeCard } from '@/lib/home';
 import { t, type Lang } from '@/lib/i18n';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { AppCard } from './app-card';
@@ -16,7 +16,6 @@ export interface HomeHead {
   /** From the server, in Toronto time; corrected from the device's clock (§54). */
   greeting: 'morning' | 'afternoon' | 'evening';
   stores: { id: string; name: string }[];
-  myWaiting: number;
   admin: { waiting: number; people: number; restaurants: number } | null;
 }
 
@@ -27,22 +26,26 @@ const GREET = {
 } as const;
 
 /**
- * The home page and the two group pages (§45/§51/§57), from Ui.html, Home.html and
- * Cards.html. On a group page only that group shows, with its own title and count,
- * and no welcome, figures or banner (§57/§64).
+ * Home and the Applications page (owner's redesign, 2026-09-26).
+ * - Home: the greeting and figures (§54/§63), then Favoris, the starred apps in the
+ *   order starred, then Applications, every app in one list with the search.
+ * - /apps: the same list under its own title, no greeting, figures or Favoris.
+ * A star changes at once and is saved behind it; if the save fails it goes back.
  */
 export function HomeView(props: {
   lang: Lang;
   head: HomeHead;
-  sections: HomeSection[];
+  cards: HomeCard[];
+  favourites: string[];
   categories: { key: CategoryKey; name: string; nameFr: string; count: number }[];
-  group: Group | null;
+  page: 'home' | 'apps';
 }) {
-  const { lang, head, group } = props;
+  const { lang, head, cards, page } = props;
   const router = useRouter();
-  const sections = group ? props.sections.filter((s) => s.kind === group) : props.sections;
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<CategoryKey | ''>('');
+  const [favs, setFavs] = useState(props.favourites);
+  const [favError, setFavError] = useState(false);
   // The server said morning/afternoon/evening in Toronto, for the first paint; the
   // device's own clock wins once the page runs (§54).
   const greeting = useSyncExternalStore(
@@ -51,36 +54,45 @@ export function HomeView(props: {
     () => head.greeting,
   );
 
-  const pageCats = useMemo(() => {
-    const counts = new Map<CategoryKey, number>();
-    for (const s of sections) for (const c of s.cards) counts.set(c.category, (counts.get(c.category) ?? 0) + 1);
-    return props.categories.filter((c) => counts.has(c.key)).map((c) => ({ ...c, count: counts.get(c.key)! }));
-  }, [sections, props.categories]);
-  // A category with nothing on this page falls back to All (§61).
-  const activeCat = pageCats.some((c) => c.key === cat) ? cat : '';
+  const star = async (key: string, on: boolean) => {
+    const before = favs;
+    setFavError(false);
+    setFavs(on ? [...favs.filter((k) => k !== key), key] : favs.filter((k) => k !== key));
+    const { outcome } = await favouriteAction(key, on).catch(() => ({ outcome: 'error' as const }));
+    if (outcome === 'done') return;
+    setFavs(before);
+    // No session any more: the page redraws as the door.
+    if (outcome === 'expired') router.refresh();
+    else setFavError(true);
+  };
 
-  const total = sections.reduce((n, s) => n + s.cards.length, 0);
-  const showFinder = total >= 3; // §75: from three apps, for managers too
+  const byKey = useMemo(() => new Map(cards.map((c) => [c.key, c])), [cards]);
+  const favCards = favs.flatMap((k) => byKey.get(k) ?? []);
+  const isFav = new Set(favs);
+
+  const showFinder = cards.length >= 3; // §75: from three apps, for managers too
+  // A category with nothing on this page falls back to All (§61).
+  const activeCat = props.categories.some((c) => c.key === cat) ? cat : '';
   const needle = fold(q.trim());
-  const visible = sections.map((s) => ({
-    ...s,
-    shown: s.cards.filter((c) => (!needle || c.hay.includes(needle)) && (!activeCat || c.category === activeCat)),
-  }));
-  const shownTotal = visible.reduce((n, s) => n + s.shown.length, 0);
+  const shown = cards.filter((c) => (!needle || c.hay.includes(needle)) && (!activeCat || c.category === activeCat));
   const clear = () => {
     setQ('');
     setCat('');
   };
-  const internalPage = props.sections.some((s) => s.kind === 'internal' && s.cards.length >= 2);
-  const groupInfo = group ? props.sections.find((s) => s.kind === group) : null;
+  const card = (c: HomeCard) => (
+    <AppCard key={c.key} lang={lang} card={c} favourite={isFav.has(c.key)} onStar={(on) => star(c.key, on)} />
+  );
 
   return (
     <main id="main" className="page" lang={lang}>
-      {group && groupInfo ? (
+      {page === 'apps' ? (
         <div className="pagehead">
-          <h1>{lang === 'fr' ? groupInfo.nameFr : groupInfo.name}</h1>
-          <p>{t(lang, group === 'internal' ? 'groupInternalLine' : 'groupExternalLine')}</p>
-          <p className="pgcount">{t(lang, 'appCount').replace('{n}', String(shownTotal))}</p>
+          <h1>{t(lang, 'appsTitle')}</h1>
+          <p>
+            {t(lang, 'appsLine')}
+            {canAsk(cards) && ` ${t(lang, 'secCanAsk')}`}
+          </p>
+          <p className="pgcount">{t(lang, 'appCount').replace('{n}', String(shown.length))}</p>
         </div>
       ) : (
         <>
@@ -136,9 +148,9 @@ export function HomeView(props: {
             <div className="stats">
               <StatCard
                 className="stat blue"
-                onClick={internalPage ? () => router.push('/apps/internal') : undefined}
+                onClick={() => router.push('/apps')}
                 k={t(lang, 'statApps')}
-                v={String(props.sections.reduce((n, s) => n + s.cards.filter((c) => c.state === 'held').length, 0))}
+                v={String(cards.filter((c) => c.state === 'held').length)}
                 s={t(lang, 'statAppsSub')}
               />
               {head.admin ? (
@@ -173,90 +185,90 @@ export function HomeView(props: {
                       s={head.stores.map((x) => `${x.id} - ${x.name}`).join(', ')}
                     />
                   )}
-                  {head.myWaiting > 0 && (
-                    <StatCard className="stat orange" k={t(lang, 'statMyRequests')} v={String(head.myWaiting)} s={t(lang, 'statMyRequestsSub')} />
-                  )}
                 </>
               )}
             </div>
           )}
+
+          <section className="appsec" id="sec-favourites">
+            <div className="ph">
+              <h2>
+                <span>{t(lang, 'favTitle')}</span>
+                {favCards.length > 0 && <span className="cnt">{favCards.length}</span>}
+              </h2>
+            </div>
+            {favCards.length > 0 ? <div className="appgrid">{favCards.map(card)}</div> : <p className="favempty">{t(lang, 'favEmpty')}</p>}
+          </section>
         </>
       )}
 
-      {showFinder && (
-        <div className="finder" role="search">
-          <label className="searchbox">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="11" cy="11" r="6.5" />
-              <path d="M20 20l-4.2-4.2" />
-            </svg>
-            <input
-              type="search"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={t(lang, 'searchApps')}
-              aria-label={t(lang, 'searchApps')}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => e.key === 'Escape' && setQ('')}
-            />
-          </label>
-          <select
-            className="storefilter catpick"
-            aria-label={t(lang, 'category')}
-            value={activeCat}
-            onChange={(e) => setCat(e.target.value as CategoryKey | '')}
-          >
-            <option value="">{t(lang, 'allCategories')}</option>
-            {pageCats.map((c) => (
-              <option key={c.key} value={c.key}>
-                {(lang === 'fr' ? c.nameFr : c.name) + ` (${c.count})`}
-              </option>
-            ))}
-          </select>
-        </div>
+      {favError && (
+        <p className="askerr" role="alert">
+          {t(lang, 'favFailed')}
+        </p>
       )}
 
-      {visible.map((s) =>
-        s.shown.length === 0 ? null : (
-          <section className="appsec" id={`sec-${s.kind}`} key={s.kind}>
-            {!group && (
-              <div className="ph">
-                <div>
-                  <h2>
-                    <span>{lang === 'fr' ? s.nameFr : s.name}</span>
-                    <span className="cnt">{s.shown.length}</span>
-                  </h2>
-                  <p>
-                    <span>{t(lang, s.kind === 'internal' ? 'secInternalLine' : 'secExternalLine')}</span>
-                    {s.canAsk && <span> {t(lang, 'secCanAsk')}</span>}
-                  </p>
-                </div>
-                {s.cards.length >= 2 && (
-                  <Link href={`/apps/${s.kind}`} className="viewall">
-                    <span>{t(lang, 'viewAll')}</span>
-                    <span aria-hidden="true">→</span>
-                  </Link>
-                )}
-              </div>
-            )}
-            <div className="appgrid">
-              {s.shown.map((c) => (
-                <AppCard key={c.key} lang={lang} card={c} />
-              ))}
+      <section className="appsec" id="sec-apps">
+        {page === 'home' && (
+          <div className="ph">
+            <div>
+              <h2>
+                <span>{t(lang, 'appsTitle')}</span>
+                <span className="cnt">{shown.length}</span>
+              </h2>
+              <p>
+                <span>{t(lang, 'appsLine')}</span>
+                {canAsk(cards) && <span> {t(lang, 'secCanAsk')}</span>}
+              </p>
             </div>
-          </section>
-        ),
-      )}
+          </div>
+        )}
 
-      {showFinder && shownTotal === 0 && (
-        <div className="nomatch">
-          <p>{t(lang, 'noMatch')}</p>
-          <button type="button" className="btn-ask" onClick={clear}>
-            {t(lang, 'clearSearch')}
-          </button>
-        </div>
-      )}
+        {showFinder && (
+          <div className="finder" role="search">
+            <label className="searchbox">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="M20 20l-4.2-4.2" />
+              </svg>
+              <input
+                type="search"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={t(lang, 'searchApps')}
+                aria-label={t(lang, 'searchApps')}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => e.key === 'Escape' && setQ('')}
+              />
+            </label>
+            <select
+              className="storefilter catpick"
+              aria-label={t(lang, 'category')}
+              value={activeCat}
+              onChange={(e) => setCat(e.target.value as CategoryKey | '')}
+            >
+              <option value="">{t(lang, 'allCategories')}</option>
+              {props.categories.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {(lang === 'fr' ? c.nameFr : c.name) + ` (${c.count})`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {shown.length > 0 && <div className="appgrid">{shown.map(card)}</div>}
+
+        {showFinder && shown.length === 0 && (
+          <div className="nomatch">
+            <p>{t(lang, 'noMatch')}</p>
+            <button type="button" className="btn-ask" onClick={clear}>
+              {t(lang, 'clearSearch')}
+            </button>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

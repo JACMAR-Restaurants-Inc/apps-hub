@@ -155,3 +155,28 @@ describe.skipIf(!db)('deleting a person (rolled back)', () => {
     });
   });
 });
+
+describe.skipIf(!db)('favourites (rolled back)', () => {
+  it('star only what you may see; unstar; deleting the person removes their stars', async () => {
+    const { setFavourite, listFavourites } = await import('../favourites');
+    const { deletePerson } = await import('./settings');
+    const { favourites } = await import('@hub/db');
+    await rolledBack(async (tx) => {
+      expect(await setFavourite(tx, NEW, false, 'SafeCount', true)).toBe('done');
+      expect(await setFavourite(tx, NEW, false, 'Fujitsu', true)).toBe('done');
+      expect(await setFavourite(tx, NEW, false, 'SafeCount', true)).toBe('done'); // twice is once
+      // Admin-only for a non-admin, and an app that does not exist: refused.
+      expect(await setFavourite(tx, NEW, false, 'GitHub', true)).toBe('invalid');
+      expect(await setFavourite(tx, NEW, false, 'NoSuchApp', true)).toBe('invalid');
+      expect(await setFavourite(tx, NEW, true, 'GitHub', true)).toBe('done');
+      expect(await listFavourites(tx, NEW)).toEqual(['SafeCount', 'Fujitsu', 'GitHub']);
+      expect(await setFavourite(tx, NEW, false, 'Fujitsu', false)).toBe('done');
+      expect(await listFavourites(tx, NEW)).toEqual(['SafeCount', 'GitHub']);
+
+      await tx.insert(users).values({ email: NEW, active: true });
+      expect(await deletePerson(tx, ME, NEW, NEW)).toBe('done');
+      expect(await tx.select().from(favourites).where(eq(favourites.email, NEW))).toEqual([]);
+      expect((await lastEvent(tx))!.detail).toMatchObject({ favourites: ['SafeCount', 'GitHub'] });
+    });
+  });
+});

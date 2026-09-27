@@ -10,6 +10,12 @@ import type { NextConfig } from "next";
 const rootEnv = path.resolve(process.cwd(), "../../.env.local");
 if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  // The two group pages became one Applications page (2026-09-26). Not permanent: a
+  // browser keeps a permanent redirect forever, and these paths may be wanted back.
+  async redirects() {
+    return [{ source: "/apps/:group(internal|external)", destination: "/apps", permanent: false }];
+  },
+};
 
 export default nextConfig;
