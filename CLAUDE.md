@@ -154,6 +154,23 @@ Measured 2026-09-25 against staging through the transaction pooler: about 12 ms 
 about 130 ms for the first load that opens connections. That was with empty tables;
 measure again after the import. The old Apps Script sign-in took 7.8 s (RBAC §78).
 
+**Each app stays separable into its own database** (owner's call, 2026-09-26). Today
+one Postgres holds `identity`, `rbac` and `cash`. If an app ever needs its own database
+(a separate team, budget, compliance, or selling it; size alone is unlikely to force it:
+Cash Balancing is about 5,000 counts and 30,000 detail rows a year), the split should be
+a day or two, not weeks. So, for Cash Balancing and every app after it:
+1. The app reaches the portal's data through ONE narrow door only: `authorize()` /
+   `can()`, the roster, and a restaurants-list function. No SQL joins between an app's
+   schema and `rbac` or `identity` in the app's code.
+2. Never write to an app's schema and to `rbac` in the same transaction.
+3. The app gets its own connection setting from day one (`CASH_DATABASE_URL`, falling
+   back to `DATABASE_URL`) and its own `db()` getter, so moving it is a setting.
+4. The one hard link today, `cash.*.restaurant_id` referencing `rbac.restaurants`, stays
+   for now: it protects the data. At a split it becomes an application check against
+   the restaurants list, and it is the only foreign key to drop.
+A database cannot enforce a foreign key into another database, nor run one transaction
+across two; these rules keep every such crossing out of the code in the first place.
+
 **`can()` fails closed, and its order is the contract** (RBAC §6): admin → user active →
 app membership active → permission exists → store named, active and held → role
 granted. Any exception denies. `explain()` gives the reason for logs and admin screens.
