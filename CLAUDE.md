@@ -80,6 +80,14 @@ say what it used to say. A file that disagrees with reality is worse than none.
   limit below was used up: every page failed, and so did the laptop. `lib/db.ts` now
   calls Vercel's `attachDatabasePool`, which closes idle connections before an
   instance is frozen (it understands `pg` pools, not postgres.js).
+  **Measured on Vercel, 2026-09-26, after the switch** (signed in as an admin, from
+  Toronto, in the browser): warm pages answer in 41 to 65 ms (median; Home 51,
+  Applications 47, Demandes 44, directory 48, Administration 41, journal 65); a full load
+  of the directory, as a person sees it, 0.37 s. Bursts of 5, 10, 20, 40 and 40 parallel
+  loads: 135 in all, none failed, medians 0.2 s. Afterwards the database held no stuck
+  queries, only Supavisor's own 20 idle connections, and the session pooler was free.
+  The Apps Script portal's sign-in took 7.8 s (RBAC §78). So production uses the
+  transaction pooler with `pg`; re-measure there with real users before the demo.
   **The session pooler allows 15 clients for the whole project** (Free plan), across
   every process: dev, imports, migrations, and each Vercel instance. Exceeding it fails
   every query with `EMAXCONNSESSION max clients reached in session mode`, which is how
