@@ -29,7 +29,7 @@ iad1 in Washington, would add a round trip to Montréal on every query.
 
    | Key | Value |
    |---|---|
-   | `DATABASE_URL` | the **Transaction pooler** (6543): the line kept, commented, in `.env.local` |
+   | `DATABASE_URL` | the **Transaction pooler** (6543): the line kept, commented, in `.env.local`. NEVER the session pooler (5432): see below |
    | `DB_POOL_MAX` | `5` |
    | `BETTER_AUTH_URL` | the Vercel address from step 2, `https://...vercel.app`, no slash at the end |
    | `BETTER_AUTH_SECRET` | a NEW one: run `openssl rand -base64 32` and paste the output |
@@ -51,7 +51,18 @@ iad1 in Washington, would add a round trip to Montréal on every query.
 5. **Redeploy** (Deployments → the latest → Redeploy) so the variables take effect.
 6. **Check** (Claude): sign-in, Home, the directory, a request, and the timings below.
 
-## Then measure (CLAUDE.md §1, the open pooler question)
+## What happened on the day (2026-09-26)
+
+- The address is `https://apps-hub-web-eta.vercel.app` (Vercel named the project
+  `apps-hub-web`). Sign in only there: a deployment's own address
+  (`apps-hub-<hash>-jacmar1.vercel.app`) is refused by Better Auth as "Invalid origin",
+  on purpose.
+- `DATABASE_URL` was first pasted as the session pooler. A burst of 20 visits used up
+  its 15 clients and every page failed, the laptop too, until it was switched to 6543.
+- On 6543 the first page hung: the postgres.js pipelining hang (CLAUDE.md §1). Fixed by
+  moving to node-postgres.
+
+## Then measure
 
 Time what a person waits for, end to end, on the real address: the first visit after a
 quiet spell (a cold start), a warm Home, the access directory, a star, a request. Once

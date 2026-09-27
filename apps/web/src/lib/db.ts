@@ -1,5 +1,6 @@
 import 'server-only';
 import { createDb, type Db } from '@hub/db';
+import { attachDatabasePool } from '@vercel/functions';
 
 // Created on first use, not at import: `next build` imports server modules without
 // any secrets (CI has none), and must not fail for want of a DATABASE_URL.
@@ -13,5 +14,12 @@ import { createDb, type Db } from '@hub/db';
 const g = globalThis as { hubDb?: Db };
 
 export function db(): Db {
-  return (g.hubDb ??= createDb());
+  if (!g.hubDb) {
+    g.hubDb = createDb();
+    // On Vercel, keeps the function alive until idle connections are closed, so a
+    // suspended instance does not sit on pooler slots (the session pooler filled up this
+    // way on 2026-09-26 and every page failed). Does nothing outside Vercel.
+    attachDatabasePool(g.hubDb.$client);
+  }
+  return g.hubDb;
 }
