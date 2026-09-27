@@ -48,8 +48,12 @@ export async function requestAccessAction(_: RequestState, form: FormData): Prom
 }
 
 export interface AdminState {
-  outcome: AdminOutcome | 'denied' | 'error' | null;
+  /** 'expired': no session any more (signed out or timed out), as opposed to 'denied': signed in, not an admin. */
+  outcome: AdminOutcome | 'denied' | 'expired' | 'error' | null;
 }
+
+/** An AccessDenied for want of a session reads as "sign in again", not "not an admin". */
+const refusal = (e: AccessDenied) => (e.reason === 'not_signed_in' ? 'expired' : 'denied');
 
 /** grant | update | decline | revoke, from the Grant panel. */
 export async function adminAccessAction(_: AdminState, form: FormData): Promise<AdminState> {
@@ -58,7 +62,7 @@ export async function adminAccessAction(_: AdminState, form: FormData): Promise<
   try {
     ({ email: admin } = await requireSystemAdmin(intent ?? 'unknown'));
   } catch (e) {
-    if (e instanceof AccessDenied) return { outcome: 'denied' };
+    if (e instanceof AccessDenied) return { outcome: refusal(e) };
     throw e;
   }
 
@@ -105,11 +109,11 @@ export interface Check {
  * "What can they actually do?" (§48): can() asked the questions that matter, for one
  * person, right now, with its reason. Admins only; read-only.
  */
-export async function explainAction(rawEmail: string): Promise<Check[] | { denied: true }> {
+export async function explainAction(rawEmail: string): Promise<Check[] | { denied: true; expired: boolean }> {
   try {
     await requireSystemAdmin('explain');
   } catch (e) {
-    if (e instanceof AccessDenied) return { denied: true };
+    if (e instanceof AccessDenied) return { denied: true, expired: e.reason === 'not_signed_in' };
     throw e;
   }
   if (typeof rawEmail !== 'string' || rawEmail.length > 320) return [];
@@ -145,12 +149,12 @@ export type SettingsIntent = 'person_delete' | 'person_active' | 'admin_add' | '
 export async function settingsAction(
   intent: SettingsIntent,
   args: { email?: string; name?: string; id?: string; on?: boolean; confirm?: string },
-): Promise<{ outcome: SettingsOutcome | 'denied' | 'error' }> {
+): Promise<{ outcome: SettingsOutcome | 'denied' | 'expired' | 'error' }> {
   let admin: string;
   try {
     ({ email: admin } = await requireSystemAdmin(`settings:${intent}`));
   } catch (e) {
-    if (e instanceof AccessDenied) return { outcome: 'denied' };
+    if (e instanceof AccessDenied) return { outcome: refusal(e) };
     throw e;
   }
   const s = (v: unknown, max: number) => (typeof v === 'string' && v.length <= max ? v : '');

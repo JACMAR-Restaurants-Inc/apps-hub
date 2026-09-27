@@ -5,6 +5,7 @@ import { t, type Key, type Lang } from '@/lib/i18n';
 import type { Role } from '@hub/rbac';
 import { useEffect, useRef, useState } from 'react';
 import type { DirData } from './directory';
+import { SessionExpired } from './session-expired';
 
 export interface DrawerTarget {
   email: string;
@@ -117,7 +118,7 @@ export function GrantDrawer(props: {
       }
       setBusy('');
       setConfirm(false);
-      setError(outcome === 'denied' ? 'errAdmin' : 'invalid');
+      setError(outcome === 'expired' ? 'errSession' : outcome === 'denied' ? 'errAdmin' : 'invalid');
     } catch {
       clearTimeout(timer);
       props.onDone(t(lang, 'errFailed'));
@@ -256,10 +257,14 @@ export function GrantDrawer(props: {
               </div>
             </div>
           )}
-          {error && (
-            <p className="gp-err" role="alert">
-              {t(lang, error)}
-            </p>
+          {error === 'errSession' ? (
+            <SessionExpired lang={lang} />
+          ) : (
+            error && (
+              <p className="gp-err" role="alert">
+                {t(lang, error)}
+              </p>
+            )
           )}
         </div>
 

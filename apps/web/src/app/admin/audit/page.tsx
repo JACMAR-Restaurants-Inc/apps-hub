@@ -6,7 +6,7 @@ import { dict, t, type Key } from '@/lib/i18n';
 import { getLang } from '@/lib/lang';
 import { getViewer } from '@/lib/viewer';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 const EVENTS = ['request', 'grant', 'update', 'decline', 'revoke', 'notify', 'denied', 'user_active', 'admin_add', 'admin_remove', 'admin_notify', 'restaurant_add', 'restaurant_active', 'signed_in_no_grants', 'name_corrected', 'person_deleted'];
 
@@ -16,7 +16,10 @@ const EVENTS = ['request', 'grant', 'update', 'decline', 'revoke', 'notify', 'de
  */
 export default async function AuditPage({ searchParams }: PageProps<'/admin/audit'>) {
   const [viewer, lang] = await Promise.all([getViewer(), getLang()]);
-  if (viewer?.standing !== 'admin') notFound();
+  // Signed out (or the session expired, e.g. while the directory refreshed itself):
+  // back to the door. Signed in but not an admin: a 404, so the page is not advertised.
+  if (!viewer) redirect('/');
+  if (viewer.standing !== 'admin') notFound();
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? '';
   const q = one(sp.q).slice(0, 120);

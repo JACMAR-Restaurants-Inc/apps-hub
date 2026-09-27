@@ -6,6 +6,7 @@ import type { Role } from '@hub/rbac';
 import { useRouter } from 'next/navigation';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { GrantDrawer, type DrawerTarget } from './grant-drawer';
+import { SessionExpired } from './session-expired';
 
 export interface DirApp {
   key: string;
@@ -70,7 +71,7 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
   const [q, setQ] = useState('');
   const [store, setStore] = useState('');
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const [checks, setChecks] = useState<Record<string, Check[] | 'loading' | 'failed'>>({});
+  const [checks, setChecks] = useState<Record<string, Check[] | 'loading' | 'failed' | 'expired'>>({});
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   // The kill switch: which person is being asked "are you sure?", and which is saving.
@@ -139,7 +140,7 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
     setChecks((c) => ({ ...c, [email]: 'loading' }));
     try {
       const r = await explainAction(email);
-      setChecks((c) => ({ ...c, [email]: Array.isArray(r) ? r : 'failed' }));
+      setChecks((c) => ({ ...c, [email]: Array.isArray(r) ? r : r.expired ? 'expired' : 'failed' }));
     } catch {
       setChecks((c) => ({ ...c, [email]: 'failed' }));
     }
@@ -455,6 +456,7 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
                       </p>
                       {c === 'loading' && <p className="pending">{t(lang, 'checking')}</p>}
                       {c === 'failed' && <p>{t(lang, 'checkFailed')}</p>}
+                      {c === 'expired' && <SessionExpired lang={lang} />}
                       {Array.isArray(c) && (
                         <div className="explain">
                           <p className="sechead">{t(lang, 'decides')}</p>
