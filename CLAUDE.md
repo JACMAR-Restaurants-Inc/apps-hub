@@ -59,8 +59,11 @@ say what it used to say. A file that disagrees with reality is worse than none.
   a few were stuck every page queued behind them. The same pages through the SESSION
   pooler (5432, `DIRECT_URL`) answered in 0.1 s, round after round; 25 parallel queries
   from a plain script through 6543 were fine. So it is the long-running server plus the
-  transaction pooler, not the page code. For now dev runs with
-  `DATABASE_URL="$DIRECT_URL" npm run dev`. Before Vercel: test both poolers there, and
+  transaction pooler, not the page code. Since 2026-09-26 the local `.env.local` sets
+  `DATABASE_URL` to the session pooler too (same as `DIRECT_URL`), so a plain
+  `npm run dev` is right and the owner can start it without help; the old value is kept
+  there, commented. (Before that, dev had to be started as
+  `DATABASE_URL="$DIRECT_URL" npm run dev`.) Before Vercel: test both poolers there, and
   pick one (likely the session pooler with a small `max`), with a load test.
   **The session pooler allows 15 clients for the whole project** (Free plan), across
   every process: dev, imports, migrations, and each Vercel instance. Exceeding it fails
@@ -319,8 +322,10 @@ There is one `.env.local`, at the repo root. `next.config.ts` loads it with
 `loadEnvConfig` is a silent no-op there: Next has already called it and it returns
 the cached result. drizzle-kit does not read it at all. Load it first:
 `set -a && . ./.env.local && set +a && npm run db:migrate`. In Supabase, go to
-Connect → Direct → URI. `DATABASE_URL` is the **Transaction pooler** (6543).
-`DIRECT_URL` is the **Session pooler** (5432), not "Direct connection": that one is
+Connect → Direct → URI. Locally, both `DATABASE_URL` and `DIRECT_URL` are the
+**Session pooler** (5432): the transaction pooler (6543) hangs in a long-running dev
+server (§1). `DATABASE_URL` used to be the transaction pooler; which one production uses
+is decided on Vercel. Not "Direct connection" either: that one is
 IPv6-only without a paid add-on and fails from most office and home networks. Write
 lines as `KEY=value`, with no spaces around `=` and no brackets left around the
 password.
