@@ -23,7 +23,7 @@ export default async function NewCountPage({ searchParams }: PageProps<'/cash/ne
   if (!cash.canCount) {
     return (
       <main id="main" className="page cb" lang={lang}>
-        <p className="cb-note">{ct(lang, cash.stores.length ? 'login_hint' : 'count_no_restaurants')}</p>
+        <p className="cb-note">{ct(lang, cash.stores.length ? 'count_not_for_you' : 'count_no_restaurants')}</p>
       </main>
     );
   }

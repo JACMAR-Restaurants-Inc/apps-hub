@@ -4,6 +4,7 @@ import { ct } from '@/lib/cash/i18n';
 import { CASH_APP } from '@/lib/cash/math';
 import { countsOn, expectedTotals } from '@/lib/cash/store';
 import { getCashViewer } from '@/lib/cash/viewer';
+import { formatDay } from '@/lib/i18n';
 import { getLang } from '@/lib/lang';
 import { getRoster } from '@/lib/viewer';
 import { businessDate, formatCents } from '@hub/core';
@@ -27,7 +28,8 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
     );
   }
 
-  const date = dateParam(sp.date) ?? businessDate();
+  const today = businessDate();
+  const date = dateParam(sp.date) ?? today;
   const [counts, expected] = await Promise.all([countsOn(cashDb(), date, [store.id]), expectedTotals(cashDb(), [store.id])]);
   const exp = expected.get(store.id);
   const latest = counts.at(-1);
@@ -40,7 +42,8 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
         <div>
           <h1>{store.name}</h1>
           <p>
-            {store.id} · {counts.length} {ct(lang, 'counts_today')}
+            {store.id} · {counts.length} {ct(lang, counts.length === 1 ? 'count_one' : 'count_many')}{' '}
+            {date === today ? ct(lang, 'today_word') : `· ${formatDay(lang, new Date(`${date}T12:00:00Z`))}`}
             {exp !== undefined && ` · ${money(exp)} ${ct(lang, 'expected_total').toLowerCase()}`}
           </p>
         </div>

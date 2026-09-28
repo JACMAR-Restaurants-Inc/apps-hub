@@ -203,6 +203,11 @@ export const cashDict = {
   remove_receipt: { fr: "Retirer ce reçu", en: "Remove this receipt" },
   // The old app said "is short by" for an over too.
   attn_over_is: { fr: "a un surplus de", en: "is over by" },
+  // Replaces login_hint on New Count, which dated from the old password sign-in.
+  count_not_for_you: { fr: "Les décomptes sont soumis par les gérants. Le bureau et les administrateurs les consultent dans le tableau de bord et la vue quotidienne.", en: "Counts are filed by managers. The office and admins see them on the dashboard and in the daily view." },
+  count_one: { fr: "décompte", en: "count" },
+  count_many: { fr: "décomptes", en: "counts" },
+  today_word: { fr: "aujourd’hui", en: "today" },
   cash_no_access: { fr: "Vous n’avez pas accès à Cash Balancing. Demandez-le depuis le portail.", en: "You do not have access to Cash Balancing. Ask for it from the portal." },
 } as const satisfies Record<string, Record<Lang, string>>;
 
