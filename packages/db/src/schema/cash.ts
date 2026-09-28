@@ -49,6 +49,11 @@ export const tills = cash.table(
     tillNumber: integer().notNull(),
     tillLabel: text().notNull(),
     baseAmountCents: cents(),
+    /**
+     * A till is retired, never deleted (Admin page): past counts keep their own copy of
+     * its label and base, and a retired till can come back. New counts use active tills.
+     */
+    active: boolean().notNull().default(true),
   },
   (t) => [primaryKey({ columns: [t.restaurantId, t.tillNumber] })],
 ).enableRLS();
@@ -236,4 +241,31 @@ export const reportEmails = cash.table(
     createdAt: stamp(),
   },
   (t) => [index().on(t.safeCountId), index().on(t.jobId)],
+).enableRLS();
+
+/**
+ * Every change made on Cash Balancing's Admin page: who, when, which restaurant, what,
+ * and the values before and after. The old admin panel kept none, and changing an
+ * expected total silently re-based every variance after it (safe-count §8). Here, in
+ * the app's own schema, not rbac.audit: an app never writes to rbac (CLAUDE.md §3).
+ */
+export const settingsLog = cash.table(
+  'settings_log',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+    at: stamp(),
+    actorEmail: text().notNull(),
+    /**
+     * Plain text, not a foreign key: the one link from cash to rbac stays the only one to
+     * drop if the app moves to its own database (CLAUDE.md §3). The journal records a
+     * restaurant; it does not need the portal to vouch for it.
+     */
+    restaurantId: text().notNull(),
+    /** expected_total | report_email | till_add | till_label | till_base | till_retire | till_restore */
+    event: text().notNull(),
+    tillNumber: integer(),
+    before: text(),
+    after: text(),
+  },
+  (t) => [index().on(t.restaurantId, t.at)],
 ).enableRLS();

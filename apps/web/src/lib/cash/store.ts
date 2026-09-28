@@ -33,7 +33,8 @@ export async function readSetup(conn: Conn, restaurantId: string): Promise<{ til
   // No configured total means no meaningful variance: refuse rather than read a missing
   // baseline as zero, a shortage of the whole safe (Api.gs restaurant_not_configured).
   if (!settings) return null;
-  const rows = await conn.select().from(tills).where(eq(tills.restaurantId, restaurantId)).orderBy(asc(tills.tillNumber));
+  // Active tills only: a retired till is not counted (Admin page).
+  const rows = await conn.select().from(tills).where(and(eq(tills.restaurantId, restaurantId), eq(tills.active, true))).orderBy(asc(tills.tillNumber));
   return {
     tills: rows.map((t) => ({ tillNumber: t.tillNumber, tillLabel: t.tillLabel, baseAmountCents: t.baseAmountCents })),
     expectedTotalCents: settings.expectedSafeTotalCents,

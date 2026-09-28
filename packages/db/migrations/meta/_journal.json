@@ -50,6 +50,13 @@
       "when": 1790621889250,
       "tag": "0006_report_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790623261949,
+      "tag": "0007_cash_admin",
+      "breakpoints": true
     }
   ]
 }

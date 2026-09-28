@@ -13,7 +13,10 @@ import { fileStore, sniffType } from '@/lib/cash/files';
 import { CASH_APP, parseCountInput } from '@/lib/cash/math';
 import { CASH_THEME_COOKIE } from '@/lib/cash/theme';
 import { countRestaurant, queueAccountantSend, saveCount, type SaveError } from '@/lib/cash/store';
+import { addTill, setExpectedTotal, setReportEmail, setTillActive, updateTill, type AdminOutcome } from '@/lib/cash/settings';
+import { getCashViewer } from '@/lib/cash/viewer';
 import { getLang } from '@/lib/lang';
+import { parseCents } from '@hub/core';
 import { getSignedInEmail } from '@/lib/viewer';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
@@ -174,6 +177,58 @@ export async function retryReportAction(jobId: unknown): Promise<{ outcome: 'sen
   } catch (e) {
     if (e instanceof AccessDenied) return { outcome: refusal(e) };
     console.error('retryReportAction failed', e);
+    return { outcome: 'error' };
+  }
+}
+
+/** Amounts arrive as typed ("4 600,00"): cents, or NaN for anything that is not an amount. */
+const typedCents = (v: unknown) => {
+  const c = typeof v === 'string' || typeof v === 'number' ? parseCents(v) : null;
+  return c === null ? Number.NaN : c;
+};
+
+/**
+ * Every change on the Admin page (lib/cash/settings.ts has the rules). The admin
+ * panel's permission, and only at a restaurant this person holds (a system admin holds
+ * them all). `shown` is what the page showed, so a change made meanwhile by someone
+ * else is refused as 'changed' rather than overwritten.
+ */
+export async function adminCashAction(raw: unknown): Promise<{ outcome: AdminOutcome | Refusal }> {
+  try {
+    const { email } = await authorize(CASH_APP, 'admin_panel', 'access');
+    const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const rid = typeof r.rid === 'string' ? r.rid : '';
+    const cash = await getCashViewer();
+    if (!cash?.stores.some((s) => s.id === rid)) return { outcome: 'denied' };
+    const db = cashDb();
+    let outcome: AdminOutcome;
+    switch (r.intent) {
+      case 'expected':
+        outcome = await setExpectedTotal(db, email, rid, r.shown === null ? null : typedCents(r.shown), typedCents(r.next));
+        break;
+      case 'email':
+        outcome = await setReportEmail(db, email, rid, typeof r.shown === 'string' ? r.shown : null, r.next);
+        break;
+      case 'till_add':
+        outcome = await addTill(db, email, rid, Number(r.number), r.label, typedCents(r.base));
+        break;
+      case 'till_update': {
+        const shown = r.shown as { label?: unknown; base?: unknown } | undefined;
+        if (!shown || typeof shown.label !== 'string' || !Number.isSafeInteger(shown.base)) return { outcome: 'invalid' };
+        outcome = await updateTill(db, email, rid, r.number, { label: shown.label, base: shown.base as number }, { label: r.label, base: typedCents(r.base) });
+        break;
+      }
+      case 'till_active':
+        outcome = await setTillActive(db, email, rid, r.number, r.active === true);
+        break;
+      default:
+        return { outcome: 'invalid' };
+    }
+    revalidatePath('/cash', 'layout');
+    return { outcome };
+  } catch (e) {
+    if (e instanceof AccessDenied) return { outcome: refusal(e) };
+    console.error('adminCashAction failed', e);
     return { outcome: 'error' };
   }
 }

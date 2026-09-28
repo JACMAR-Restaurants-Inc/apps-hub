@@ -78,7 +78,7 @@ export default async function ReportsPage() {
                 {r.status !== 'sent' && <RetryButton lang={lang} jobId={r.jobId} />}
               </div>
               {r.emails.length === 0 ? (
-                <p className="cb-repnone">{ct(lang, 'rep_waiting')}</p>
+                <p className="cb-repnone">{ct(lang, r.status === 'sent' ? 'rep_legacy' : 'rep_waiting')}</p>
               ) : (
                 r.emails.map((m) => (
                   <details key={m.kind} className="cb-mail">
