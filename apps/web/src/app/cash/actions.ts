@@ -16,6 +16,9 @@ import { countRestaurant, queueAccountantSend, saveCount, type SaveError } from 
 import { getLang } from '@/lib/lang';
 import { getSignedInEmail } from '@/lib/viewer';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
+import { reportDeps } from '@/lib/cash/report-deps';
+import { releaseForRetry, runReportJob } from '@/lib/cash/reports';
 import { cookies } from 'next/headers';
 
 /**
@@ -51,6 +54,10 @@ export async function submitCountAction(raw: unknown): Promise<SubmitResult> {
       sendToAccountant: input.sendToAccountant,
     });
     if (!out.ok) return { outcome: out.error };
+    // The PDF and emails after the answer: the manager is not kept waiting for them,
+    // and a failure there is the sweep's to retry, never the count's to lose.
+    const jobId = out.jobId;
+    after(() => runReportJob(reportDeps(), jobId).catch((e) => console.error('report after submit failed', e)));
     revalidatePath('/cash', 'layout');
     return { outcome: 'done', id: out.id };
   } catch (e) {
@@ -72,9 +79,13 @@ export async function sendToAccountantAction(countId: unknown): Promise<{ outcom
       return { outcome: 'not_found' };
     }
     await authorize(CASH_APP, 'accountant', 'send', record.restaurantId);
-    const outcome = await queueAccountantSend(cashDb(), countId as number, record.language);
+    const queued = await queueAccountantSend(cashDb(), countId as number, record.language);
+    if (queued.outcome === 'done') {
+      const jobId = queued.jobId;
+      after(() => runReportJob(reportDeps(), jobId).catch((e) => console.error('report after accountant send failed', e)));
+    }
     revalidatePath('/cash', 'layout');
-    return { outcome };
+    return { outcome: queued.outcome };
   } catch (e) {
     if (e instanceof AccessDenied) return { outcome: refusal(e) };
     console.error('sendToAccountantAction failed', e);
@@ -147,6 +158,22 @@ export async function removeAttachmentAction(id: unknown): Promise<{ outcome: 'd
   } catch (e) {
     if (e instanceof AccessDenied) return { outcome: refusal(e) };
     console.error('removeAttachmentAction failed', e);
+    return { outcome: 'error' };
+  }
+}
+
+/** "Réessayer" on Rapports: runs one report again now. The admin panel's permission. */
+export async function retryReportAction(jobId: unknown): Promise<{ outcome: 'sent' | 'failed' | 'skipped' | 'not_found' | Refusal }> {
+  try {
+    await authorize(CASH_APP, 'admin_panel', 'access');
+    if (!Number.isSafeInteger(jobId)) return { outcome: 'invalid' };
+    if (!(await releaseForRetry(cashDb(), jobId as number))) return { outcome: 'not_found' };
+    const outcome = await runReportJob(reportDeps(), jobId as number);
+    revalidatePath('/cash/reports');
+    return { outcome };
+  } catch (e) {
+    if (e instanceof AccessDenied) return { outcome: refusal(e) };
+    console.error('retryReportAction failed', e);
     return { outcome: 'error' };
   }
 }

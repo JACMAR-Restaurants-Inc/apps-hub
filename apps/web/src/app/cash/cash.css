@@ -315,3 +315,27 @@
 .cb-attbtn.danger { color:var(--red); }
 .cb-atterr { color:var(--red); font-size:12.5px; font-weight:600; margin:0; }
 .cb-uploading { color:var(--text-dim); font-size:12.5px; font-style:italic; }
+
+/* Rapports. */
+.cb-reports { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.cb-rephead { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.cb-rephead > span:first-child { display:flex; flex-direction:column; gap:2px; }
+.cb-rephead a { color:var(--text); }
+.cb-rephead small, .cb-repmeta small { color:var(--text-dim); font-size:12.5px; }
+.cb-badge.wait { background:var(--warnSoft); color:var(--orange); }
+.cb-repmeta { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin:8px 0 4px; }
+.cb-retry { display:inline-flex; align-items:center; gap:8px; margin-left:auto; }
+.cb-repnone { margin:6px 0 0; font-size:13px; color:var(--text-dim); font-style:italic; }
+.cb-mail { border-top:1px solid var(--line2); }
+.cb-mail summary { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:10px 0; cursor:pointer; min-height:44px; font-size:13.5px; }
+.cb-mail summary .to { color:var(--text-muted); overflow-wrap:anywhere; }
+.cb-mail summary .st { margin-left:auto; color:var(--text-dim); font-size:12.5px; }
+.cb-dot { width:9px; height:9px; border-radius:50%; flex:none; }
+.cb-dot.ok { background:var(--green); }
+.cb-dot.off { background:var(--red); }
+.cb-mailbody { padding:0 0 12px 19px; }
+.cb-mailbody .subj { margin:0 0 4px; font-weight:700; }
+.cb-mailbody .att { margin:0 0 8px; font-size:12.5px; color:var(--text-muted); }
+.cb-mailbody pre { margin:0; padding:10px 12px; border-radius:8px; background:var(--card-bg-light); border:1px solid var(--border);
+                   white-space:pre-wrap; font:inherit; font-size:13px; color:var(--text); max-height:320px; overflow:auto; }
+.cb-mailbody .err { margin:6px 0 0; font-size:12px; color:var(--text-dim); font-family:ui-monospace, monospace; }

@@ -41,7 +41,7 @@ export async function readSetup(conn: Conn, restaurantId: string): Promise<{ til
 }
 
 export type SaveError = CountError | 'not_configured' | 'duplicate' | 'attachment_invalid';
-export type SaveOutcome = { ok: true; id: number } | { ok: false; error: SaveError };
+export type SaveOutcome = { ok: true; id: number; jobId: number } | { ok: false; error: SaveError };
 
 class Refused extends Error {
   constructor(readonly code: SaveError) {
@@ -134,10 +134,13 @@ export async function saveCount(
       }
 
       // After the count, in the same transaction: the job can never point at nothing.
-      await tx.insert(reportJobs).values({ safeCountId: countId, language: a.language, status: 'pending', sendToAccountant: a.sendToAccountant });
-      return countId;
+      const [job] = await tx
+        .insert(reportJobs)
+        .values({ safeCountId: countId, language: a.language, status: 'pending', sendToAccountant: a.sendToAccountant })
+        .returning({ id: reportJobs.id });
+      return { countId, jobId: job!.id };
     });
-    return { ok: true, id };
+    return { ok: true, id: id.countId, jobId: id.jobId };
   } catch (e) {
     if (e instanceof Refused) return { ok: false, error: e.code };
     throw e;
@@ -339,7 +342,7 @@ export async function previousCounts(conn: Conn, restaurantId: string, today: st
  * "Send to accountant" after the fact (Api.gs apiSendToAccountant): queues a job that
  * emails the accountant only. Refused if one is already queued or sent.
  */
-export async function queueAccountantSend(conn: Conn, countId: number, language: string): Promise<'done' | 'already_sent'> {
+export async function queueAccountantSend(conn: Conn, countId: number, language: string): Promise<{ outcome: 'done'; jobId: number } | { outcome: 'already_sent' }> {
   return (conn as Db).transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${'cash.accountant:' + countId}))`);
     const [existing] = await tx
@@ -347,9 +350,13 @@ export async function queueAccountantSend(conn: Conn, countId: number, language:
       .from(reportJobs)
       .where(and(eq(reportJobs.safeCountId, countId), eq(reportJobs.sendToAccountant, true), inArray(reportJobs.status, ['pending', 'sent'])))
       .limit(1);
-    if (existing) return 'already_sent';
-    await tx.insert(reportJobs).values({ safeCountId: countId, language, status: 'pending', sendToAccountant: true });
-    return 'done';
+    if (existing) return { outcome: 'already_sent' as const };
+    // The accountant alone: the restaurant already had its report when the count was filed.
+    const [job] = await tx
+      .insert(reportJobs)
+      .values({ safeCountId: countId, language, status: 'pending', sendToAccountant: true, restaurantEmail: false })
+      .returning({ id: reportJobs.id });
+    return { outcome: 'done' as const, jobId: job!.id };
   });
 }
 

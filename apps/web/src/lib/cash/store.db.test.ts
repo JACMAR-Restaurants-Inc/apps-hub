@@ -149,11 +149,13 @@ describe.skipIf(!db)('cash counts on Postgres (rolled back)', () => {
   it('send to accountant: once only, whether asked at filing or afterwards', async () => {
     await rolledBack(async (tx) => {
       const a = (await save(tx, await draft(tx))) as { id: number };
-      expect(await queueAccountantSend(tx, a.id, 'fr')).toBe('done');
-      expect(await queueAccountantSend(tx, a.id, 'fr')).toBe('already_sent');
+      const first = await queueAccountantSend(tx, a.id, 'fr');
+      expect(first.outcome).toBe('done');
+      expect(await tx.select().from(reportJobs).where(eq(reportJobs.id, (first as { jobId: number }).jobId))).toMatchObject([{ sendToAccountant: true, restaurantEmail: false }]);
+      expect(await queueAccountantSend(tx, a.id, 'fr')).toEqual({ outcome: 'already_sent' });
 
       const b = (await save(tx, await draft(tx), new Date(NOW.getTime() + 60_000), true)) as { id: number };
-      expect(await queueAccountantSend(tx, b.id, 'fr')).toBe('already_sent');
+      expect(await queueAccountantSend(tx, b.id, 'fr')).toEqual({ outcome: 'already_sent' });
     });
   });
 });

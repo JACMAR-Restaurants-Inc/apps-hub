@@ -193,8 +193,47 @@ export const reportJobs = cash.table(
     attempts: integer().notNull().default(0),
     lastError: text(),
     sendToAccountant: boolean().notNull(),
+    /**
+     * False for "Envoyer à la comptabilité" pressed on a count already filed: that job
+     * emails the accountant only (Api.gs apiSendToAccountant). Imported jobs are the
+     * first report of their count.
+     */
+    restaurantEmail: boolean().notNull().default(true),
     createdAt: stamp(),
+    /** When the job was last picked up: a lease, so two runners never work one job at once. */
     processedAt: timestamp({ withTimezone: true }),
   },
   (t) => [index().on(t.status)],
+).enableRLS();
+
+export const emailStatusEnum = cash.enum('email_status', ['sent', 'not_sent']);
+
+/**
+ * Every report email the app prepared, sent or not: the Rapports page. Until Gmail's
+ * domain-wide delegation is granted (CLAUDE.md §1) nothing can be sent, and this is
+ * how the flow is still seen end to end: who each email was for, its subject and text,
+ * and why it did not go. The old app kept no record of what it emailed.
+ */
+export const reportEmails = cash.table(
+  'report_emails',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
+    jobId: bigint({ mode: 'number' })
+      .notNull()
+      .references(() => reportJobs.id),
+    safeCountId: countRef(),
+    /** 'restaurant' or 'accountant'. */
+    kind: text().notNull(),
+    /** Where it was addressed, after REPORT_EMAIL_OVERRIDE; null when there was no address. */
+    toAddress: text(),
+    subject: text().notNull(),
+    bodyText: text().notNull(),
+    /** File names attached, the PDF first. */
+    attachmentNames: text().array().notNull(),
+    status: emailStatusEnum().notNull(),
+    /** Why it did not go: no address, email not configured, Gmail's refusal. */
+    error: text(),
+    createdAt: stamp(),
+  },
+  (t) => [index().on(t.safeCountId), index().on(t.jobId)],
 ).enableRLS();

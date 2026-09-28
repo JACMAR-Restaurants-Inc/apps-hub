@@ -16,7 +16,12 @@ export function CashNav({ lang, canCount, isAdmin }: { lang: Lang; canCount: boo
     { href: '/cash', label: 'nav_dashboard', current: path === '/cash' || path.startsWith('/cash/restaurant') },
     ...(canCount ? [{ href: '/cash/new', label: 'nav_count' as const, current: path.startsWith('/cash/new') }] : []),
     { href: '/cash/day', label: 'nav_daily', current: path.startsWith('/cash/day') || path.startsWith('/cash/count') },
-    ...(isAdmin ? [{ href: '/cash/admin', label: 'nav_admin' as const, current: path.startsWith('/cash/admin') }] : []),
+    ...(isAdmin
+      ? [
+          { href: '/cash/reports', label: 'nav_reports' as const, current: path.startsWith('/cash/reports') },
+          { href: '/cash/admin', label: 'nav_admin' as const, current: path.startsWith('/cash/admin') },
+        ]
+      : []),
   ];
   return (
     <nav className="cb-tabs" aria-label="Cash Balancing">
