@@ -83,6 +83,11 @@ export function AdminRestaurantCard({ lang, id, name, data, nextTill }: { lang: 
                 e.preventDefault();
                 const c = parseTyped(expected);
                 if (c === null || c <= 0) return setNote({ key: 'adm_invalid', ok: false });
+                // The same amount: nothing to confirm.
+                if (c === data.expectedTotalCents) {
+                  setEditing(null);
+                  return setNote({ key: 'adm_unchanged', ok: true });
+                }
                 setConfirming(c);
               }}
             >
@@ -156,7 +161,7 @@ export function AdminRestaurantCard({ lang, id, name, data, nextTill }: { lang: 
           <span />
         </div>
         {data.tills.map((t) => (
-          <TillRow key={t.tillNumber} lang={lang} till={t} busy={busy} send={send} />
+          <TillRow key={`${t.tillNumber}|${t.tillLabel}|${t.baseAmountCents}|${t.active}`} lang={lang} till={t} busy={busy} send={send} />
         ))}
         <form
           className="cb-admtill add"

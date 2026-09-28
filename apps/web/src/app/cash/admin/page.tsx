@@ -41,7 +41,9 @@ export default async function CashAdminPage() {
       </div>
       {cash.stores.map((s) => (
         <AdminRestaurantCard
-          key={`${s.id}-${JSON.stringify(overview.get(s.id))}`}
+          // Keyed by restaurant only, so the card keeps its "Enregistré." after a save;
+          // the till rows reset themselves (their key carries their values).
+          key={s.id}
           lang={lang}
           id={s.id}
           name={s.name}
