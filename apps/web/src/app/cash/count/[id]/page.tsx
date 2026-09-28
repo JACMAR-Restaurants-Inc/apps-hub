@@ -101,7 +101,7 @@ export default async function CountDetailPage({ params }: PageProps<'/cash/count
                 </span>
                 <span>
                   {money(t.countedAmountCents)} <b className={`cb-var ${tone(t.varianceCents)}`}>{signed(t.varianceCents)}</b>{' '}
-                  {t.wasFixed && <span className="cb-badge fixed">{ct(lang, 'fixed')}</span>}
+                  {t.wasFixed && <span className="cb-badge is-fixed">{ct(lang, 'fixed')}</span>}
                 </span>
               </div>
             ))}

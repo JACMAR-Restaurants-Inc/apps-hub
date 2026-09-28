@@ -116,7 +116,7 @@ export function CountForm(props: {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(key);
-      if (saved) {
+      if (saved && saved !== JSON.stringify(emptyDraft(setup.tills))) {
         const d = JSON.parse(saved) as Draft;
         const fresh = emptyDraft(setup.tills);
         // Only the tills configured today: a till removed since is dropped, a new one starts empty.
@@ -132,11 +132,17 @@ export function CountForm(props: {
   useEffect(() => {
     if (!loaded.current) return;
     try {
-      localStorage.setItem(key, JSON.stringify(draft));
+      const json = JSON.stringify(draft);
+      // Nothing entered is nothing to keep: an empty draft must not come back as "restored".
+      if (json === JSON.stringify(emptyDraft(setup.tills))) localStorage.removeItem(key);
+      else localStorage.setItem(key, json);
     } catch {}
-  }, [key, draft]);
+  }, [key, draft, setup.tills]);
 
-  const edit = (fn: (d: Draft) => Draft) => setDraft((d) => fn(d));
+  const edit = (fn: (d: Draft) => Draft) => {
+    setError(null);
+    setDraft((d) => fn(d));
+  };
   const editTill = (n: number, fn: (t: TillDraft) => TillDraft) => edit((d) => ({ ...d, tills: { ...d.tills, [n]: fn(d.tills[n]!) } }));
 
   const totals = useMemo(() => {
@@ -194,7 +200,16 @@ export function CountForm(props: {
     setTried(true);
     setError(null);
     const input = build();
-    if (!input) return setError('err_bad_number');
+    if (!input) {
+      setError('err_bad_number');
+      // The bad field may be a screen or two up: take them to it.
+      requestAnimationFrame(() => {
+        const bad = document.querySelector<HTMLInputElement>('.cb-form [aria-invalid="true"]');
+        bad?.scrollIntoView({ block: 'center' });
+        bad?.focus({ preventScroll: true });
+      });
+      return;
+    }
     setBusy(true);
     const res = await submitCountAction(input).catch(() => ({ outcome: 'error' as const }));
     if (res.outcome === 'done') {
@@ -474,7 +489,7 @@ export function CountForm(props: {
                 {guidance.items.map((i) => (
                   <li key={i.label} className={i.fixed ? 'done' : undefined}>
                     {i.label}&nbsp;: {L(i.varianceCents < 0 ? 'fix_take_from_intake' : 'fix_move_to_intake').replace('{amount}', money(Math.abs(i.varianceCents)))}{' '}
-                    <span className={i.fixed ? 'cb-badge fixed' : 'cb-badge off'}>{L(i.fixed ? 'fixed' : 'not_fixed')}</span>
+                    <span className={i.fixed ? 'cb-badge is-fixed' : 'cb-badge off'}>{L(i.fixed ? 'fixed' : 'not_fixed')}</span>
                   </li>
                 ))}
               </ul>
@@ -651,7 +666,7 @@ function PreviousPanels({ lang, counts, priorDay }: { lang: Lang; counts: Previo
                 </span>
                 <span>
                   <b className={`cb-var ${t.varianceCents < 0 ? 'neg' : t.varianceCents > 0 ? 'pos' : 'zero'}`}>{signed(t.varianceCents)}</b>{' '}
-                  {t.wasShort && <span className={t.wasFixed ? 'cb-badge fixed' : 'cb-badge off'}>{L(t.wasFixed ? 'fixed' : 'not_fixed')}</span>}
+                  {t.wasShort && <span className={t.wasFixed ? 'cb-badge is-fixed' : 'cb-badge off'}>{L(t.wasFixed ? 'fixed' : 'not_fixed')}</span>}
                 </span>
               </div>
             ))}

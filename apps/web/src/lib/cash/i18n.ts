@@ -161,7 +161,7 @@ export const cashDict = {
   fix_move_to_intake: { fr: "remettre {amount} de la caisse → encaisse", en: "move {amount} from till → intake" },
   fix_net_intake_effect: { fr: "Effet net sur l’encaisse du jour", en: "Net effect on cash intake" },
   fix_residual_non_till: { fr: "Écart résiduel (hors caisses)", en: "Residual variance (non-till)" },
-  fix_check_other_sections: { fr: "vérifiez la monnaie/billets/petite caisse", en: "check coins/bills/petty cash" },
+  fix_check_other_sections: { fr: "Vérifiez la monnaie, les billets et la petite caisse", en: "Check coins, bills and petty cash" },
   fix_all_balanced_after: { fr: "Une fois toutes les caisses corrigées, le coffre est équilibré", en: "After fixing all tills, the safe will be balanced" },
   fix_use_fix_button: { fr: "Utilisez le bouton « Corriger » sur chaque caisse", en: "Use the \"Fix it\" button on each till" },
   fix_from_tills: { fr: "Provenant des caisses", en: "From tills" },
