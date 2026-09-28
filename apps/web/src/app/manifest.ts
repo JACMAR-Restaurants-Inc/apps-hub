@@ -1,8 +1,9 @@
 import type { MetadataRoute } from 'next';
 
 // Add to home screen (§69). Standalone, with the portal's navy and page colours.
-// Deliberately no service worker and no install button: the home-screen icon is the
-// whole feature, and an offline copy of an access portal would show stale access.
+// Deliberately no service worker: an offline copy of an access portal would show stale
+// access. The install banner and menu item are in components/install.tsx (owner's call,
+// 2026-09-28); this used to say "no install button" too.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'JM Portal',

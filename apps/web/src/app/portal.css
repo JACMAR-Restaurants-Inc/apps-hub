@@ -479,6 +479,29 @@
   .banner b { font-weight:600; color:var(--text); overflow-wrap:anywhere; }
   .banner .switchacct { display:inline-block; margin-top:8px; font-weight:600; color:var(--dark-gold); }
   .banner .switchacct:hover { text-decoration:underline; }
+  /* Add to home screen (components/install.tsx): the banner reuses the one above,
+     with its two buttons; the steps are a native dialog, a sheet from the bottom on a
+     phone, where the Share button it points at also is. */
+  .installbanner .grow { flex:1; min-width:0; }
+  .installbanner .acts, .installsheet .acts { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:12px; }
+  .acctitem { color:var(--text-muted); padding:6px 0 0; }
+  .acctitem:hover { color:var(--dark-gold); }
+  .installsheet { width:min(440px, 100vw); max-width:100vw; margin:auto auto 0; padding:20px 20px 24px;
+                  border:0; border-radius:16px 16px 0 0; background:var(--card-bg); color:var(--text);
+                  box-shadow:0 -12px 40px -12px rgba(38,56,87,.35); }
+  .installsheet::backdrop { background:rgba(16,24,40,.38); }
+  .installsheet h2 { margin:0 0 14px; font-size:17px; font-weight:600; color:#0B2556; }
+  .installsheet ol { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+  .installsheet li { display:flex; gap:12px; align-items:flex-start; font-size:15px; line-height:1.45; }
+  .installsheet .n { width:26px; height:26px; flex:none; border-radius:50%; display:flex; align-items:center;
+                     justify-content:center; background:var(--tint); color:var(--dark-gold); font-size:13px; font-weight:700; }
+  .installsheet .share { width:20px; height:20px; vertical-align:-4px; fill:none; stroke:var(--gold);
+                         stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  .installsheet .note { margin:16px 0 0; font-size:13.5px; color:var(--text-muted); }
+  .installsheet .acts .pbtn { flex:1; }
+  @media (min-width:761px) {
+    .installsheet { margin:auto; border-radius:16px; }
+  }
   .mini { padding:1px 8px; border-radius:999px; font-size:12px; font-weight:600;
           color:var(--text-muted); background:var(--card-bg-light); border:1px solid var(--border); }
 

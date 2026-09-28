@@ -34,7 +34,11 @@ say what it used to say. A file that disagrees with reality is worse than none.
   what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Then
   the owner's redesign (2026-09-26): Favoris (a star on each card, stored in
   `portal.favourites`), one Applications list and page, a menu for everybody, and a
-  Demandes page of the person's pending requests. Code is at
+  Demandes page of the person's pending requests. Add to home screen (owner's call,
+  2026-09-28; the port had "no install button"): a Home banner until installed or
+  dismissed, then an item in the avatar menu. Android installs in one tap through the
+  browser's own offer; a web page cannot install itself on an iPhone, from any browser,
+  so it gets the steps (`components/install.tsx`, rules in `lib/install.ts`). Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
   Data API off. Migrations 0000–0005 are applied. It holds the 2026-09-25 snapshot:
@@ -365,7 +369,7 @@ sign-in rules (no domain restriction, Google only, no Google tokens stored), the
 roster loader, `authorize()`, the import transforms (14, all caught), the access rules
 (14), the Clearview client, the Gmail sender and the admin check (10), the decline
 email, favourites (only a visible app can be starred, the order starred, a deleted
-person's stars go), and RLS on every
+person's stars go), the add-to-home-screen rules (7), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

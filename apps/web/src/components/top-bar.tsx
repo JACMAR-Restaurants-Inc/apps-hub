@@ -3,6 +3,7 @@
 import { setLanguage } from '@/app/actions';
 import { authClient } from '@/lib/auth-client';
 import { t, type Key, type Lang } from '@/lib/i18n';
+import { InstallMenuItem, InstallSheet } from './install';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -28,7 +29,8 @@ const ROLE_KEY = { admin: 'roleAdmin', office: 'role_office', manager: 'role_man
  *   Applications · Répertoire des accès · Administration. It used to be admins only,
  *   "a menu with one entry is not a menu"; a manager now has three.
  * - The account card: the address signed in with (the answer to "am I on the right
- *   account?"), the language, and sign out, which does NOT sign anyone out of Google.
+ *   account?"), the language, "Ajouter à l'écran d'accueil" on a phone (install.tsx),
+ *   and sign out, which does NOT sign anyone out of Google.
  */
 export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
   const router = useRouter();
@@ -146,6 +148,7 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
                   </div>
                 </div>
                 <div className="acctdiv" />
+                <InstallMenuItem lang={lang} onPick={() => setAcctOpen(false)} />
                 {/* Signs out of this portal only. Signing them out of Google would take
                     them out of Gmail on their own phone. */}
                 <button
@@ -171,6 +174,7 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
         </div>
       </header>
       {menuOpen && <div className="scrim" onClick={() => setMenuOpen(false)} />}
+      <InstallSheet lang={lang} />
     </>
   );
 }

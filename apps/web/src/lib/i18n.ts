@@ -419,6 +419,37 @@ export const dict = {
   out_unchanged: { fr: 'Déjà ainsi.', en: 'Already so.' },
   out_error: { fr: 'La modification n’a pas pu être enregistrée.', en: 'The change could not be saved.' },
   out_denied: { fr: 'Ce compte n’est plus administrateur.', en: 'This account is no longer an administrator.' },
+  // Add to home screen (components/install.tsx). The quoted labels are the phones' own,
+  // in the phone's language, so they can be matched on screen.
+  installTitle: { fr: 'Ajoutez JM Portal à votre écran d’accueil', en: 'Add JM Portal to your home screen' },
+  installLine: { fr: 'Ouvrez le portail d’un seul geste, comme une application.', en: 'Open the portal in one tap, like an app.' },
+  installNow: { fr: 'Installer', en: 'Install' },
+  installHow: { fr: 'Voir comment', en: 'Show me how' },
+  installLater: { fr: 'Plus tard', en: 'Not now' },
+  installMenu: { fr: 'Ajouter à l’écran d’accueil', en: 'Add to home screen' },
+  installDone: { fr: 'C’est fait', en: 'Done' },
+  close: { fr: 'Fermer', en: 'Close' },
+  iosStep1: { fr: 'Touchez le bouton Partager', en: 'Tap the Share button' },
+  iosStep1b: { fr: 'S’il n’est pas visible, touchez d’abord ⋯', en: 'If you can’t see it, tap ⋯ first' },
+  iosStep2: {
+    fr: 'Choisissez « Sur l’écran d’accueil ». Faites défiler la liste au besoin.',
+    en: 'Choose “Add to Home Screen”. Scroll down the list if needed.',
+  },
+  iosStep3: { fr: 'Touchez « Ajouter ».', en: 'Tap “Add”.' },
+  iosNote: {
+    fr: 'Si le portail est ouvert dans une autre application, comme Gmail, ouvrez-le d’abord dans Safari. Depuis l’icône, vous vous connecterez une fois de plus avec Google.',
+    en: 'If the portal is open inside another app, such as Gmail, open it in Safari first. From the icon, you’ll sign in with Google once more.',
+  },
+  androidStep1: { fr: 'Touchez le menu ⋮ du navigateur.', en: 'Tap the browser’s ⋮ menu.' },
+  androidStep2: {
+    fr: 'Choisissez « Ajouter à l’écran d’accueil » ou « Installer l’application ».',
+    en: 'Choose “Add to Home screen” or “Install app”.',
+  },
+  androidStep3: { fr: 'Confirmez.', en: 'Confirm.' },
+  androidNote: {
+    fr: 'Si le portail est ouvert dans une autre application, comme Gmail, ouvrez-le d’abord dans Chrome.',
+    en: 'If the portal is open inside another app, such as Gmail, open it in Chrome first.',
+  },
 } as const satisfies Record<string, Record<Lang, string>>;
 
 export type Key = keyof typeof dict;
