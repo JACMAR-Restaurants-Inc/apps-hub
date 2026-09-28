@@ -63,15 +63,15 @@ export default async function CashDashboard({ searchParams }: PageProps<'/cash'>
           <div className="k">{ct(lang, 'stat_counts_today')}</div>
           <div className="v">{d.countsToday}</div>
         </div>
-        <div className="stat orange">
+        <div className="stat gold">
           <div className="k">{ct(lang, 'stat_counts_week')}</div>
           <div className="v">{d.countsWeek}</div>
         </div>
-        <div className="stat pink">
+        <div className="stat red">
           <div className="k">{ct(lang, 'stat_safes_short')}</div>
           <div className="v">{d.short}</div>
         </div>
-        <div className={`stat ${d.netCents === 0 ? 'green' : 'pink'}`}>
+        <div className={`stat ${d.netCents === 0 ? 'green' : 'red'}`}>
           <div className="k">{ct(lang, 'stat_net_latest')}</div>
           <div className="v">{money(d.netCents)}</div>
         </div>

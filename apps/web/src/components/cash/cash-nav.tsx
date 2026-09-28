@@ -20,9 +20,7 @@ export function CashNav({ lang, canCount, isAdmin }: { lang: Lang; canCount: boo
   ];
   return (
     <nav className="cb-tabs" aria-label="Cash Balancing">
-      <span className="cb-mark" aria-hidden="true">
-        CB
-      </span>
+      <span className="cb-mark" role="img" aria-label="Cash Balancing" />
       {tabs.map((t) => (
         <Link key={t.href} href={t.href} aria-current={t.current ? 'page' : undefined}>
           {ct(lang, t.label)}

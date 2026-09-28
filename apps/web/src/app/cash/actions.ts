@@ -9,10 +9,12 @@
 import { AccessDenied, authorize } from '@/lib/access';
 import { cashDb } from '@/lib/cash/db';
 import { CASH_APP, parseCountInput } from '@/lib/cash/math';
+import { CASH_THEME_COOKIE } from '@/lib/cash/theme';
 import { countRestaurant, queueAccountantSend, saveCount, type SaveError } from '@/lib/cash/store';
 import { getLang } from '@/lib/lang';
 import { getSignedInEmail } from '@/lib/viewer';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
 /**
  * 'expired': no session any more, as opposed to 'denied': signed in and not allowed.
@@ -76,4 +78,10 @@ export async function sendToAccountantAction(countId: unknown): Promise<{ outcom
     console.error('sendToAccountantAction failed', e);
     return { outcome: 'error' };
   }
+}
+
+/** Clair / Sombre from the avatar menu. A preference of this browser, nothing more. */
+export async function setCashThemeAction(theme: unknown): Promise<void> {
+  if (theme !== 'light' && theme !== 'dark') return;
+  (await cookies()).set(CASH_THEME_COOKIE, theme, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
 }
