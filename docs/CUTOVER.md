@@ -28,6 +28,25 @@ carried over: it is full of rehearsal counts and test accounts.
       - A separate production client (not `apps-hub-staging`) with the production
         redirect URI `https://<domain>/api/auth/callback/google`.
       - Sign in with a personal Gmail that is NOT a test user. It must work.
+- [ ] **Where each restaurant's reports go** (found 2026-09-28). In the Cash Balancing
+      spreadsheet, 5 of 7 restaurants send their reports to Pierre's mailbox
+      (`pierrej+…@jacmar-restaurants.com`): Hull, Mont-Bleu, Maisonneuve, Du Plateau,
+      Chelsea. Only Aylmer and Vanier have their own (`<id>@post.mcdonalds.ca`). Decide
+      the right address for each before the day. The import brings the sheet's values,
+      so either correct `Config_Restaurants` before the snapshot, or correct them on
+      Cash Balancing → Admin right after the import (step 4b). Either way the journal on
+      the Admin page keeps the change.
+- [ ] **Cash Balancing's production settings** (staging has its own; nothing is copied):
+      - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` of the PRODUCTION project (the
+        secret key, server only), and a PRIVATE Storage bucket `cash` created in it
+        (50 MB per file, images and PDFs only: see how staging's was made).
+      - `CRON_SECRET`: a new long random value. The sweep that retries reports runs
+        every 5 minutes, which needs Vercel Pro (Hobby allows one run a day).
+      - `ACCOUNTANT_EMAIL` (above) and no `REPORT_EMAIL_OVERRIDE`.
+      - Files: `CASH_FILE_STORE` unset keeps them in Supabase. For Drive instead
+        (`drive`, not built yet), the Workspace admin must add the Drive scope to the
+        service account's domain-wide delegation, and the production folders must belong
+        to the company, not to Pierre, whose Drive holds the old app's PDFs today.
 - [ ] Managers told the date, the new link, and that they sign in with the same Google account.
 
 ## On the day, after the evening counts
@@ -43,6 +62,8 @@ carried over: it is full of rehearsal counts and test accounts.
        `npm run import -- <folder>` (dry run, must say "No problems"), then with
        `--write --target <production ref>`.
 4. [ ] It verifies itself (below) and must end "All checks passed". Stop here if not.
+   b. [ ] Cash Balancing → Admin: each restaurant's report address is the one decided
+       (above), and each expected total matches the sheet.
 5. [ ] Set `EMAIL_MODE=live` in production. Redeploy.
 6. [ ] File one real count as a test user; confirm the report reaches the right inbox.
 7. [ ] Point the portal card and every shared link at the new app.
@@ -55,7 +76,11 @@ carried over: it is full of rehearsal counts and test accounts.
       grand total − expected = variance, recomputed in cents.
 - [ ] Every count id from the sheet exists with the same id; each id sequence starts
       above the highest imported id.
-- [ ] Every attachment is in Storage and linked to its count.
+- [ ] Every attachment is linked to its count. The imported ones stay in Drive and open
+      by their old link (their Drive file id is kept); only new uploads go to Storage.
+      This used to say "Every attachment is in Storage": moving them is not built.
+- [ ] No old report is sent by surprise: the sweep only retries jobs from the last 7
+      days (the spreadsheet holds one that failed in April 2026). Rapports lists them.
 - [ ] No `login` or `password` value exists anywhere in the database.
 - [ ] Only the admins are on the roster (nobody else is carried over, CLAUDE.md §5).
 - [ ] Five real people sign in, request access, are approved, and then see only
