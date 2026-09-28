@@ -23,7 +23,9 @@ export default defineConfig({
   test: {
     projects: [
       { test: { name: 'unit', include: everywhere, exclude: onPostgres, alias } },
-      { test: { name: 'postgres', include: onPostgres, alias, fileParallelism: false, testTimeout: 30_000 } },
+      // One fork for the whole group: its files run one after another in that process.
+      // (fileParallelism cannot be set per project.)
+      { test: { name: 'postgres', include: onPostgres, alias, pool: 'forks', poolOptions: { forks: { singleFork: true } }, testTimeout: 30_000 } },
     ],
   },
 });
