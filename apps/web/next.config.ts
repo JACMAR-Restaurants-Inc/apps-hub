@@ -11,6 +11,12 @@ const rootEnv = path.resolve(process.cwd(), "../../.env.local");
 if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
 const nextConfig: NextConfig = {
+  // Cash Balancing attachments come through a server action: 4 MB files (the old
+  // app's limit), plus the form around them. Vercel caps any request at 4.5 MB, so
+  // New Count shrinks phone photos before sending them (components/cash/attachments).
+  experimental: {
+    serverActions: { bodySizeLimit: "5mb" },
+  },
   // The two group pages became one Applications page (2026-09-26). Not permanent: a
   // browser keeps a permanent redirect forever, and these paths may be wanted back.
   async redirects() {

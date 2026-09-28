@@ -7,7 +7,9 @@
  */
 
 import { AccessDenied, authorize } from '@/lib/access';
+import { ALLOWED_TYPES, MAX_BYTES, MAX_FILES, attachmentById, cleanFileName, setStoragePath, stageAttachment, stagedCount, unstage } from '@/lib/cash/attachments';
 import { cashDb } from '@/lib/cash/db';
+import { fileStore, sniffType } from '@/lib/cash/files';
 import { CASH_APP, parseCountInput } from '@/lib/cash/math';
 import { CASH_THEME_COOKIE } from '@/lib/cash/theme';
 import { countRestaurant, queueAccountantSend, saveCount, type SaveError } from '@/lib/cash/store';
@@ -84,4 +86,67 @@ export async function sendToAccountantAction(countId: unknown): Promise<{ outcom
 export async function setCashThemeAction(theme: unknown): Promise<void> {
   if (theme !== 'light' && theme !== 'dark') return;
   (await cookies()).set(CASH_THEME_COOKIE, theme, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+}
+
+export type UploadResult =
+  | { outcome: 'done'; attachment: { id: number; fileName: string; mimeType: string; fileSize: number } }
+  | { outcome: 'too_large' | 'type_not_allowed' | 'too_many' | 'upload_failed' | Refusal };
+
+/**
+ * One file added on New Count (Api.gs apiUploadAttachment). Staged: owned by who sent
+ * it, at the restaurant authorised here, linked to a count only when that count is
+ * submitted. Its type is read from its bytes, not taken from the browser.
+ */
+export async function uploadAttachmentAction(form: FormData): Promise<UploadResult> {
+  const rid = form.get('restaurantId');
+  const file = form.get('file');
+  try {
+    if (typeof rid !== 'string' || !rid || rid.length > 20 || !(file instanceof File)) {
+      await authorize(CASH_APP, 'app', 'access');
+      return { outcome: 'invalid' };
+    }
+    const { email } = await authorize(CASH_APP, 'attachment', 'upload', rid);
+    if (file.size > MAX_BYTES) return { outcome: 'too_large' };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const type = sniffType(bytes);
+    if (!type || !(ALLOWED_TYPES as readonly string[]).includes(type)) return { outcome: 'type_not_allowed' };
+    // A generous ceiling on one person's unsent uploads, well above one count's five.
+    if ((await stagedCount(cashDb(), email, rid, new Date(Date.now() - 86_400_000))) >= MAX_FILES * 4) return { outcome: 'too_many' };
+
+    const fileName = cleanFileName(file.name);
+    const id = await stageAttachment(cashDb(), { restaurantId: rid, email, fileName, mimeType: type, fileSize: bytes.length });
+    try {
+      const ref = await fileStore().put(`attachments/${rid}/${id}`, bytes, type);
+      await setStoragePath(cashDb(), id, ref);
+    } catch (e) {
+      console.error('uploadAttachmentAction: storing failed', e);
+      await unstage(cashDb(), id, email).catch(() => null);
+      return { outcome: 'upload_failed' };
+    }
+    return { outcome: 'done', attachment: { id, fileName, mimeType: type, fileSize: bytes.length } };
+  } catch (e) {
+    if (e instanceof AccessDenied) return { outcome: refusal(e) };
+    console.error('uploadAttachmentAction failed', e);
+    return { outcome: 'upload_failed' };
+  }
+}
+
+/** Removes one of MY staged uploads (Api.gs apiDeleteAttachment), authorised against the record. */
+export async function removeAttachmentAction(id: unknown): Promise<{ outcome: 'done' | 'not_found' | 'already_linked' | 'not_yours' | Refusal }> {
+  try {
+    const row = Number.isSafeInteger(id) ? await attachmentById(cashDb(), id as number) : null;
+    if (!row) {
+      await authorize(CASH_APP, 'app', 'access');
+      return { outcome: 'not_found' };
+    }
+    const { email } = await authorize(CASH_APP, 'attachment', 'upload', row.restaurantId);
+    const out = await unstage(cashDb(), row.id, email);
+    if (!out.ok) return { outcome: out.error };
+    if (out.ref) await fileStore().remove(out.ref).catch((e) => console.error('removeAttachmentAction: file left behind', e));
+    return { outcome: 'done' };
+  } catch (e) {
+    if (e instanceof AccessDenied) return { outcome: refusal(e) };
+    console.error('removeAttachmentAction failed', e);
+    return { outcome: 'error' };
+  }
 }

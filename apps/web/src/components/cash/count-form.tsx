@@ -1,6 +1,7 @@
 'use client';
 
 import { submitCountAction } from '@/app/cash/actions';
+import { Attachments, type Uploaded } from './attachments';
 import { fixGuidance } from '@/lib/cash/guidance';
 import { ct, type CashKey } from '@/lib/cash/i18n';
 import { BILLS, COINS, type CountInput, type TillConfig } from '@/lib/cash/math';
@@ -43,6 +44,8 @@ interface Draft {
   receipts: { description: string; amount: string }[];
   pettyTotal: string;
   sendToAccountant: boolean;
+  /** Staged on the server already; linked to the count when it is submitted. */
+  attachments: Uploaded[];
 }
 
 const BAD = Number.NaN;
@@ -71,6 +74,7 @@ function emptyDraft(tills: readonly TillConfig[]): Draft {
     receipts: [{ description: '', amount: '' }],
     pettyTotal: '',
     sendToAccountant: false,
+    attachments: [],
   };
 }
 
@@ -109,6 +113,9 @@ export function CountForm(props: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<CashKey | null>(null);
   const [tried, setTried] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  const [failedUploads, setFailedUploads] = useState(0);
+  const [leaveFailed, setLeaveFailed] = useState(false);
   const loaded = useRef(false);
 
   // Restore a draft kept on this phone, once, after the first paint (the server
@@ -122,7 +129,7 @@ export function CountForm(props: {
         // Only the tills configured today: a till removed since is dropped, a new one starts empty.
         const tills = Object.fromEntries(setup.tills.map((t) => [t.tillNumber, d.tills?.[t.tillNumber] ?? fresh.tills[t.tillNumber]!]));
         // eslint-disable-next-line react-hooks/set-state-in-effect -- once, from storage the server cannot read
-        setDraft({ ...fresh, ...d, tills });
+        setDraft({ ...fresh, ...d, tills, attachments: Array.isArray(d.attachments) ? d.attachments : [] });
         setRestored(true);
       }
     } catch {}
@@ -192,13 +199,19 @@ export function CountForm(props: {
       paper,
       pettyCash,
       sendToAccountant: props.canSendToAccountant && draft.sendToAccountant,
-      attachmentIds: [],
+      attachmentIds: draft.attachments.map((a) => a.id),
     };
   }
 
   async function submit() {
     setTried(true);
     setError(null);
+    if (uploading > 0) return setError('files_uploading');
+    // Asked once: a photo that did not upload is not on the count.
+    if (failedUploads > 0 && !leaveFailed) {
+      setLeaveFailed(true);
+      return setError('submit_with_failed');
+    }
     const input = build();
     if (!input) {
       setError('err_bad_number');
@@ -509,6 +522,15 @@ export function CountForm(props: {
         </section>
       )}
 
+      <Attachments
+        lang={lang}
+        restaurantId={store.id}
+        items={draft.attachments}
+        onChange={(fn) => edit((d) => ({ ...d, attachments: fn(d.attachments) }))}
+        onBusy={setUploading}
+        onFailed={setFailedUploads}
+      />
+
       {props.canSendToAccountant && (
         <label className="cb-check">
           <input type="checkbox" checked={draft.sendToAccountant} onChange={(e) => edit((d) => ({ ...d, sendToAccountant: e.target.checked }))} />
@@ -549,8 +571,8 @@ export function CountForm(props: {
           <button type="button" className="cb-ghost" disabled={busy} onClick={() => setConfirmCancel(true)}>
             {L('cancel_count')}
           </button>
-          <button type="button" className="btn" disabled={busy} onClick={submit}>
-            {L(busy ? 'submitting' : 'submit_count')}
+          <button type="button" className="btn" disabled={busy || uploading > 0} onClick={submit}>
+            {L(busy ? 'submitting' : uploading > 0 ? 'files_uploading' : 'submit_count')}
           </button>
         </div>
       )}
