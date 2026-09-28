@@ -362,3 +362,10 @@ export async function countRestaurant(conn: Conn, countId: number): Promise<{ re
     .where(eq(safeCounts.id, countId));
   return row ?? null;
 }
+
+/** Each restaurant's expected safe total, for the dashboard. */
+export async function expectedTotals(conn: Conn, storeIds: readonly string[]): Promise<Map<string, number>> {
+  if (!storeIds.length) return new Map();
+  const rows = await conn.select().from(restaurantSettings).where(inArray(restaurantSettings.restaurantId, [...storeIds]));
+  return new Map(rows.map((r) => [r.restaurantId, r.expectedSafeTotalCents]));
+}

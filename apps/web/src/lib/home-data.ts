@@ -1,6 +1,6 @@
 import 'server-only';
 import { appMembers, memberStores, restaurants, users } from '@hub/db';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import type { BarViewer } from '@/components/top-bar';
 import type { HomeHead } from '@/components/home-view';
 import { db } from './db';
@@ -98,4 +98,28 @@ export async function loadMyRequests(viewer: Viewer, lang: Lang) {
     const a = catalogueApp(r.app);
     return { key: r.app, name: a ? (lang === 'fr' ? a.nameFr : a.name) : r.app, day: formatDay(lang, r.since) };
   });
+}
+
+/**
+ * The top bar alone, for pages that are not Home (Cash Balancing's): the same
+ * BarViewer loadHome builds, without the catalogue, favourites or the admin directory.
+ */
+export async function loadBar(viewer: Viewer): Promise<BarViewer> {
+  const isAdmin = viewer.standing === 'admin';
+  const [roster, mine, person, pending] = await Promise.all([
+    getRoster(),
+    db().select({ app: appMembers.app, status: appMembers.status, role: appMembers.role }).from(appMembers).where(eq(appMembers.email, viewer.email)),
+    db().select({ fullName: users.fullName }).from(users).where(eq(users.email, viewer.email)).limit(1),
+    isAdmin ? db().select({ n: count() }).from(appMembers).where(eq(appMembers.status, 'pending')) : Promise.resolve([{ n: 0 }]),
+  ]);
+  const personActive = roster.users.get(viewer.email)?.active === true;
+  const cash = mine.find((m) => m.app === 'SafeCount' && m.status === 'active');
+  const role = isAdmin ? 'admin' : cash && personActive ? cash.role : null;
+  return {
+    email: viewer.email,
+    initials: initials(person[0]?.fullName ?? viewer.name, viewer.email),
+    role: role ?? null,
+    isAdmin,
+    waiting: isAdmin ? Number(pending[0]?.n ?? 0) : mine.filter((m) => m.status === 'pending').length,
+  };
 }
