@@ -7,6 +7,7 @@ import { t, type Lang } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { AppCard } from './app-card';
+import { InstallBanner } from './install';
 
 export interface HomeHead {
   none: boolean;
@@ -189,6 +190,9 @@ export function HomeView(props: {
               )}
             </div>
           )}
+
+          {/* Not for someone with nothing yet: an icon for an empty portal can wait. */}
+          {!head.none && <InstallBanner lang={lang} />}
 
           <section className="appsec" id="sec-favourites">
             <div className="ph">
