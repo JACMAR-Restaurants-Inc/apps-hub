@@ -378,7 +378,8 @@ the roster email is how sign-in recognises people.
 
 ## 6. Commands
 
-    npm test              unit tests (TZ=UTC)
+    npm test              all tests (TZ=UTC): `unit` in parallel, then `postgres`, the
+                          *.db.test.ts files, one file at a time (see vitest.config.ts)
     npm run typecheck
     npm run db:generate   after any schema change; commit the migration
     npm run db:migrate    staging first, always
@@ -402,6 +403,11 @@ is decided on Vercel. Not "Direct connection" either: that one is
 IPv6-only without a paid add-on and fails from most office and home networks. Write
 lines as `KEY=value`, with no spaces around `=` and no brackets left around the
 password.
+
+**A test that touches the database is named `*.db.test.ts`.** That name puts it in the
+`postgres` group, which runs one file at a time with 30 s per test. Run in parallel,
+the database files each opened a pool against the session pooler's 15 clients, next
+to a dev server, and the access-rules test failed now and then (2026-09-28).
 
 **Restart `next dev` after a schema change.** The database client lives on `globalThis`
 across hot reloads (§1), and drizzle keeps a column-name cache inside it: a column added
