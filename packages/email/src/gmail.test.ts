@@ -145,6 +145,35 @@ describe('readGmailEnv', () => {
 });
 
 describe('buildMime', () => {
+  it('sends files as multipart/mixed: the text and HTML first, then each file, intact', () => {
+    const pdf = new TextEncoder().encode('%PDF-1.7 report');
+    const raw = buildMime(
+      'a@b.c',
+      { to: ['x@y.z'], cc: [], subject: 'S', text: 't', html: 'h', attachments: [{ filename: 'décompte 12.pdf', contentType: 'application/pdf', bytes: pdf }] },
+      'B',
+    );
+    expect(raw).toContain('Content-Type: multipart/mixed; boundary="B"');
+    expect(raw).toContain('Content-Type: multipart/alternative; boundary="B-alt"');
+    expect(raw.indexOf('text/plain')).toBeLessThan(raw.indexOf('application/pdf'));
+    // A non-ASCII name travels encoded, never raw in a header.
+    expect(raw).toContain(`filename="=?UTF-8?B?${Buffer.from('décompte 12.pdf').toString('base64')}?="`);
+    const body = raw.split('Content-Disposition: attachment')[1]!.split('\r\n\r\n')[1]!.split('\r\n--B--')[0]!;
+    expect(Buffer.from(body.replace(/\r\n/g, ''), 'base64').toString()).toBe('%PDF-1.7 report');
+    expect(raw.trimEnd().endsWith('--B--')).toBe(true);
+  });
+
+  it('refuses a file name or type that would break a header', () => {
+    const bytes = new Uint8Array([1]);
+    expect(() => buildMime('a@b.c', { to: ['x@y.z'], cc: [], subject: 'S', text: 't', html: 'h', attachments: [{ filename: 'a\r\nBcc: z@z.z', contentType: 'image/png', bytes }] }, 'B')).toThrow();
+    expect(() => buildMime('a@b.c', { to: ['x@y.z'], cc: [], subject: 'S', text: 't', html: 'h', attachments: [{ filename: 'a', contentType: 'image/png\r\nX: y', bytes }] }, 'B')).toThrow();
+  });
+
+  it('without files, the message is exactly what it was', () => {
+    const raw = buildMime('a@b.c', { to: ['x@y.z'], cc: [], subject: 'S', text: 't', html: 'h' }, 'B');
+    expect(raw).toContain('Content-Type: multipart/alternative; boundary="B"');
+    expect(raw).not.toContain('multipart/mixed');
+  });
+
   it('leaves an ASCII subject readable', () => {
     expect(buildMime('a@b.c', { to: ['x@y.z'], cc: [], subject: 'Hello', text: 't', html: 'h' }, 'B')).toContain('Subject: Hello\r\n');
   });

@@ -99,10 +99,21 @@ say what it used to say. A file that disagrees with reality is worse than none.
   pool. So: ONE pool per process on `globalThis` (`apps/web/src/lib/db.ts`), capped by
   `DB_POOL_MAX` (default 5). On Vercel, instances x `max` must stay under 15, which is
   the strongest argument for testing the transaction pooler properly.
-- Not built yet: moving the 256
-  attachments from Drive to Storage (they are imported with their Drive file id and no
-  `storage_path`), i18n, UI tokens, every screen. Accounts not created yet: Vercel (being created for
-  staging, 2026-09-26), production Supabase, domain, production OAuth client, Gmail service account.
+- **Cash Balancing is built** (2026-09-28, at parity with the Apps Script app;
+  `apps/web/src/app/cash`, `lib/cash`): dashboard, New Count, daily view, count detail,
+  restaurant page, attachments, the report PDF and emails, Rapports, Admin. In the old
+  app's OWN dark/light theme, not the portal's (owner: "i dont like it having the same
+  theme as the portal"); Clair / Sombre in the avatar menu, a `cb_theme` cookie.
+  Files (attachments, PDFs) are in a PRIVATE Supabase Storage bucket `cash`, standing in
+  for Drive until the Workspace grants Drive access (§4); `CASH_FILE_STORE` switches.
+  Checked end to end on 2026-09-28 with test count 611 at Hull (its report job 603 is set
+  to 8 attempts so the sweep never sends it).
+- Not built yet: the Drive file store (`CASH_FILE_STORE=drive`), moving the 256 imported
+  attachments from Drive (they keep their Drive file id and open by their old link),
+  Project Management. Accounts not created yet: production Supabase, domain, production
+  OAuth client. Staging on Vercel needs, besides the database: `SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
+  `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen".
 
 ## 2. Layout
 
@@ -202,6 +213,39 @@ a day or two, not weeks. So, for Cash Balancing and every app after it:
 A database cannot enforce a foreign key into another database, nor run one transaction
 across two; these rules keep every such crossing out of the code in the first place.
 
+**Cash Balancing computes every total on the server** (`lib/cash/math.ts`). The browser
+sends only what was counted (each till's amount, rolls and loose coins, bills, receipts);
+the old server summed line totals the browser sent. Expected total and till bases are
+read from settings. A count, its lines, fixes, report job and attachment links are ONE
+transaction, dated by the server in Toronto, under a per-restaurant advisory lock (never
+a global one, safe-count §17), one per restaurant per minute. Counts are never edited.
+
+**The report queue retries, but never by surprise** (`lib/cash/reports.ts`). A job runs
+right after its count (`after()`), then `/api/cash/sweep` every 5 minutes (Vercel cron,
+`CRON_SECRET`; the old queue was callable by anyone) retries pending or failed jobs, up
+to 8 attempts and ONLY from the last 7 days: the import brought one job that failed in
+April, and an old report must be a person's decision (Rapports, "Réessayer"). An email
+already sent is never resent. Every email is recorded in `cash.report_emails`, sent or
+not, with why: that is the Rapports page. The PDF is drawn once with @react-pdf/renderer
+and kept; attached PDFs are merged with pdf-lib (the old jacmar-pdf-merge Cloud
+Function took requests from anyone). Text a person typed is escaped in the email.
+
+**Cash Balancing's files are private.** Served only by `/cash/files/[id]` and
+`/cash/count/[id]/pdf`, after authorising against the COUNT's restaurant (a staged upload:
+its uploader only); a refusal is "not found". The type is read from the bytes at upload
+(JPEG, PNG, GIF, WebP, PDF only). No CSP sandbox on those responses: it blanked Chrome's
+PDF viewer. The old app shared everything as "anyone with the link".
+
+**Cash Balancing's Admin page changes settings, never history** (`lib/cash/settings.ts`).
+Expected total (two steps: it re-bases every later variance), report address, tills
+(retired, never deleted). The restaurant number is not editable. Every change is
+journaled before and after in `cash.settings_log`, and refused as `changed` if the row is
+no longer what the page showed. The admin panel's permission (office and admins).
+
+**Tailwind is loaded, so a class named like a utility is one.** `fixed` is
+`position:fixed`: the "Corrigé" badges vanished (2026-09-28). Prefix app classes (`cb-`,
+`is-`).
+
 **`can()` fails closed, and its order is the contract** (RBAC §6): admin → user active →
 app membership active → permission exists → store named, active and held → role
 granted. Any exception denies. `explain()` gives the reason for logs and admin screens.
@@ -265,7 +309,7 @@ production will send. Google sign-in is still in "Testing" on staging, so only l
 test users can sign in at all, which is a second gate. An allowlist of testers was built
 and removed the same day for this reason; do not bring it back without asking.
 
-**Cash Balancing's report emails: decided, not built yet** (owner approved, 2026-09-25).
+**Cash Balancing's report emails: built** (owner approved, 2026-09-25; built 2026-09-28; this used to say "not built yet").
 `live` covers every email, so without this a practice count on staging would email its
 report to the REAL restaurant and accountant. The addresses are redirected by SETTINGS,
 never by editing data:
@@ -359,6 +403,12 @@ IPv6-only without a paid add-on and fails from most office and home networks. Wr
 lines as `KEY=value`, with no spaces around `=` and no brackets left around the
 password.
 
+**Restart `next dev` after a schema change.** The database client lives on `globalThis`
+across hot reloads (§1), and drizzle keeps a column-name cache inside it: a column added
+while the server runs has no name, and every query touching it fails with
+"Cannot read properties of undefined (reading 'replace')" in drizzle's `escapeName`
+(2026-09-28, the Admin page). A deploy starts fresh, so only a long dev server hits it.
+
 CI runs typecheck, tests, lint, build, and fails if the committed migrations do not
 match the schema.
 
@@ -369,7 +419,10 @@ sign-in rules (no domain restriction, Google only, no Google tokens stored), the
 roster loader, `authorize()`, the import transforms (14, all caught), the access rules
 (14), the Clearview client, the Gmail sender and the admin check (10), the decline
 email, favourites (only a visible app can be starred, the order starred, a deleted
-person's stars go), the add-to-home-screen rules (7), and RLS on every
+person's stars go), the add-to-home-screen rules (7), Cash Balancing (10: the variance
+against settings, negative amounts, the double-tap guard, linking only your own uploads,
+the sweep's 7 days, never resending, both stale-value checks on Admin, HTML escaping in
+the emails, the file type from the bytes), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

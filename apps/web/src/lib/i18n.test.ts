@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GRANT_PANEL_LABELS } from './requests/messages';
+import { cashDict } from './cash/i18n';
 import { dict, langFrom } from './i18n';
 
-describe('the dictionary', () => {
-  const entries = Object.entries(dict);
+describe('the dictionaries (portal and Cash Balancing)', () => {
+  const entries = [...Object.entries(dict), ...Object.entries(cashDict)];
 
   it('has both languages for every key, never empty', () => {
     for (const [, v] of entries) {

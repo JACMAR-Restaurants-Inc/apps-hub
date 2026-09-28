@@ -18,12 +18,22 @@ const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
 const SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 
+export interface Attachment {
+  filename: string;
+  contentType: string;
+  bytes: Uint8Array;
+}
+
 export interface Message {
   to: string[];
   cc?: string[];
   subject: string;
   text: string;
   html: string;
+  /** Files sent with it (Cash Balancing's report PDF and photos). */
+  attachments?: Attachment[];
+  /** The name shown beside the sender's address, e.g. "Cash balancing - Jacmar". */
+  fromName?: string;
 }
 
 export type SendResult =
@@ -76,19 +86,53 @@ const safeHeader = (s: string) => {
 const encodedWord = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(s)}?=`);
 const wrap76 = (s: string) => s.replace(/.{1,76}/g, '$&\r\n');
 
-/** The RFC 2822 message, UTF-8, plain text and HTML alternatives, bodies base64. Pure. */
-export function buildMime(from: string, msg: { to: string[]; cc: string[]; subject: string; text: string; html: string }, boundary: string): string {
+/**
+ * The RFC 2822 message, UTF-8, plain text and HTML alternatives, bodies base64. Pure.
+ * With attachments it becomes multipart/mixed: the two alternatives first, then each
+ * file. A file name is encoded like a subject, so no header can be broken by one.
+ */
+export function buildMime(
+  from: string,
+  msg: { to: string[]; cc: string[]; subject: string; text: string; html: string; attachments?: Attachment[] },
+  boundary: string,
+): string {
+  const files = msg.attachments ?? [];
+  const alt = files.length ? `${boundary}-alt` : boundary;
   const headers = [
     `From: ${safeHeader(from)}`,
     `To: ${safeHeader(msg.to.join(', '))}`,
     ...(msg.cc.length ? [`Cc: ${safeHeader(msg.cc.join(', '))}`] : []),
     `Subject: ${encodedWord(safeHeader(msg.subject))}`,
     'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    files.length ? `Content-Type: multipart/mixed; boundary="${boundary}"` : `Content-Type: multipart/alternative; boundary="${alt}"`,
   ];
   const part = (type: string, body: string) =>
-    [`--${boundary}`, `Content-Type: ${type}; charset=UTF-8`, 'Content-Transfer-Encoding: base64', '', wrap76(b64(body))].join('\r\n');
-  return [...headers, '', part('text/plain', msg.text), part('text/html', msg.html), `--${boundary}--`, ''].join('\r\n');
+    [`--${alt}`, `Content-Type: ${type}; charset=UTF-8`, 'Content-Transfer-Encoding: base64', '', wrap76(b64(body))].join('\r\n');
+  const alternatives = [part('text/plain', msg.text), part('text/html', msg.html), `--${alt}--`, ''].join('\r\n');
+  if (!files.length) return [...headers, '', alternatives].join('\r\n');
+
+  const fileParts = files.map((f) => {
+    const name = encodedWord(safeHeader(f.filename.replace(/["\\]/g, '')));
+    return [
+      `--${boundary}`,
+      `Content-Type: ${safeHeader(f.contentType)}; name="${name}"`,
+      `Content-Disposition: attachment; filename="${name}"`,
+      'Content-Transfer-Encoding: base64',
+      '',
+      wrap76(Buffer.from(f.bytes).toString('base64')),
+    ].join('\r\n');
+  });
+  return [
+    ...headers,
+    '',
+    `--${boundary}`,
+    `Content-Type: multipart/alternative; boundary="${alt}"`,
+    '',
+    alternatives,
+    ...fileParts,
+    `--${boundary}--`,
+    '',
+  ].join('\r\n');
 }
 
 /** The signed assertion Google exchanges for a token that acts as `sender`. Pure but for the key. */
@@ -138,7 +182,8 @@ export function createGmail(env: GmailEnv, deps: GmailDeps = defaultDeps) {
         const to = msg.to.filter((a) => a.trim() && !isUndeliverable(a));
         if (!to.length) return { sent: false, reason: 'no_deliverable_recipient' };
         const routed = routeEmail({ to, cc: msg.cc ?? [], subject: msg.subject }, env.mode, env.testInbox);
-        const raw = buildMime(env.sender, { ...routed, text: msg.text, html: msg.html }, deps.boundary());
+        const from = msg.fromName ? `${encodedWord(safeHeader(msg.fromName.replace(/["\\<>]/g, '')))} <${env.sender}>` : env.sender;
+        const raw = buildMime(from, { ...routed, text: msg.text, html: msg.html, attachments: msg.attachments }, deps.boundary());
         const res = await deps.fetch(SEND_URL, {
           method: 'POST',
           headers: { authorization: `Bearer ${await getToken()}`, 'content-type': 'application/json' },

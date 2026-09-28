@@ -6,7 +6,7 @@ import { t, type Key, type Lang } from '@/lib/i18n';
 import { InstallMenuItem, InstallSheet } from './install';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 
 export interface BarViewer {
   email: string;
@@ -32,7 +32,8 @@ const ROLE_KEY = { admin: 'roleAdmin', office: 'role_office', manager: 'role_man
  *   account?"), the language, "Ajouter à l'écran d'accueil" on a phone (install.tsx),
  *   and sign out, which does NOT sign anyone out of Google.
  */
-export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
+/** `extra`: a row an app adds to the account card, under the language (Cash Balancing's theme). */
+export function TopBar({ lang, viewer, extra }: { lang: Lang; viewer: BarViewer; extra?: ReactNode }) {
   const router = useRouter();
   const path = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -147,6 +148,7 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
                     ))}
                   </div>
                 </div>
+                {extra}
                 <div className="acctdiv" />
                 <InstallMenuItem lang={lang} onPick={() => setAcctOpen(false)} />
                 {/* Signs out of this portal only. Signing them out of Google would take
