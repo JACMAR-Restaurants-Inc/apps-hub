@@ -103,8 +103,9 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
 
 /**
  * The avatar and its account card, shared by the portal's bar and each app's own bar.
- * `extra`: rows an app adds under the language (Cash Balancing's theme). `links`: items
- * an app adds above sign out (Cash Balancing's "Retour au portail").
+ * `links`: items an app puts first, above the language, each ending in its own
+ * divider (Cash Balancing's "Retour au portail", owner's order, 2026-09-29).
+ * `extra`: rows an app adds under the language (Cash Balancing's theme).
  */
 export function AccountMenu({ lang, viewer, extra, links }: { lang: Lang; viewer: BarViewer; extra?: ReactNode; links?: ReactNode }) {
   const router = useRouter();
@@ -148,6 +149,7 @@ export function AccountMenu({ lang, viewer, extra, links }: { lang: Lang; viewer
           <p className="addr">{viewer.email}</p>
           <p className="lbl">{t(lang, 'signedInWithGoogle')}</p>
           <div className="acctdiv" />
+          {links}
           <div className="optrow">
             <span>{t(lang, 'language')}</span>
             <div className="optseg" role="group" aria-label="Langue / Language">
@@ -167,7 +169,6 @@ export function AccountMenu({ lang, viewer, extra, links }: { lang: Lang; viewer
           </div>
           {extra}
           <div className="acctdiv" />
-          {links}
           <InstallMenuItem lang={lang} onPick={() => setAcctOpen(false)} />
           {/* Signs out of this portal only. Signing them out of Google would take
               them out of Gmail on their own phone. */}

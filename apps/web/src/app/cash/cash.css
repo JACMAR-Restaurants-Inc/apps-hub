@@ -61,8 +61,11 @@
 .cb-app .pbtn:hover { background:var(--btnBg); filter:brightness(1.08); }
 .cb-app .textlink { color:var(--gold-ink); }
 .cb-app .panel { box-shadow:none; }
-/* Clair / Sombre are longer than FR / EN. */
-.cb-app .optseg button { width:auto; min-width:44px; padding:0 10px; }
+/* Langue and Thème, one above the other: both segments the same width, each half the
+   same size, so FR / EN line up with Clair / Sombre (owner, 2026-09-29). Sized for the
+   longest, "Sombre". */
+.cb-app .optseg { display:grid; grid-template-columns:1fr 1fr; width:150px; }
+.cb-app .optseg button { width:auto; min-width:0; padding:0 8px; }
 
 /* Phone first: 16px in every field so iOS does not zoom, 44px targets, nothing wider
    than a 320px screen (safe-count §14). Classes are cb- so nothing leaks into the
