@@ -9,7 +9,7 @@ import { useState, useTransition } from 'react';
 import { Dialog } from './project-dialogs';
 import { outcomeText } from './ui';
 
-const EMPTY = { title: '', type: 'task', status: 'new', priority: 'medium', assignee: '', requestedBy: '', description: '', dueDate: '' };
+const EMPTY = { title: '', type: 'task', status: 'new', priority: 'medium', assignee: '', description: '', dueDate: '' };
 
 /**
  * "Nouvelle tâche" (the old AddIssueModal): the same fields, the same defaults (Task,
@@ -100,19 +100,10 @@ export function NewIssueButton({ lang, projectId, prefix, people }: { lang: Lang
               </select>
             </label>
             <label>
-              <span>{dt(lang, 'field_requestedBy')}</span>
-              <input {...field('requestedBy')} maxLength={80} list="dv-requesters" />
-            </label>
-            <label>
               <span>{dt(lang, 'field_dueDate')}</span>
               <input {...field('dueDate')} type="date" />
             </label>
           </div>
-          <datalist id="dv-requesters">
-            {people.map((p) => (
-              <option key={p.email} value={p.name} />
-            ))}
-          </datalist>
           <label>
             <span>{dt(lang, 'field_description')}</span>
             <textarea {...field('description')} rows={6} maxLength={20000} />

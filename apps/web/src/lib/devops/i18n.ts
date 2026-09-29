@@ -80,7 +80,6 @@ export const devopsDict = {
   field_type: { fr: 'Type', en: 'Type' },
   field_priority: { fr: 'Priorité', en: 'Priority' },
   field_assignee: { fr: 'Assignée à', en: 'Assignee' },
-  field_requestedBy: { fr: 'Demandée par', en: 'Requested by' },
   field_dueDate: { fr: 'Échéance', en: 'Due date' },
   field_description: { fr: 'Description', en: 'Description' },
   nobody: { fr: 'Personne', en: 'Nobody' },

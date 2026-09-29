@@ -124,7 +124,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
   its own address (`/devops/CHK/66`). Beyond the old app, agreed with the owner:
   Annulée with a required reason, comments (they replace the one-line Notes),
   history per issue, a "Déplacer vers" menu on every card besides drag and drop, real
-  admins as assignees. The portal card now opens `/devops` and says JM DevOps. Staging
+  admins as assignees. The old "Requested by" field is gone (owner, 2026-09-29: "useless";
+  migration 0009 dropped the column, and the import no longer reads it). The portal card now opens `/devops` and says JM DevOps. Staging
   holds the 2026-09-29 snapshot: 8 projects, 92 issues, 11 notes as comments, every
   one of the 88 assignees matched to an admin; run twice, the second changed nothing.
 - Not built yet: the Drive file store (`CASH_FILE_STORE=drive`), moving the 256 imported

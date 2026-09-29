@@ -57,7 +57,6 @@ export interface IssueRow {
   priority: IssuePriority;
   assigneeEmail: string | null;
   assigneeText: string | null;
-  requestedBy: string | null;
   description: string;
   dueDate: string | null;
   createdOn: string;
@@ -244,7 +243,6 @@ export interface IssueInput {
   status: unknown;
   priority: unknown;
   assignee: unknown;
-  requestedBy: unknown;
   description: unknown;
   dueDate: unknown;
 }
@@ -277,7 +275,6 @@ export async function createIssue(
   const status = raw.status ?? 'new';
   const priority = raw.priority ?? 'medium';
   const assignee = cleanAssignee(raw.assignee ?? '', admins);
-  const requestedBy = cleanText(raw.requestedBy ?? '', MAX_NAME);
   const description = cleanText(raw.description ?? '', MAX_TEXT, true);
   const dueDate = cleanDate(raw.dueDate ?? '');
   if (
@@ -287,7 +284,6 @@ export async function createIssue(
     !(status === 'new' || status === 'active') ||
     !isPriority(priority) ||
     assignee === null ||
-    requestedBy === null ||
     description === null ||
     dueDate === null
   ) {
@@ -312,7 +308,6 @@ export async function createIssue(
         status,
         priority,
         assigneeEmail: assignee || null,
-        requestedBy: requestedBy || null,
         description,
         dueDate: dueDate || null,
         createdOn: today,
@@ -324,7 +319,7 @@ export async function createIssue(
   });
 }
 
-export const FIELDS = ['title', 'type', 'status', 'priority', 'assignee', 'requestedBy', 'description', 'dueDate'] as const;
+export const FIELDS = ['title', 'type', 'status', 'priority', 'assignee', 'description', 'dueDate'] as const;
 export type Field = (typeof FIELDS)[number];
 export const isField = (v: unknown): v is Field => typeof v === 'string' && (FIELDS as readonly string[]).includes(v);
 
@@ -333,8 +328,6 @@ export function fieldValue(i: IssueRow, field: Field): string {
   switch (field) {
     case 'assignee':
       return assigneeValue(i);
-    case 'requestedBy':
-      return i.requestedBy ?? '';
     case 'dueDate':
       return i.dueDate ?? '';
     default:
@@ -389,12 +382,6 @@ export async function updateIssue(
       const v = cleanAssignee(next, admins);
       if (v === null) return 'invalid';
       [set, after] = [{ assigneeEmail: v || null, assigneeText: null }, v];
-      break;
-    }
-    case 'requestedBy': {
-      const v = cleanText(next, MAX_NAME);
-      if (v === null) return 'invalid';
-      [set, after] = [{ requestedBy: v || null }, v];
       break;
     }
     case 'description': {

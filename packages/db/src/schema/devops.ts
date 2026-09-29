@@ -17,8 +17,8 @@
  * - Dates are calendar dates (`date`), Toronto's. The old API sent them through UTC and
  *   could show them a day early.
  * - The assignee is an admin's address (normalised). A name from the sheet that matches
- *   no single admin stays as text in assignee_text: never guessed. "Requested by" is
- *   text as written ("HR", "Pierre"): who asked is often not someone with the app.
+ *   no single admin stays as text in assignee_text: never guessed. The old "Requested
+ *   by" was dropped (owner, 2026-09-29: "useless"); migration 0009 removed the column.
  * - No foreign key into rbac or identity: the app stays separable (CLAUDE.md §3).
  */
 
@@ -69,8 +69,6 @@ export const issues = devops.table(
     assigneeEmail: text(),
     /** The sheet's assignee when it matched no admin, as written. */
     assigneeText: text(),
-    /** Who asked for it, as written ("HR", "Pierre"): often not someone with the app. */
-    requestedBy: text(),
     description: text().notNull().default(''),
     dueDate: date(),
     /** The day it was created, in Toronto. From the sheet for imported issues. */

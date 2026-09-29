@@ -5,6 +5,7 @@
  * The sheet (project-managment BUILD.md): a Config tab of projects (name, tab name,
  * prefix, GitHub repo), and one tab per project, a row per issue (id, title, type,
  * status, priority, assignee, requested by, description, created, due date, notes).
+ * "Requested by" is not brought over: the app dropped it (owner, 2026-09-29).
  *
  * - Columns are found by their HEADER, never by position (RBAC §4). The old code read
  *   them by position, so the usual spellings of each header are accepted, and a
@@ -36,7 +37,6 @@ export interface DevopsIssue {
   status: 'new' | 'active' | 'completed';
   priority: 'critical' | 'high' | 'medium' | 'low';
   assigneeText: string | null;
-  requestedBy: string | null;
   description: string;
   createdOn: string;
   dueDate: string | null;
@@ -64,13 +64,12 @@ const ISSUE_COLS = {
   status: ['status'],
   priority: ['priority'],
   assignee: ['assignee', 'assignedto'],
-  requestedBy: ['requestedby', 'requester', 'requested'],
   description: ['description', 'details'],
   created: ['created', 'createddate', 'createdon', 'datecreated'],
   due: ['duedate', 'due', 'deadline'],
   notes: ['notes', 'note'],
 } as const;
-const OPTIONAL = new Set(['repo', 'requestedBy', 'description', 'due', 'notes', 'assignee']);
+const OPTIONAL = new Set(['repo', 'description', 'due', 'notes', 'assignee']);
 
 const squash = (s: string) =>
   s
@@ -183,7 +182,6 @@ function issuesOf(tab: string, prefix: string, rows: SheetRow[], problems: Probl
       status: word(at, c.status!, cell('status'), { new: 'new', active: 'active', completed: 'completed' }),
       priority: word(at, c.priority!, cell('priority'), { critical: 'critical', high: 'high', medium: 'medium', low: 'low' }),
       assigneeText: assignee && squash(assignee) !== 'unassigned' ? assignee : null,
-      requestedBy: c.requestedBy ? text(at, c.requestedBy, cell('requestedBy')) : null,
       description: (c.description ? text(at, c.description, cell('description')) : null) ?? '',
       createdOn: day(at, c.created!, cell('created'), true) ?? '',
       dueDate: c.due ? day(at, c.due, cell('due'), false) : null,
@@ -227,7 +225,6 @@ export async function loadDevops(db: Db, plan: DevopsProject[], admins: readonly
           priority: i.priority,
           assigneeEmail: email,
           assigneeText: email ? null : i.assigneeText,
-          requestedBy: i.requestedBy,
           description: i.description,
           dueDate: i.dueDate,
           createdOn: i.createdOn,
@@ -284,7 +281,6 @@ export async function verifyDevops(db: Db, plan: DevopsProject[], admins: readon
         g.priority === i.priority &&
         (g.assigneeEmail ?? null) === email &&
         (g.assigneeText ?? null) === (email ? null : i.assigneeText) &&
-        (g.requestedBy ?? null) === i.requestedBy &&
         g.description === i.description &&
         g.createdOn === i.createdOn &&
         (g.dueDate ?? null) === i.dueDate;

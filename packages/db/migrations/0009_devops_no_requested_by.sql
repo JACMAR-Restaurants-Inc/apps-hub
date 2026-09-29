@@ -1,0 +1,1 @@
+ALTER TABLE "devops"."issues" DROP COLUMN "requested_by";
