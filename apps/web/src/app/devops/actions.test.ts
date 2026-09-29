@@ -36,13 +36,13 @@ vi.mock('next/headers', () => ({ cookies: vi.fn() }));
 const actions = await import('./actions');
 
 const calls: [string, () => Promise<{ outcome: string }>][] = [
-  ['createProjectAction', () => actions.createProjectAction({ name: 'x', prefix: 'XX', repo: '' })],
+  ['createProjectAction', () => actions.createProjectAction({ name: 'x', repo: '' })],
   ['updateProjectAction', () => actions.updateProjectAction(1, { name: 'a', repo: '' }, { name: 'b', repo: '' })],
   ['deleteProjectAction', () => actions.deleteProjectAction(1, 'x')],
   ['createIssueAction', () => actions.createIssueAction(1, { title: 'x', type: 'task', status: 'new', priority: 'low', assignee: '', description: '', dueDate: '' })],
   ['updateIssueAction', () => actions.updateIssueAction(1, 'title', 'a', 'b')],
   ['addCommentAction', () => actions.addCommentAction(1, 'x')],
-  ['deleteIssueAction', () => actions.deleteIssueAction(1, 'XX-001')],
+  ['deleteIssueAction', () => actions.deleteIssueAction(1, '1')],
 ];
 
 describe('JM DevOps actions refuse anyone but a system admin', () => {

@@ -6,7 +6,7 @@ import { Key, PriorityBadge, ProjectMark, StatusTag, TypeBadge, showDate } from 
 import { devopsDb } from '@/lib/devops/db';
 import { dt, issuesWord, type DevopsKey } from '@/lib/devops/i18n';
 import { PRIORITIES, STATUSES, TYPES, completion, countIssues, isOverdue, matches, parseFilters, type Counts } from '@/lib/devops/rules';
-import { listIssues, projectByPrefix, type IssueRow } from '@/lib/devops/store';
+import { listIssues, projectById, type IssueRow } from '@/lib/devops/store';
 import { getDevopsViewer, nameOf, type DevopsViewer } from '@/lib/devops/viewer';
 import type { Lang } from '@/lib/i18n';
 import { getLang } from '@/lib/lang';
@@ -23,34 +23,35 @@ type View = (typeof VIEWS)[number];
  * filters for the last two. Everything is in the address: the view, the filters, the
  * project. The old app had no router, so a refresh lost your place.
  */
-export default async function ProjectPage({ params, searchParams }: PageProps<'/devops/[prefix]'>) {
-  const [viewer, lang, { prefix }, sp] = await Promise.all([getDevopsViewer(), getLang(), params, searchParams]);
+export default async function ProjectPage({ params, searchParams }: PageProps<'/devops/[project]'>) {
+  const [viewer, lang, { project: param }, sp] = await Promise.all([getDevopsViewer(), getLang(), params, searchParams]);
   if (!viewer) return null;
-  const project = await projectByPrefix(devopsDb(), prefix);
+  const project = /^\d{1,9}$/.test(param) ? await projectById(devopsDb(), Number(param)) : null;
   if (!project) notFound();
-  if (project.prefix !== prefix) redirect(`/devops/${project.prefix}`);
+  // One address per project: /devops/03 goes to /devops/3.
+  if (String(project.id) !== param) redirect(`/devops/${project.id}`);
 
   const view: View = VIEWS.includes(sp.view as View) ? (sp.view as View) : 'dashboard';
   const filters = parseFilters(sp);
   const today = businessDate();
   const all = await listIssues(devopsDb(), project.id);
-  const shown = all.filter((i) => matches(i, project.prefix, filters));
+  const shown = all.filter((i) => matches(i, filters));
   const tabHref = (v: View) => {
     const q = new URLSearchParams();
     if (v !== 'dashboard') q.set('view', v);
     if (v !== 'dashboard') for (const k of ['q', 'type', 'priority', 'assignee'] as const) if (filters[k]) q.set(k, filters[k]);
-    return `/devops/${project.prefix}${q.size ? `?${q}` : ''}`;
+    return `/devops/${project.id}${q.size ? `?${q}` : ''}`;
   };
 
   return (
     <main id="main" className="dv-page" lang={lang}>
       <div className="dv-head">
         <div className="dv-head-title">
-          <ProjectMark prefix={project.prefix} name={project.name} size={44} />
+          <ProjectMark id={project.id} name={project.name} size={44} />
           <div>
             <h1>{project.name}</h1>
             <p>
-              <span className="dv-key">{project.prefix}</span> · {all.length} {issuesWord(lang, all.length)}
+              {all.length} {issuesWord(lang, all.length)}
               {project.githubRepo && (
                 <>
                   {' · '}
@@ -63,8 +64,8 @@ export default async function ProjectPage({ params, searchParams }: PageProps<'/
           </div>
         </div>
         <div className="dv-head-actions">
-          <NewIssueButton lang={lang} projectId={project.id} prefix={project.prefix} people={viewer.people} />
-          <ManageProject lang={lang} project={{ id: project.id, name: project.name, prefix: project.prefix, githubRepo: project.githubRepo, issues: all.length }} />
+          <NewIssueButton lang={lang} projectId={project.id} people={viewer.people} />
+          <ManageProject lang={lang} project={{ id: project.id, name: project.name, githubRepo: project.githubRepo, issues: all.length }} />
         </div>
       </div>
 
@@ -81,7 +82,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<'/
       {view === 'board' && (
         <Board
           lang={lang}
-          prefix={project.prefix}
+          projectId={project.id}
           cancelled={shown.filter((i) => i.status === 'cancelled').length}
           issues={shown
             .filter((i) => i.status !== 'cancelled')
@@ -98,7 +99,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<'/
             }))}
         />
       )}
-      {view === 'list' && <IssueList lang={lang} prefix={project.prefix} issues={shown} viewer={viewer} today={today} />}
+      {view === 'list' && <IssueList lang={lang} projectId={project.id} issues={shown} viewer={viewer} today={today} />}
       {view === 'dashboard' && <ProjectDashboard lang={lang} counts={countIssues(all, today)} issues={all} />}
     </main>
   );
@@ -110,7 +111,7 @@ function person(viewer: DevopsViewer, i: Pick<IssueRow, 'assigneeEmail' | 'assig
 }
 
 /** The old IssueTable, every status, newest first; a row opens the issue. */
-function IssueList({ lang, prefix, issues, viewer, today }: { lang: Lang; prefix: string; issues: IssueRow[]; viewer: DevopsViewer; today: string }) {
+function IssueList({ lang, projectId, issues, viewer, today }: { lang: Lang; projectId: number; issues: IssueRow[]; viewer: DevopsViewer; today: string }) {
   if (!issues.length) return <p className="dv-note">{dt(lang, 'no_issue_match')}</p>;
   return (
     <div className="dv-tablewrap">
@@ -132,10 +133,10 @@ function IssueList({ lang, prefix, issues, viewer, today }: { lang: Lang; prefix
             return (
               <tr key={i.id} className={i.status === 'cancelled' ? 'is-cancelled' : undefined}>
                 <td>
-                  <Key prefix={prefix} number={i.number} />
+                  <Key number={i.number} />
                 </td>
                 <td>
-                  <Link href={`/devops/${prefix}/${i.number}`} className="dv-rowlink">
+                  <Link href={`/devops/${projectId}/${i.number}`} className="dv-rowlink">
                     {i.title}
                   </Link>
                 </td>

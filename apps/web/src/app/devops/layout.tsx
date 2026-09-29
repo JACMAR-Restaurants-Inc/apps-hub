@@ -33,7 +33,7 @@ export default async function DevopsLayout({ children }: LayoutProps<'/devops'>)
   const [bar, devops, theme] = await Promise.all([loadBar(viewer), getDevopsViewer(), getDevopsTheme()]);
   const list = devops
     ? await devopsDb()
-        .select({ prefix: projects.prefix, name: projects.name })
+        .select({ id: projects.id, name: projects.name })
         .from(projects)
         .orderBy(sql`lower(${projects.name})`)
     : [];

@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { ProjectMark } from './ui';
 
 export interface OverviewProject {
-  prefix: string;
+  id: number;
   name: string;
   githubRepo: string | null;
   counts: Counts;
@@ -18,7 +18,7 @@ export interface OverviewProject {
 export function OverviewGrid({ lang, projects }: { lang: Lang; projects: OverviewProject[] }) {
   const [q, setQ] = useState('');
   const needle = q.trim().toLowerCase();
-  const hit = (p: OverviewProject) => !needle || p.name.toLowerCase().includes(needle) || p.prefix.toLowerCase().includes(needle);
+  const hit = (p: OverviewProject) => !needle || p.name.toLowerCase().includes(needle);
   const shown = projects.filter(hit);
 
   if (!projects.length) return <p className="dv-note">{dt(lang, 'no_projects')}</p>;
@@ -29,7 +29,7 @@ export function OverviewGrid({ lang, projects }: { lang: Lang; projects: Overvie
       {shown.length > 0 && (
         <ul className="dv-cards">
           {shown.map((p) => (
-            <Card key={p.prefix} lang={lang} p={p} />
+            <Card key={p.id} lang={lang} p={p} />
           ))}
         </ul>
       )}
@@ -42,14 +42,14 @@ function Card({ lang, p }: { lang: Lang; p: OverviewProject }) {
   return (
     <li className="dv-card dv-pcard">
       <div className="dv-pcard-top">
-        <ProjectMark prefix={p.prefix} name={p.name} />
+        <ProjectMark id={p.id} name={p.name} />
         {c.overdue > 0 && (
           <span className="dv-pill dv-overdue-soft">
             {c.overdue} {dt(lang, 'overdue_n')}
           </span>
         )}
       </div>
-      <Link href={`/devops/${p.prefix}`} className="dv-pcard-name">
+      <Link href={`/devops/${p.id}`} className="dv-pcard-name">
         {p.name}
       </Link>
       {/* Always the same three boxes, number over word, so every card's row lines up

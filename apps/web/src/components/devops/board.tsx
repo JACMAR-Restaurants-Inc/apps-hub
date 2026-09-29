@@ -2,7 +2,7 @@
 
 import { updateIssueAction } from '@/app/devops/actions';
 import { dt } from '@/lib/devops/i18n';
-import { BOARD_STATUSES, type IssuePriority, type IssueStatus, type IssueType } from '@/lib/devops/rules';
+import { BOARD_STATUSES, issueKey, type IssuePriority, type IssueStatus, type IssueType } from '@/lib/devops/rules';
 import type { Lang } from '@/lib/i18n';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -28,7 +28,7 @@ export interface BoardIssue {
  * also be dragged between columns. The old board could only change status in the
  * modal.
  */
-export function Board({ lang, prefix, issues, cancelled }: { lang: Lang; prefix: string; issues: BoardIssue[]; cancelled: number }) {
+export function Board({ lang, projectId, issues, cancelled }: { lang: Lang; projectId: number; issues: BoardIssue[]; cancelled: number }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [dragging, setDragging] = useState<number | null>(null);
@@ -95,8 +95,8 @@ export function Board({ lang, prefix, issues, cancelled }: { lang: Lang; prefix:
                       }}
                       onDragEnd={() => setDragging(null)}
                     >
-                      <Key prefix={prefix} number={i.number} />
-                      <Link href={`/devops/${prefix}/${i.number}`} className="dv-icard-title">
+                      <Key number={i.number} />
+                      <Link href={`/devops/${projectId}/${i.number}`} className="dv-icard-title">
                         {i.title}
                       </Link>
                       <p className="dv-badges">
@@ -111,7 +111,7 @@ export function Board({ lang, prefix, issues, cancelled }: { lang: Lang; prefix:
                           </span>
                         )}
                       </p>
-                      <select className="dv-move" value={i.status} onChange={(e) => moveTo(i, e.target.value as IssueStatus)} aria-label={`${dt(lang, 'move_to')} (${prefix}-${i.number})`}>
+                      <select className="dv-move" value={i.status} onChange={(e) => moveTo(i, e.target.value as IssueStatus)} aria-label={`${dt(lang, 'move_to')} (${issueKey(i.number)})`}>
                           {BOARD_STATUSES.map((s) => (
                             <option key={s} value={s}>
                               {s === i.status ? dt(lang, `status_${s}`) : `${dt(lang, 'move_to')} ${dt(lang, `status_${s}`)}`}

@@ -2,7 +2,6 @@
 
 import { createProjectAction, deleteProjectAction, updateProjectAction } from '@/app/devops/actions';
 import { dt, issuesWord } from '@/lib/devops/i18n';
-import { cleanPrefix, issueKey } from '@/lib/devops/rules';
 import type { Lang } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useTransition, type ReactNode } from 'react';
@@ -24,16 +23,14 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
   );
 }
 
-/** "Nouveau projet": name, prefix (with the keys it will make), GitHub link. */
+/** "Nouveau projet": a name and a GitHub link. No prefix any more (owner, 2026-09-29). */
 export function NewProjectButton({ lang, className = 'dv-btn primary' }: { lang: Lang; className?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [prefix, setPrefix] = useState('');
   const [repo, setRepo] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const p = cleanPrefix(prefix);
 
   const close = () => {
     setOpen(false);
@@ -41,13 +38,12 @@ export function NewProjectButton({ lang, className = 'dv-btn primary' }: { lang:
   };
   const submit = () =>
     start(async () => {
-      const out = await createProjectAction({ name, prefix, repo });
-      if (out.outcome === 'done' && out.prefix) {
+      const out = await createProjectAction({ name, repo });
+      if (out.outcome === 'done' && out.id) {
         close();
         setName('');
-        setPrefix('');
         setRepo('');
-        router.push(`/devops/${out.prefix}`);
+        router.push(`/devops/${out.id}`);
       } else setMessage(outcomeText(lang, out.outcome));
     });
 
@@ -69,13 +65,6 @@ export function NewProjectButton({ lang, className = 'dv-btn primary' }: { lang:
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required autoFocus />
           </label>
           <label>
-            <span>{dt(lang, 'proj_prefix')}</span>
-            <input value={prefix} onChange={(e) => setPrefix(e.target.value.toUpperCase())} maxLength={6} pattern="[A-Za-z]{2,6}" required autoCapitalize="characters" spellCheck={false} />
-            <small>
-              {dt(lang, 'proj_prefix_hint')} {p && <span className="dv-key">{`${issueKey(p, 1)}, ${issueKey(p, 2)}…`}</span>}
-            </small>
-          </label>
-          <label>
             <span>{dt(lang, 'proj_repo')}</span>
             <input value={repo} onChange={(e) => setRepo(e.target.value)} type="url" placeholder="https://github.com/…" spellCheck={false} />
           </label>
@@ -84,7 +73,7 @@ export function NewProjectButton({ lang, className = 'dv-btn primary' }: { lang:
             <button type="button" className="dv-btn" onClick={close}>
               {dt(lang, 'cancel')}
             </button>
-            <button type="submit" className="dv-btn primary" disabled={pending || !name.trim() || !p}>
+            <button type="submit" className="dv-btn primary" disabled={pending || !name.trim()}>
               {dt(lang, 'create')}
             </button>
           </div>
@@ -95,11 +84,11 @@ export function NewProjectButton({ lang, className = 'dv-btn primary' }: { lang:
 }
 
 /**
- * "Gérer": edit the name and link (never the prefix), or delete the project completely
+ * "Gérer": edit the name and link, or delete the project completely
  * (owner, 2026-09-29, as the old DeleteProjectModal did: it says how many issues go
  * with it and asks for the exact name). It used to archive.
  */
-export function ManageProject({ lang, project }: { lang: Lang; project: { id: number; name: string; prefix: string; githubRepo: string | null; issues: number } }) {
+export function ManageProject({ lang, project }: { lang: Lang; project: { id: number; name: string; githubRepo: string | null; issues: number } }) {
   const router = useRouter();
   const [menu, setMenu] = useState(false);
   const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null);
@@ -170,11 +159,6 @@ export function ManageProject({ lang, project }: { lang: Lang; project: { id: nu
           <label>
             <span>{dt(lang, 'proj_name')}</span>
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required autoFocus />
-          </label>
-          <label>
-            <span>{dt(lang, 'proj_prefix')}</span>
-            <input value={project.prefix} disabled />
-            <small>{dt(lang, 'proj_prefix_fixed')}</small>
           </label>
           <label>
             <span>{dt(lang, 'proj_repo')}</span>

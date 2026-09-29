@@ -47,13 +47,6 @@ export function cleanTitle(v: unknown): string | null {
   return s ? s.replace(/\s+/g, ' ') : null;
 }
 
-/** A project prefix: 2 to 6 letters, stored upper case (the old AddProjectModal's rule). */
-export function cleanPrefix(v: unknown): string | null {
-  if (typeof v !== 'string') return null;
-  const s = v.trim().toUpperCase();
-  return /^[A-Z]{2,6}$/.test(s) ? s : null;
-}
-
 /** A project's GitHub link: empty, or an https://github.com/ address. The old app took anything. */
 export function cleanRepo(v: unknown): string | null {
   if (typeof v !== 'string') return null;
@@ -74,15 +67,17 @@ export function cleanDate(v: unknown): string | null {
   return y >= 2000 && y <= 2100 && probe.getUTCMonth() === mo - 1 && probe.getUTCDate() === d ? s : null;
 }
 
-/** CHK-066: three digits at least, as the old app wrote them. */
-export const issueKey = (prefix: string, n: number) => `${prefix}-${String(n).padStart(3, '0')}`;
+/**
+ * An issue as people see it: #066, three digits at least, as the old app wrote its
+ * numbers. Projects have no prefix any more (owner, 2026-09-29).
+ */
+export const issueKey = (n: number) => `#${String(n).padStart(3, '0')}`;
 
-/** "CHK-066" or "chk-66" to its parts, or null. */
-export function parseKey(v: string): { prefix: string; number: number } | null {
-  const m = /^([A-Za-z]{2,6})-(\d{1,6})$/.exec(v.trim());
-  if (!m) return null;
-  const n = Number(m[2]);
-  return n >= 1 ? { prefix: m[1].toUpperCase(), number: n } : null;
+/** What someone typed for an issue's number ("66", "#066") to the number, or null. */
+export function parseNumber(v: string): number | null {
+  const m = /^#?0*(\d{1,6})$/.exec(v.trim());
+  const n = m ? Number(m[1]) : 0;
+  return n >= 1 ? n : null;
 }
 
 /**
@@ -152,19 +147,22 @@ export interface FilterableIssue {
   assigneeText: string | null;
 }
 
-/** Search matches the key, the title and the description; the old app skipped the description. */
-export function matches(i: FilterableIssue, prefix: string, f: Filters): boolean {
+/** Search matches the number (#066 or 66), the title and the description; the old app skipped the description. */
+export function matches(i: FilterableIssue, f: Filters): boolean {
   if (f.type && i.type !== f.type) return false;
   if (f.priority && i.priority !== f.priority) return false;
   if (f.assignee === 'none' ? i.assigneeEmail || i.assigneeText : f.assignee && i.assigneeEmail !== f.assignee) return false;
   if (!f.q) return true;
   const q = f.q.toLowerCase();
-  return issueKey(prefix, i.number).toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || i.description.toLowerCase().includes(q);
+  return issueKey(i.number).includes(q) || String(i.number) === q.replace(/^#/, '') || i.title.toLowerCase().includes(q) || i.description.toLowerCase().includes(q);
 }
 
-/** A project's colour, from its prefix (the old app's colors.ts: djb2 to a hue). */
-export function projectHue(prefix: string): number {
-  let h = 5381;
-  for (let i = 0; i < prefix.length; i++) h = (h * 33 + prefix.charCodeAt(i)) >>> 0;
-  return h % 360;
+/**
+ * A project's colour, from its id, which never changes. Each id turns the hue by the
+ * golden angle (137.5°), so projects made one after another get clearly different
+ * colours. It used to hash the prefix (the old app's colors.ts); hashing ids, which
+ * are neighbours, gave nearly the same colour to every project.
+ */
+export function projectHue(id: number): number {
+  return Math.round((id * 137.508) % 360);
 }

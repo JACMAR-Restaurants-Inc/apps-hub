@@ -40,9 +40,6 @@ export const devopsDict = {
   delete_type_name: { fr: 'Pour confirmer, tapez le nom exact du projet', en: 'To confirm, type the project’s exact name' },
   manage: { fr: 'Gérer', en: 'Manage' },
   proj_name: { fr: 'Nom', en: 'Name' },
-  proj_prefix: { fr: 'Préfixe', en: 'Prefix' },
-  proj_prefix_hint: { fr: `2 à 6 lettres. Il ne change jamais${nb}: le numéro de chaque tâche commence par lui.`, en: '2 to 6 letters. It never changes: every issue key starts with it.' },
-  proj_prefix_fixed: { fr: 'Le préfixe ne change jamais.', en: 'The prefix never changes.' },
   proj_repo: { fr: 'Lien GitHub (facultatif)', en: 'GitHub link (optional)' },
   create: { fr: 'Créer', en: 'Create' },
   save: { fr: 'Enregistrer', en: 'Save' },
@@ -135,7 +132,7 @@ export const devopsDict = {
     fr: 'La tâche et ses commentaires sont supprimés. Son numéro n’est jamais redonné, et l’historique du projet en garde une copie.',
     en: 'The issue and its comments are deleted. Its number is never given out again, and the project history keeps a copy.',
   },
-  delete_type_key: { fr: 'Pour confirmer, tapez', en: 'To confirm, type' },
+  delete_type_key: { fr: 'Pour confirmer, tapez son numéro', en: 'To confirm, type its number' },
   delete_confirm: { fr: 'Supprimer', en: 'Delete' },
 
   out_changed: {
@@ -144,7 +141,6 @@ export const devopsDict = {
   },
   out_invalid: { fr: 'Cette valeur n’est pas acceptée.', en: 'That value is not accepted.' },
   out_not_found: { fr: 'Introuvable. Il a peut-être été supprimé.', en: 'Not found. It may have been deleted.' },
-  out_prefix_taken: { fr: 'Ce préfixe est déjà pris.', en: 'That prefix is already taken.' },
   out_name_taken: { fr: 'Un projet porte déjà ce nom.', en: 'A project already has that name.' },
   out_denied: { fr: 'Réservé aux administrateurs.', en: 'Administrators only.' },
   out_expired: { fr: 'Votre session a expiré. Rechargez la page pour vous reconnecter.', en: 'Your session has expired. Reload the page to sign in again.' },

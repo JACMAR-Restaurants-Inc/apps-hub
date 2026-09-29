@@ -21,12 +21,14 @@
  * - The assignee becomes an admin's address only when the text is exactly one admin's
  *   first or full name ("Sony"); otherwise the text is kept as written. Never guessed.
  * - Notes become the issue's first comment, with no author ("Notes de la feuille").
- * - Safe to run again: projects are upserted on prefix, issues on (project, number),
+ * - The sheet's prefix is read only to make sense of its IDs (CHK-066 is #066): the app
+ *   has no prefixes (owner, 2026-09-29). A project is found again by its name.
+ * - Safe to run again: projects are matched on name, issues on (project, number),
  *   the notes comment and the "imported" event are written once. One transaction.
  */
 
 import { comments, events, issues, projects, type Db } from '@hub/db';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { requiredText, text, type At, type Cell, type Problem } from './cells';
 import type { SheetRow, Workbook } from './workbook';
 
@@ -208,12 +210,11 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 export async function loadDevops(db: Db, plan: DevopsProject[], admins: readonly { email: string; fullName: string | null }[]): Promise<void> {
   await db.transaction(async (tx: Tx) => {
     for (const p of plan) {
-      const [row] = await tx
-        .insert(projects)
-        .values({ name: p.name, prefix: p.prefix, githubRepo: p.githubRepo })
-        .onConflictDoUpdate({ target: projects.prefix, set: { name: p.name, githubRepo: p.githubRepo } })
-        .returning({ id: projects.id });
-      const pid = row!.id;
+      // Projects have no prefix in the app any more: the same project is the same name.
+      const [had] = await tx.select({ id: projects.id }).from(projects).where(sql`lower(${projects.name}) = lower(${p.name})`);
+      const pid = had
+        ? (await tx.update(projects).set({ name: p.name, githubRepo: p.githubRepo }).where(eq(projects.id, had.id)).returning({ id: projects.id }))[0]!.id
+        : (await tx.insert(projects).values({ name: p.name, githubRepo: p.githubRepo }).returning({ id: projects.id }))[0]!.id;
       for (const i of p.issues) {
         const email = matchAdmin(i.assigneeText, admins);
         const values = {
@@ -255,10 +256,10 @@ export async function loadDevops(db: Db, plan: DevopsProject[], admins: readonly
 export async function verifyDevops(db: Db, plan: DevopsProject[], admins: readonly { email: string; fullName: string | null }[]): Promise<{ notes: string[]; failures: string[] }> {
   const notes: string[] = [];
   const failures: string[] = [];
-  const rows = plan.length ? await db.select().from(projects).where(inArray(projects.prefix, plan.map((p) => p.prefix))) : [];
+  const rows = plan.length ? await db.select().from(projects) : [];
   let issuesChecked = 0;
   for (const p of plan) {
-    const r = rows.find((x) => x.prefix === p.prefix);
+    const r = rows.find((x) => x.name.toLowerCase() === p.name.toLowerCase());
     if (!r) {
       failures.push(`project ${p.prefix} is missing`);
       continue;

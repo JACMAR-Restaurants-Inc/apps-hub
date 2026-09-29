@@ -4,12 +4,14 @@
  * projects, one tab per project, a row per issue).
  *
  * - System admins only (owner, 2026-09-29): the owner and Pierre. No roles.
- * - An issue's key is PREFIX-NUMBER (CHK-066). The prefix never changes, and numbers
- *   are never given out twice: each project holds its next number and every new issue
- *   takes it under a row lock. The old app took max+1 from the sheet, so two people
+ * - An issue is #NUMBER within its project (#066), at /devops/<project id>/<number>.
+ *   Projects have no prefix any more (owner, 2026-09-29: the sheet needed CHK-066 to tell
+ *   projects apart, a database does not; migration 0011 dropped it). Numbers are never
+ *   given out twice: each project holds its next number and every new issue takes it
+ *   under a row lock. The old app took max+1 from the sheet, so two people
  *   creating at once could get the same number, and deleting the newest issue let its
  *   number be reused.
- * - Numbers are KEPT on import (CHK-066 stays 66).
+ * - Numbers are KEPT on import (the sheet's CHK-066 is #066).
  * - An issue CAN be deleted (owner's call, 2026-09-29), an exception to "nothing is
  *   deleted" (CLAUDE.md §3). Its history stays: the events keep the project and number,
  *   and a `deleted` event keeps a full copy of the issue and its comments.
@@ -39,8 +41,6 @@ export const projects = devops.table(
   {
     id: integer().primaryKey().generatedByDefaultAsIdentity(),
     name: text().notNull(),
-    /** 2 to 6 letters, upper case. Never changes: every issue key is built from it. */
-    prefix: text().notNull(),
     githubRepo: text(),
     /** The number the next issue gets. Only ever goes up. */
     nextNumber: integer().notNull().default(1),
@@ -48,7 +48,7 @@ export const projects = devops.table(
     /** Null for projects brought over from the spreadsheet. */
     createdBy: text(),
   },
-  (t) => [uniqueIndex('projects_prefix_key').on(t.prefix), uniqueIndex('projects_name_key').on(sql`lower(${t.name})`)],
+  (t) => [uniqueIndex('projects_name_key').on(sql`lower(${t.name})`)],
 ).enableRLS();
 
 export const issues = devops.table(

@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { cleanDate, cleanPrefix, cleanRepo, cleanText, cleanTitle, completion, countIssues, isOverdue, issueKey, matches, parseFilters, parseKey, projectHue } from './rules';
+import { cleanDate, cleanRepo, cleanText, cleanTitle, completion, countIssues, isOverdue, issueKey, matches, parseFilters, parseNumber, projectHue } from './rules';
 
 describe('values from a browser', () => {
-  it('a prefix is 2 to 6 letters, upper cased', () => {
-    expect(cleanPrefix(' chk ')).toBe('CHK');
-    expect(cleanPrefix('CSLR')).toBe('CSLR');
-    expect(cleanPrefix('C')).toBeNull();
-    expect(cleanPrefix('ABCDEFG')).toBeNull();
-    expect(cleanPrefix('CH1')).toBeNull();
-    expect(cleanPrefix('ÉTÉ')).toBeNull();
-  });
-
   it('a title is required, one line, and bounded', () => {
     expect(cleanTitle('  Fix\nthe   login ')).toBe('Fix the login');
     expect(cleanTitle('   ')).toBeNull();
@@ -39,15 +30,17 @@ describe('values from a browser', () => {
   });
 });
 
-describe('issue keys', () => {
+describe('issue numbers: #066, no prefix', () => {
   it('three digits at least, as the old app wrote them', () => {
-    expect(issueKey('CHK', 66)).toBe('CHK-066');
-    expect(issueKey('CHK', 1234)).toBe('CHK-1234');
+    expect(issueKey(66)).toBe('#066');
+    expect(issueKey(1234)).toBe('#1234');
   });
-  it('read back whatever the case and padding', () => {
-    expect(parseKey('chk-66')).toEqual({ prefix: 'CHK', number: 66 });
-    expect(parseKey('CHK-000')).toBeNull();
-    expect(parseKey('CHK66')).toBeNull();
+  it('read back from what someone typed, with or without # and zeros', () => {
+    expect(parseNumber('66')).toBe(66);
+    expect(parseNumber(' #066 ')).toBe(66);
+    expect(parseNumber('0')).toBeNull();
+    expect(parseNumber('CHK-066')).toBeNull();
+    expect(parseNumber('6 6')).toBeNull();
   });
 });
 
@@ -91,29 +84,30 @@ describe('filters', () => {
   const f = (p: Record<string, string>) => parseFilters(p);
 
   it('search finds the key, the title and the description', () => {
-    expect(matches(issue, 'CHK', f({ q: 'chk-066' }))).toBe(true);
-    expect(matches(issue, 'CHK', f({ q: 'badge' }))).toBe(true);
-    expect(matches(issue, 'CHK', f({ q: 'hull' }))).toBe(true);
-    expect(matches(issue, 'CHK', f({ q: 'vanier' }))).toBe(false);
+    expect(matches(issue, f({ q: '#066' }))).toBe(true);
+    expect(matches(issue, f({ q: '66' }))).toBe(true);
+    expect(matches(issue, f({ q: 'badge' }))).toBe(true);
+    expect(matches(issue, f({ q: 'hull' }))).toBe(true);
+    expect(matches(issue, f({ q: 'vanier' }))).toBe(false);
   });
 
   it('type, priority and assignee narrow; unknown values are no filter', () => {
-    expect(matches(issue, 'CHK', f({ type: 'feature' }))).toBe(false);
-    expect(matches(issue, 'CHK', f({ type: 'nonsense' }))).toBe(true);
-    expect(matches(issue, 'CHK', f({ priority: 'high' }))).toBe(true);
-    expect(matches(issue, 'CHK', f({ assignee: 'Sony@Jacmar-Restaurants.com' }))).toBe(true);
-    expect(matches(issue, 'CHK', f({ assignee: 'none' }))).toBe(false);
-    expect(matches({ ...issue, assigneeEmail: null }, 'CHK', f({ assignee: 'none' }))).toBe(true);
-    expect(matches({ ...issue, assigneeEmail: null, assigneeText: 'Teammate A' }, 'CHK', f({ assignee: 'none' }))).toBe(false);
+    expect(matches(issue, f({ type: 'feature' }))).toBe(false);
+    expect(matches(issue, f({ type: 'nonsense' }))).toBe(true);
+    expect(matches(issue, f({ priority: 'high' }))).toBe(true);
+    expect(matches(issue, f({ assignee: 'Sony@Jacmar-Restaurants.com' }))).toBe(true);
+    expect(matches(issue, f({ assignee: 'none' }))).toBe(false);
+    expect(matches({ ...issue, assigneeEmail: null }, f({ assignee: 'none' }))).toBe(true);
+    expect(matches({ ...issue, assigneeEmail: null, assigneeText: 'Teammate A' }, f({ assignee: 'none' }))).toBe(false);
   });
 });
 
 describe('project colours', () => {
-  it('the old app’s hash, so each project keeps its colour', () => {
-    // colors.ts: h = h * 33 + c, from 5381, unsigned 32 bit, mod 360.
-    let h = 5381;
-    for (const c of 'CHK') h = (h * 33 + c.charCodeAt(0)) >>> 0;
-    expect(projectHue('CHK')).toBe(h % 360);
-    expect(projectHue('CHK')).not.toBe(projectHue('JRE'));
+  it('neighbouring projects get clearly different colours', () => {
+    for (let id = 1; id < 200; id++) {
+      const gap = Math.abs(projectHue(id) - projectHue(id + 1));
+      expect(Math.min(gap, 360 - gap)).toBeGreaterThan(90);
+    }
+    expect(projectHue(12)).toBe(projectHue(12));
   });
 });

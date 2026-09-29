@@ -15,7 +15,7 @@ const EMPTY = { title: '', type: 'task', status: 'new', priority: 'medium', assi
  * "Nouvelle tâche" (the old AddIssueModal): the same fields, the same defaults (Task,
  * New, Medium, nobody). The server gives the number and records who created it.
  */
-export function NewIssueButton({ lang, projectId, prefix, people }: { lang: Lang; projectId: number; prefix: string; people: { email: string; name: string }[] }) {
+export function NewIssueButton({ lang, projectId, people }: { lang: Lang; projectId: number; people: { email: string; name: string }[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState(EMPTY);
@@ -34,7 +34,7 @@ export function NewIssueButton({ lang, projectId, prefix, people }: { lang: Lang
       if (out.outcome === 'done' && out.number) {
         close();
         setF(EMPTY);
-        router.push(`/devops/${prefix}/${out.number}`);
+        router.push(`/devops/${projectId}/${out.number}`);
       } else setMessage(outcomeText(lang, out.outcome));
     });
 

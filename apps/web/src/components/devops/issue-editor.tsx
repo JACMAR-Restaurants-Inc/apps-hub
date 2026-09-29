@@ -2,7 +2,7 @@
 
 import { addCommentAction, deleteIssueAction, updateIssueAction } from '@/app/devops/actions';
 import { dt } from '@/lib/devops/i18n';
-import { PRIORITIES, STATUSES, TYPES, issueKey, type IssueStatus } from '@/lib/devops/rules';
+import { PRIORITIES, STATUSES, TYPES, issueKey, parseNumber, type IssueStatus } from '@/lib/devops/rules';
 import type { Field } from '@/lib/devops/store';
 import type { Lang } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
@@ -12,7 +12,7 @@ import { outcomeText } from './ui';
 
 export interface EditableIssue {
   id: number;
-  prefix: string;
+  projectId: number;
   number: number;
   /** Each field as the server sent it: what a save says the page showed. */
   values: Record<Field, string>;
@@ -219,10 +219,10 @@ export function CommentForm({ lang, issueId }: { lang: Lang; issueId: number }) 
   );
 }
 
-/** "Supprimer la tâche", confirmed by typing its key (CHK-066). */
-export function DeleteIssue({ lang, issueId, prefix, number }: { lang: Lang; issueId: number; prefix: string; number: number }) {
+/** "Supprimer la tâche", confirmed by typing its number (66 or #066). */
+export function DeleteIssue({ lang, issueId, projectId, number }: { lang: Lang; issueId: number; projectId: number; number: number }) {
   const router = useRouter();
-  const key = issueKey(prefix, number);
+  const key = issueKey(number);
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -246,7 +246,7 @@ export function DeleteIssue({ lang, issueId, prefix, number }: { lang: Lang; iss
               const out = await deleteIssueAction(issueId, typed);
               if (out.outcome === 'done') {
                 close();
-                router.push(`/devops/${prefix}`);
+                router.push(`/devops/${projectId}`);
                 router.refresh();
               } else setMessage(outcomeText(lang, out.outcome));
             });
@@ -257,14 +257,14 @@ export function DeleteIssue({ lang, issueId, prefix, number }: { lang: Lang; iss
             <span>
               {dt(lang, 'delete_type_key')} <b className="dv-key">{key}</b>
             </span>
-            <input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus spellCheck={false} autoCapitalize="characters" />
+            <input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus spellCheck={false} inputMode="numeric" autoComplete="off" />
           </label>
           {message && <p className="dv-error" role="alert">{message}</p>}
           <div className="dv-actions">
             <button type="button" className="dv-btn" onClick={close}>
               {dt(lang, 'cancel')}
             </button>
-            <button type="submit" className="dv-btn danger" disabled={pending || typed.trim().toUpperCase() !== key}>
+            <button type="submit" className="dv-btn danger" disabled={pending || parseNumber(typed) !== number}>
               {dt(lang, 'delete_confirm')}
             </button>
           </div>
