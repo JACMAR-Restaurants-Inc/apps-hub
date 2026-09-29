@@ -32,29 +32,10 @@ const ROLE_KEY = { admin: 'roleAdmin', office: 'role_office', manager: 'role_man
  *   account?"), the language, "Ajouter à l'écran d'accueil" on a phone (install.tsx),
  *   and sign out, which does NOT sign anyone out of Google.
  */
-/** `extra`: a row an app adds to the account card, under the language (Cash Balancing's theme). */
-export function TopBar({ lang, viewer, extra }: { lang: Lang; viewer: BarViewer; extra?: ReactNode }) {
+export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
   const router = useRouter();
   const path = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [acctOpen, setAcctOpen] = useState(false);
-  const [pending, start] = useTransition();
-  const acctRef = useRef<HTMLDivElement>(null);
-
-  // Close the account card on a click outside it, or on Escape.
-  useEffect(() => {
-    if (!acctOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (acctRef.current && !acctRef.current.contains(e.target as Node)) setAcctOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setAcctOpen(false);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [acctOpen]);
 
   const at = (p: string) => path === p || path.startsWith(p + '/');
   const links: { href: string; label: Key; current: boolean; count: number }[] = [
@@ -111,73 +92,105 @@ export function TopBar({ lang, viewer, extra }: { lang: Lang; viewer: BarViewer;
               <path d="M4 7h16M4 12h16M4 17h16" />
             </svg>
           </button>
-          <div className="acct" ref={acctRef}>
-            <button
-              type="button"
-              className="acctbtn"
-              onClick={() => setAcctOpen((o) => !o)}
-              aria-expanded={acctOpen}
-              aria-controls="acctcard"
-              aria-label="Compte / Account"
-            >
-              <span className="av">{viewer.initials}</span>
-              {viewer.role && <span className="role">{t(lang, ROLE_KEY[viewer.role])}</span>}
-              <svg className="car" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-            {acctOpen && (
-              <div className="acctcard" id="acctcard">
-                <p className="addr">{viewer.email}</p>
-                <p className="lbl">{t(lang, 'signedInWithGoogle')}</p>
-                <div className="acctdiv" />
-                <div className="optrow">
-                  <span>{t(lang, 'language')}</span>
-                  <div className="optseg" role="group" aria-label="Langue / Language">
-                    {(['fr', 'en'] as const).map((l) => (
-                      <button
-                        key={l}
-                        type="button"
-                        className={l === lang ? 'on' : undefined}
-                        aria-pressed={l === lang}
-                        disabled={pending}
-                        onClick={() => start(() => setLanguage(l))}
-                      >
-                        {l.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {extra}
-                <div className="acctdiv" />
-                <InstallMenuItem lang={lang} onPick={() => setAcctOpen(false)} />
-                {/* Signs out of this portal only. Signing them out of Google would take
-                    them out of Gmail on their own phone. */}
-                <button
-                  type="button"
-                  className="acctout"
-                  style={{ background: 'none', border: 0, cursor: 'pointer', textAlign: 'left' }}
-                  onClick={async () => {
-                    await authClient.signOut();
-                    router.push('/');
-                    router.refresh();
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M15 17l5-5-5-5" />
-                    <path d="M20 12H9" />
-                    <path d="M12 20H6a2 2 0 01-2-2V6a2 2 0 012-2h6" />
-                  </svg>
-                  <span>{t(lang, 'signOut')}</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <AccountMenu lang={lang} viewer={viewer} />
         </div>
       </header>
       {menuOpen && <div className="scrim" onClick={() => setMenuOpen(false)} />}
       <InstallSheet lang={lang} />
     </>
+  );
+}
+
+/**
+ * The avatar and its account card, shared by the portal's bar and each app's own bar.
+ * `extra`: rows an app adds under the language (Cash Balancing's theme). `links`: items
+ * an app adds above sign out (Cash Balancing's "Retour au portail").
+ */
+export function AccountMenu({ lang, viewer, extra, links }: { lang: Lang; viewer: BarViewer; extra?: ReactNode; links?: ReactNode }) {
+  const router = useRouter();
+  const [acctOpen, setAcctOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const acctRef = useRef<HTMLDivElement>(null);
+
+  // Close the account card on a click outside it, or on Escape.
+  useEffect(() => {
+    if (!acctOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (acctRef.current && !acctRef.current.contains(e.target as Node)) setAcctOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setAcctOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [acctOpen]);
+
+  return (
+    <div className="acct" ref={acctRef}>
+      <button
+        type="button"
+        className="acctbtn"
+        onClick={() => setAcctOpen((o) => !o)}
+        aria-expanded={acctOpen}
+        aria-controls="acctcard"
+        aria-label="Compte / Account"
+      >
+        <span className="av">{viewer.initials}</span>
+        {viewer.role && <span className="role">{t(lang, ROLE_KEY[viewer.role])}</span>}
+        <svg className="car" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {acctOpen && (
+        <div className="acctcard" id="acctcard">
+          <p className="addr">{viewer.email}</p>
+          <p className="lbl">{t(lang, 'signedInWithGoogle')}</p>
+          <div className="acctdiv" />
+          <div className="optrow">
+            <span>{t(lang, 'language')}</span>
+            <div className="optseg" role="group" aria-label="Langue / Language">
+              {(['fr', 'en'] as const).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  className={l === lang ? 'on' : undefined}
+                  aria-pressed={l === lang}
+                  disabled={pending}
+                  onClick={() => start(() => setLanguage(l))}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          {extra}
+          <div className="acctdiv" />
+          {links}
+          <InstallMenuItem lang={lang} onPick={() => setAcctOpen(false)} />
+          {/* Signs out of this portal only. Signing them out of Google would take
+              them out of Gmail on their own phone. */}
+          <button
+            type="button"
+            className="acctout"
+            style={{ background: 'none', border: 0, cursor: 'pointer', textAlign: 'left' }}
+            onClick={async () => {
+              await authClient.signOut();
+              router.push('/');
+              router.refresh();
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 17l5-5-5-5" />
+              <path d="M20 12H9" />
+              <path d="M12 20H6a2 2 0 01-2-2V6a2 2 0 012-2h6" />
+            </svg>
+            <span>{t(lang, 'signOut')}</span>
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

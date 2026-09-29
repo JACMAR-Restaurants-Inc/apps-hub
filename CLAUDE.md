@@ -104,6 +104,11 @@ say what it used to say. A file that disagrees with reality is worse than none.
   restaurant page, attachments, the report PDF and emails, Rapports, Admin. In the old
   app's OWN dark/light theme, not the portal's (owner: "i dont like it having the same
   theme as the portal"); Clair / Sombre in the avatar menu, a `cb_theme` cookie.
+  Its own bar too (owner, 2026-09-29: "I want it to feel like its own app";
+  `components/cash/cash-bar.tsx`): its name, its tabs (behind ≡ below 1024px), and the
+  shared avatar menu (`AccountMenu`) with "Retour au portail". The browser tab says
+  Cash Balancing. This used to be the portal's bar with the app's tabs under it. Only
+  the look is separate: the sign-in is the portal's, so nobody signs in twice.
   Files (attachments, PDFs) are in a PRIVATE Supabase Storage bucket `cash`, standing in
   for Drive until the Workspace grants Drive access (§4); `CASH_FILE_STORE` switches.
   Checked end to end on 2026-09-28 with test count 611 at Hull (its report job 603 is set
