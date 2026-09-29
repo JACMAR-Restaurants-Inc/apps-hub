@@ -5,9 +5,10 @@ Staging on the internet, for the owner to see how it performs before Cash Balanc
 client, still in "Testing", so only listed test users can sign in. Emails are live, as
 on the owner's machine (CLAUDE.md §4).
 
-Plan: **Hobby** for now (owner's call, 2026-09-26). Vercel's terms keep Hobby for
-personal, non-commercial use, so move to Pro before the demo or before anyone but the
-owner uses it.
+Plan: a **Pro trial** since 2026-09-28 (the owner's word: it ends about 2026-10-11). It
+was Hobby (owner's call, 2026-09-26), but Vercel's terms keep Hobby for personal,
+non-commercial use, and Cash Balancing's 5-minute report sweep needs Pro (Hobby allows
+one cron run a day). Decide before the trial ends.
 
 Region: **yul1, Montréal** (`apps/web/vercel.json`). It is AWS ca-central-1, the same
 region as Supabase's Canada (Central), so each query is a short hop. Vercel's default,
