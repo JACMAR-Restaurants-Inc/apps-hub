@@ -116,7 +116,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
   for Drive until the Workspace grants Drive access (§4); `CASH_FILE_STORE` switches.
   Checked end to end on 2026-09-28 with test count 611 at Hull (its report job 603 is set
   to 8 attempts so the sweep never sends it).
-- **JM DevOps is built** (2026-09-29, PRs #29 to #32, merged; `apps/web/src/app/devops`,
+- **JM DevOps is built** (2026-09-29, PRs #29 to #36, merged; `apps/web/src/app/devops`,
   `lib/devops`): Project Management rebuilt, under the old app's own name (owner's call).
   System admins ONLY (the owner and Pierre), no emails, no "my issues" (both see
   everything). Its own app like Cash Balancing: the old app's look (DM Sans, navy
@@ -147,8 +147,10 @@ say what it used to say. A file that disagrees with reality is worse than none.
   `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
   `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then
   listed Project Management.
-- **Pick up here (end of 2026-09-29).** `main` = b03db2a, CI green, every branch
-  merged. Open, in order:
+- **Pick up here (end of 2026-09-29).** `main` = b54ece8, CI green, every branch
+  merged. The last changes of the day were to JM DevOps' overview: each card's counts
+  are three equal boxes that line up across a row, "en retard" is a badge at the top,
+  and there is no prefix anywhere (#34 to #36). Open, in order:
   1. Gmail domain-wide delegation, from the owner's boss (the MUST DO above): no email
      is sent until then. Drive's scope too, only if files are to move to Drive.
   2. Open JM DevOps on the Vercel staging site, signed in (it has only been seen on the
