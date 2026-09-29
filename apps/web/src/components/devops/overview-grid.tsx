@@ -43,26 +43,28 @@ function Card({ lang, p }: { lang: Lang; p: OverviewProject }) {
     <li className="dv-card dv-pcard">
       <div className="dv-pcard-top">
         <ProjectMark prefix={p.prefix} name={p.name} />
-      </div>
-      <Link href={`/devops/${p.prefix}`} className="dv-pcard-name">
-        {p.name}
-      </Link>
-      <p className="dv-key">{p.prefix}-###</p>
-      <p className="dv-pills">
-        <span className="dv-pill dv-s-new-soft">
-          {c.new} {dt(lang, c.new < 2 ? 'pill_new' : 'pill_new_n')}
-        </span>
-        <span className="dv-pill dv-s-active-soft">
-          {c.active} {dt(lang, c.active < 2 ? 'pill_active' : 'pill_active_n')}
-        </span>
-        <span className="dv-pill dv-s-completed-soft">
-          {c.completed} {dt(lang, c.completed < 2 ? 'pill_completed' : 'pill_completed_n')}
-        </span>
         {c.overdue > 0 && (
           <span className="dv-pill dv-overdue-soft">
             {c.overdue} {dt(lang, 'overdue_n')}
           </span>
         )}
+      </div>
+      <Link href={`/devops/${p.prefix}`} className="dv-pcard-name">
+        {p.name}
+      </Link>
+      <p className="dv-key">{p.prefix}-###</p>
+      {/* Always the same three boxes, number over word, so every card's row lines up
+          (owner, 2026-09-29). "En retard", which only some cards have, sits at the top. */}
+      <p className="dv-pills">
+        <span className="dv-pill dv-s-new-soft">
+          <b>{c.new}</b> {dt(lang, c.new < 2 ? 'pill_new' : 'pill_new_n')}
+        </span>
+        <span className="dv-pill dv-s-active-soft">
+          <b>{c.active}</b> {dt(lang, c.active < 2 ? 'pill_active' : 'pill_active_n')}
+        </span>
+        <span className="dv-pill dv-s-completed-soft">
+          <b>{c.completed}</b> {dt(lang, c.completed < 2 ? 'pill_completed' : 'pill_completed_n')}
+        </span>
       </p>
     </li>
   );
