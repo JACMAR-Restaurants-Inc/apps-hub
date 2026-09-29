@@ -33,7 +33,9 @@ say what it used to say. A file that disagrees with reality is worse than none.
   categories, the access directory and Grant drawer, and an Administration page for
   what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Then
   the owner's redesign (2026-09-26): Favoris (a star on each card, stored in
-  `portal.favourites`), one Applications list and page, a menu for everybody, and a
+  `portal.favourites`), one Applications list and page (favourites first, then
+  alphabetical, each part in the reader's language; owner, 2026-09-29; Home keeps its
+  own order), a menu for everybody, and a
   Demandes page of the person's pending requests, since replaced by NOTIFICATIONS (owner,
   2026-09-29; `/requests` redirects): a bell in the bar for everyone but admins (the word
   only in the phone menu, and for screen readers), its badge the unread count;

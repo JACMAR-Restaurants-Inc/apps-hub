@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAsk, favouriteCards, fold, greetingPart, holdsNothing, homeCards, initials, pageCategories, prettyFirstName } from './home';
+import { appsPageOrder, canAsk, favouriteCards, fold, greetingPart, holdsNothing, homeCards, initials, pageCategories, prettyFirstName } from './home';
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 const since = new Date('2026-09-20T12:00:00Z');
@@ -112,5 +112,27 @@ describe('initials', () => {
   it('two letters from the name, or the address', () => {
     expect(initials('Sony Karisa', 's@x.com')).toBe('SK');
     expect(initials(null, 'sony@x.com')).toBe('S');
+  });
+});
+
+describe('the Applications page order', () => {
+  const c = (key: string, nameFr: string, name = nameFr) => ({ key, name, nameFr });
+  const cards = [c('b', 'Bon de Transfert'), c('z', 'Zoom'), c('e', 'Éclair'), c('a', 'appels'), c('cb', 'Cash Balancing')];
+
+  it('favourites first, then the rest, each alphabetical, whatever the case or accents', () => {
+    expect(appsPageOrder(cards, new Set(['z', 'cb']), 'fr').map((x) => x.nameFr)).toEqual(['Cash Balancing', 'Zoom', 'appels', 'Bon de Transfert', 'Éclair']);
+    expect(appsPageOrder(cards, new Set(), 'fr').map((x) => x.nameFr)).toEqual(['appels', 'Bon de Transfert', 'Cash Balancing', 'Éclair', 'Zoom']);
+  });
+
+  it('alphabetical by the name in the reader’s language', () => {
+    const two = [c('m', 'Gestion de projets', 'Project Management'), c('j', 'Jotform', 'Jotform')];
+    expect(appsPageOrder(two, new Set(), 'fr').map((x) => x.key)).toEqual(['m', 'j']);
+    expect(appsPageOrder(two, new Set(), 'en').map((x) => x.key)).toEqual(['j', 'm']);
+  });
+
+  it('leaves the list it was given as it was', () => {
+    const before = cards.map((x) => x.key);
+    appsPageOrder(cards, new Set(['z']), 'fr');
+    expect(cards.map((x) => x.key)).toEqual(before);
   });
 });
