@@ -7,7 +7,7 @@ import { getDevopsViewer } from '@/lib/devops/viewer';
 import { getLang } from '@/lib/lang';
 import { businessDate } from '@hub/core';
 
-/** Vue d'ensemble: every project and its counts, archived ones last. */
+/** Vue d'ensemble: every project and its counts. */
 export default async function DevopsOverviewPage() {
   const [viewer, lang] = await Promise.all([getDevopsViewer(), getLang()]);
   if (!viewer) return null;
@@ -24,7 +24,7 @@ export default async function DevopsOverviewPage() {
       </div>
       <OverviewGrid
         lang={lang}
-        projects={projects.map((p) => ({ prefix: p.prefix, name: p.name, githubRepo: p.githubRepo, archived: !!p.archivedAt, counts: p.counts }))}
+        projects={projects.map((p) => ({ prefix: p.prefix, name: p.name, githubRepo: p.githubRepo, counts: p.counts }))}
       />
     </main>
   );

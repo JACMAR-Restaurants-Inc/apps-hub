@@ -285,12 +285,15 @@ what they held (name, HR email, employee number, switch, every app row with role
 restaurants) and the apps they had starred. Their stars (`portal.favourites`) are deleted
 too. So the record of what they could do moves into the journal rather than being lost.
 Unstarring an app also deletes its row: a star is a preference, not history.
-The second exception (owner's call, 2026-09-29): a JM DevOps issue can be deleted
-(`deleteIssue` in `lib/devops/store.ts`). Guarded the same way: the admin types its key
-(CHK-066), its number is never given out again, its history stays under the project and
-number, and a `deleted` event keeps a full copy of it and its comments. Projects are
-archived, never deleted. This used to say, without exception, "Nothing is deleted",
-then "ONE guarded exception".
+The second exception (owner's calls, 2026-09-29): JM DevOps. An issue can be deleted
+(`deleteIssue` in `lib/devops/store.ts`): the admin types its key (CHK-066), its number is
+never given out again, its history stays under the project and number, and a `deleted`
+event keeps a full copy of it and its comments. A PROJECT can be deleted completely
+(`deleteProject`, as the old app did): the admin types its exact name, and the project,
+its issues, their comments and its whole history go, children first, in one
+transaction. Nothing of it is kept: the owner asked for "completely". Projects used to be
+archived, never deleted (migration 0010 dropped `archived_at`). This used to say, without
+exception, "Nothing is deleted", then "ONE guarded exception".
 
 **JM DevOps numbers issues under a row lock, and saves only what the page showed**
 (`lib/devops/store.ts`). A new issue takes its project's `next_number` in the same
@@ -493,10 +496,12 @@ against settings, negative amounts, the double-tap guard, linking only your own 
 the sweep's 7 days, never resending, both stale-value checks on Admin, HTML escaping in
 the emails, the file type from the bytes), JM DevOps (21, all caught: numbering from
 max+1 instead of the lock, a stale save, cancelling without a reason, delete without
-the key or losing its history, editing an archived project, a non-admin assignee, the
+the key or losing its history, a non-admin assignee, the
 admin check skipped, overdue and completion, GitHub links, and in its import: dates
 through UTC, a guessed assignee, status or duplicate ID, numbering moving backwards,
-notes written twice, the verifier ignoring a field), and RLS on every
+notes written twice, the verifier ignoring a field; then project delete, 5: without the
+exact name, in any case, keeping history rows, touching another project, no admin
+check), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

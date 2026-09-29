@@ -35,7 +35,6 @@ export default async function ProjectPage({ params, searchParams }: PageProps<'/
   const today = businessDate();
   const all = await listIssues(devopsDb(), project.id);
   const shown = all.filter((i) => matches(i, project.prefix, filters));
-  const readOnly = !!project.archivedAt;
   const tabHref = (v: View) => {
     const q = new URLSearchParams();
     if (v !== 'dashboard') q.set('view', v);
@@ -64,11 +63,10 @@ export default async function ProjectPage({ params, searchParams }: PageProps<'/
           </div>
         </div>
         <div className="dv-head-actions">
-          {!readOnly && <NewIssueButton lang={lang} projectId={project.id} prefix={project.prefix} people={viewer.people} />}
-          <ManageProject lang={lang} project={{ id: project.id, name: project.name, prefix: project.prefix, githubRepo: project.githubRepo, archived: readOnly }} />
+          <NewIssueButton lang={lang} projectId={project.id} prefix={project.prefix} people={viewer.people} />
+          <ManageProject lang={lang} project={{ id: project.id, name: project.name, prefix: project.prefix, githubRepo: project.githubRepo, issues: all.length }} />
         </div>
       </div>
-      {readOnly && <p className="dv-note">{dt(lang, 'archived_banner')}</p>}
 
       <nav className="dv-tabs" aria-label={project.name}>
         {VIEWS.map((v) => (
@@ -84,7 +82,6 @@ export default async function ProjectPage({ params, searchParams }: PageProps<'/
         <Board
           lang={lang}
           prefix={project.prefix}
-          readOnly={readOnly}
           cancelled={shown.filter((i) => i.status === 'cancelled').length}
           issues={shown
             .filter((i) => i.status !== 'cancelled')

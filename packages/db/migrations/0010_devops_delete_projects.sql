@@ -1,0 +1,1 @@
+ALTER TABLE "devops"."projects" DROP COLUMN "archived_at";

@@ -32,7 +32,6 @@ export default async function IssuePage({ params }: PageProps<'/devops/[prefix]/
   // One address per issue: /devops/chk/066 goes to /devops/CHK/66.
   if (project.prefix !== prefix || String(issue.number) !== number) redirect(`/devops/${project.prefix}/${issue.number}`);
   const { comments, events } = await issueThread(devopsDb(), issue.id);
-  const readOnly = !!project.archivedAt;
   const values = Object.fromEntries(FIELDS.map((f) => [f, fieldValue(issue, f)])) as Record<Field, string>;
   const creator = nameOf(viewer.people, issue.createdBy);
 
@@ -45,7 +44,6 @@ export default async function IssuePage({ params }: PageProps<'/devops/[prefix]/
         <span aria-hidden="true">/</span>
         <Key prefix={project.prefix} number={issue.number} />
       </nav>
-      {readOnly && <p className="dv-note">{dt(lang, 'archived_banner')}</p>}
       {issue.status === 'cancelled' && issue.cancelReason && (
         <p className="dv-note">
           <b>{dt(lang, 'status_cancelled')}.</b> {dt(lang, 'ev_reason')}
@@ -55,12 +53,12 @@ export default async function IssuePage({ params }: PageProps<'/devops/[prefix]/
       )}
 
       <section className="dv-card dv-issuecard">
-        <IssueEditor lang={lang} issue={{ id: issue.id, prefix: project.prefix, number: issue.number, values, assigneeText: issue.assigneeText }} people={viewer.people} readOnly={readOnly} />
+        <IssueEditor lang={lang} issue={{ id: issue.id, prefix: project.prefix, number: issue.number, values, assigneeText: issue.assigneeText }} people={viewer.people} />
         <footer className="dv-issuefoot">
           <p className="dv-muted">
             {creator ? `${dt(lang, 'created_by')} ${creator} ${dt(lang, 'created_on')}` : dt(lang, 'created_imported')} {showDate(lang, issue.createdOn)}
           </p>
-          {!readOnly && <DeleteIssue lang={lang} issueId={issue.id} prefix={project.prefix} number={issue.number} />}
+          <DeleteIssue lang={lang} issueId={issue.id} prefix={project.prefix} number={issue.number} />
         </footer>
       </section>
 
@@ -81,7 +79,7 @@ export default async function IssuePage({ params }: PageProps<'/devops/[prefix]/
         ) : (
           <p className="dv-muted">{dt(lang, 'no_comments')}</p>
         )}
-        {!readOnly && <CommentForm lang={lang} issueId={issue.id} />}
+        <CommentForm lang={lang} issueId={issue.id} />
       </section>
 
       <section className="dv-card dv-thread">

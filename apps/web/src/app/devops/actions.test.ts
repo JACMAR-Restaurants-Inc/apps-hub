@@ -10,7 +10,7 @@ const access = vi.hoisted(() => ({ reason: 'not_admin' as string | null }));
 const store = vi.hoisted(() => ({
   createProject: vi.fn(),
   updateProject: vi.fn(),
-  setProjectArchived: vi.fn(),
+  deleteProject: vi.fn(),
   createIssue: vi.fn(),
   updateIssue: vi.fn(),
   addComment: vi.fn(),
@@ -38,7 +38,7 @@ const actions = await import('./actions');
 const calls: [string, () => Promise<{ outcome: string }>][] = [
   ['createProjectAction', () => actions.createProjectAction({ name: 'x', prefix: 'XX', repo: '' })],
   ['updateProjectAction', () => actions.updateProjectAction(1, { name: 'a', repo: '' }, { name: 'b', repo: '' })],
-  ['archiveProjectAction', () => actions.archiveProjectAction(1, true)],
+  ['deleteProjectAction', () => actions.deleteProjectAction(1, 'x')],
   ['createIssueAction', () => actions.createIssueAction(1, { title: 'x', type: 'task', status: 'new', priority: 'low', assignee: '', description: '', dueDate: '' })],
   ['updateIssueAction', () => actions.updateIssueAction(1, 'title', 'a', 'b')],
   ['addCommentAction', () => actions.addCommentAction(1, 'x')],
