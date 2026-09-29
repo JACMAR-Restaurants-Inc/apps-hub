@@ -154,14 +154,19 @@ say what it used to say. A file that disagrees with reality is worse than none.
   `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
   `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then
   listed Project Management.
-- **Pick up here (end of 2026-09-29).** `main` = b54ece8, CI green, every branch
-  merged. The last changes of the day were to JM DevOps' overview: each card's counts
-  are three equal boxes that line up across a row, "en retard" is a badge at the top,
-  and there is no prefix anywhere (#34 to #36). Open, in order:
+- **Pick up here (end of 2026-09-29).** `main` = 55dde4f, CI green, every branch
+  merged. The last changes of the day: JM DevOps' overview (each card's counts are
+  three equal boxes that line up across a row, "en retard" a badge at the top, no
+  prefix anywhere; #34 to #36), then the portal's Notifications, a bell in place of
+  Demandes (#38). Roles, for the record: three (manager / Gérant, office / Bureau,
+  viewer / Consultation), per app with restaurants; system admin is not a role but
+  passes every check. Open, in order:
   1. Gmail domain-wide delegation, from the owner's boss (the MUST DO above): no email
      is sent until then. Drive's scope too, only if files are to move to Drive.
   2. Open JM DevOps on the Vercel staging site, signed in (it has only been seen on the
-     laptop), and let the owner walk through it on real data.
+     laptop), and let the owner walk through it on real data. Also see the bell as a
+     NON-admin (the owner's Gmail tester, Gérant at Hull): grant it something and check
+     the badge says 1; neither the real non-admin bar nor "En attente" has been seen.
   3. Where each restaurant's report goes: 5 of 7 point at Pierre's mailbox
      (`docs/CUTOVER.md`, "Before the day"). The owner decides.
   4. Before the Pro trial ends (about 2026-10-11): stay on Pro or not.
