@@ -3,7 +3,7 @@ import { Key, colon, showDate, showWhen } from '@/components/devops/ui';
 import { devopsDb } from '@/lib/devops/db';
 import { dt, type DevopsKey } from '@/lib/devops/i18n';
 import { isPriority, isStatus, isType, issueKey } from '@/lib/devops/rules';
-import { FIELDS, fieldValue, issueByKey, issueThread, type EventRow, type Field } from '@/lib/devops/store';
+import { FIELDS, fieldValue, isField, issueByKey, issueThread, type EventRow, type Field } from '@/lib/devops/store';
 import { getDevopsViewer, nameOf, type DevopsViewer } from '@/lib/devops/viewer';
 import type { Lang } from '@/lib/i18n';
 import { getLang } from '@/lib/lang';
@@ -103,7 +103,9 @@ function HistoryLine({ lang, e, viewer }: { lang: Lang; e: EventRow; viewer: Dev
   const who = <b>{nameOf(viewer.people, e.actorEmail) ?? dt(lang, 'from_sheet')}</b>;
   if (e.event === 'imported') return <>{dt(lang, 'ev_imported')}</>;
   if (e.event === 'created') return <>{who} {dt(lang, 'ev_created')}</>;
-  const field = e.event as Field;
+  // A field the app no longer has (the old "Requested by", dropped 2026-09-29): said plainly.
+  if (!isField(e.event)) return <>{who} {dt(lang, 'ev_changed')} {e.event}</>;
+  const field = e.event;
   const show = (v: string | null) => {
     if (!v) return '–';
     if (field === 'status' && isStatus(v)) return dt(lang, `status_${v}`);

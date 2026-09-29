@@ -151,14 +151,8 @@ export function IssueEditor({ lang, issue, people, readOnly }: { lang: Lang; iss
           PRIORITIES.map((v) => ({ value: v, label: dt(lang, `priority_${v}`) })),
         )}
         {select('assignee', assigneeOptions)}
-        {text('requestedBy', { max: 80, list: 'dv-requesters' })}
         {text('dueDate', { type: 'date', max: 10 })}
       </div>
-      <datalist id="dv-requesters">
-        {people.map((p) => (
-          <option key={p.email} value={p.name} />
-        ))}
-      </datalist>
       {text('description', { multiline: true, max: 20000 })}
 
       <Dialog open={cancelling} onClose={() => setCancelling(false)} title={dt(lang, 'cancel_issue')}>

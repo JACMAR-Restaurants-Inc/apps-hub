@@ -30,7 +30,7 @@ const ME = 'admin-test@example.invalid';
 const OTHER = 'other-admin@example.invalid';
 const ADMINS = new Set([ME, OTHER]);
 const TODAY = '2026-09-29';
-const blank = { title: 'x', type: 'task', status: 'new', priority: 'medium', assignee: '', requestedBy: '', description: '', dueDate: '' };
+const blank = { title: 'x', type: 'task', status: 'new', priority: 'medium', assignee: '', description: '', dueDate: '' };
 
 async function project(tx: Conn, prefix = 'ZZT', name = 'Test project') {
   expect((await createProject(tx, ME, { name, prefix, repo: '' })).outcome).toBe('done');

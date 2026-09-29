@@ -39,7 +39,7 @@ const calls: [string, () => Promise<{ outcome: string }>][] = [
   ['createProjectAction', () => actions.createProjectAction({ name: 'x', prefix: 'XX', repo: '' })],
   ['updateProjectAction', () => actions.updateProjectAction(1, { name: 'a', repo: '' }, { name: 'b', repo: '' })],
   ['archiveProjectAction', () => actions.archiveProjectAction(1, true)],
-  ['createIssueAction', () => actions.createIssueAction(1, { title: 'x', type: 'task', status: 'new', priority: 'low', assignee: '', requestedBy: '', description: '', dueDate: '' })],
+  ['createIssueAction', () => actions.createIssueAction(1, { title: 'x', type: 'task', status: 'new', priority: 'low', assignee: '', description: '', dueDate: '' })],
   ['updateIssueAction', () => actions.updateIssueAction(1, 'title', 'a', 'b')],
   ['addCommentAction', () => actions.addCommentAction(1, 'x')],
   ['deleteIssueAction', () => actions.deleteIssueAction(1, 'XX-001')],

@@ -48,7 +48,6 @@ describe('JM DevOps import: the sheet to projects and issues', () => {
       status: 'active',
       priority: 'high',
       assigneeText: 'Sony',
-      requestedBy: 'HR',
       description: 'Line one\nline two',
       createdOn: '2026-06-22',
       dueDate: '2026-07-01',

@@ -29,8 +29,8 @@ const plan = (): DevopsProject[] => [
     prefix: 'ZZIMP',
     githubRepo: null,
     issues: [
-      { number: 3, title: 'Three', type: 'bug', status: 'active', priority: 'high', assigneeText: 'Testeur', requestedBy: 'HR', description: 'd', createdOn: '2026-06-22', dueDate: '2026-07-01', notes: 'A note' },
-      { number: 66, title: 'Sixty-six', type: 'task', status: 'completed', priority: 'low', assigneeText: 'Teammate A', requestedBy: null, description: '', createdOn: '2026-06-23', dueDate: null, notes: null },
+      { number: 3, title: 'Three', type: 'bug', status: 'active', priority: 'high', assigneeText: 'Testeur', description: 'd', createdOn: '2026-06-22', dueDate: '2026-07-01', notes: 'A note' },
+      { number: 66, title: 'Sixty-six', type: 'task', status: 'completed', priority: 'low', assigneeText: 'Teammate A', description: '', createdOn: '2026-06-23', dueDate: null, notes: null },
     ],
   },
 ];
