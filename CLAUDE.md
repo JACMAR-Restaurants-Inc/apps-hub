@@ -14,7 +14,7 @@ When something significant changes, update this file in the same commit. Write t
 `git log` has the what. When a statement here stops being true, correct it in place and
 say what it used to say. A file that disagrees with reality is worse than none.
 
-## 1. Where things are, 2026-09-25
+## 1. Where things are, 2026-09-29
 
 **Staging only. Nothing here touches production.** The demo to leadership is
 2026-10-08; the switch happens after approval, by `docs/CUTOVER.md`.
@@ -27,8 +27,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
   placeholder home page shows who you are and your roster standing), the roster
   loader, `authorize()` for server actions, the spreadsheet import, and request access:
   the portal catalogue, the request form (employee number checked in Clearview), the
-  Grant panel for admins, and the two French emails sent through Gmail. On branch
-  `portal-parity`: the whole portal at parity with the Apps Script one
+  Grant panel for admins, and the two French emails sent through Gmail. The whole
+  portal at parity with the Apps Script one
   (`docs/PORTAL_PARITY.md`): its stylesheet, door, bar, all 18 apps, search and
   categories, the access directory and Grant drawer, and an Administration page for
   what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Then
@@ -75,8 +75,10 @@ say what it used to say. A file that disagrees with reality is worse than none.
   cast. Locally `.env.local` still sets `DATABASE_URL` to the session pooler (same as
   `DIRECT_URL`), so a plain `npm run dev` works; the 6543 value is kept there, commented.
   **Staging is online on Vercel** (owner's call, 2026-09-26, before Cash Balancing):
-  `https://apps-hub-web-eta.vercel.app`, set up by `docs/DEPLOY_STAGING.md`. Hobby plan
-  for now (move to Pro before the demo: Hobby is for non-commercial use), region yul1
+  `https://apps-hub-web-eta.vercel.app`, set up by `docs/DEPLOY_STAGING.md`. On a Pro
+  TRIAL since 2026-09-28 (the owner's word: it ends about 2026-10-11; the 5-minute cron
+  needs Pro, and Hobby is for non-commercial use; this used to say "Hobby plan for
+  now"), region yul1
   Montréal (`apps/web/vercel.json`), the same AWS region as the database, on the
   TRANSACTION pooler. It must never use the session pooler: on 2026-09-26 it briefly
   did (the wrong line was pasted), a burst of 20 visits spread over a few instances,
@@ -114,7 +116,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
   for Drive until the Workspace grants Drive access (§4); `CASH_FILE_STORE` switches.
   Checked end to end on 2026-09-28 with test count 611 at Hull (its report job 603 is set
   to 8 attempts so the sweep never sends it).
-- **JM DevOps is built** (2026-09-29, branch `jm-devops`; `apps/web/src/app/devops`,
+- **JM DevOps is built** (2026-09-29, PRs #29 to #32, merged; `apps/web/src/app/devops`,
   `lib/devops`): Project Management rebuilt, under the old app's own name (owner's call).
   System admins ONLY (the owner and Pierre), no emails, no "my issues" (both see
   everything). Its own app like Cash Balancing: the old app's look (DM Sans, navy
@@ -124,16 +126,38 @@ say what it used to say. A file that disagrees with reality is worse than none.
   its own address (`/devops/CHK/66`). Beyond the old app, agreed with the owner:
   Annulée with a required reason, comments (they replace the one-line Notes),
   history per issue, a "Déplacer vers" menu on every card besides drag and drop, real
-  admins as assignees. The old "Requested by" field is gone (owner, 2026-09-29: "useless";
-  migration 0009 dropped the column, and the import no longer reads it). The portal card now opens `/devops` and says JM DevOps. Staging
-  holds the 2026-09-29 snapshot: 8 projects, 92 issues, 11 notes as comments, every
-  one of the 88 assignees matched to an admin; run twice, the second changed nothing.
+  admins as assignees. The old "Requested by" field is gone (owner, 2026-09-29:
+  "useless"; migration 0009 dropped the column, the import no longer reads it). An issue
+  is deleted by typing its key; a project is deleted COMPLETELY by typing its exact name,
+  as the old app did (archiving was built, then removed the same day; migration 0010).
+  The portal card now opens `/devops` and says JM DevOps. Staging holds the 2026-09-29
+  snapshot: 8 projects, 92 issues, 11 notes as comments, every one of the 88 assignees
+  matched to an admin; run twice, the second changed nothing. The owner has since added
+  a project named "test" there. Seen on the laptop only: NOT yet opened on the Vercel
+  staging site.
 - Not built yet: the Drive file store (`CASH_FILE_STORE=drive`), moving the 256 imported
   attachments from Drive (they keep their Drive file id and open by their old link).
   Accounts not created yet: production Supabase, domain, production
   OAuth client. Staging on Vercel needs, besides the database: `SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
-  `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then listed Project Management.
+  `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then
+  listed Project Management.
+- **Pick up here (end of 2026-09-29).** `main` = b03db2a, CI green, every branch
+  merged. Open, in order:
+  1. Gmail domain-wide delegation, from the owner's boss (the MUST DO above): no email
+     is sent until then. Drive's scope too, only if files are to move to Drive.
+  2. Open JM DevOps on the Vercel staging site, signed in (it has only been seen on the
+     laptop), and let the owner walk through it on real data.
+  3. Where each restaurant's report goes: 5 of 7 point at Pierre's mailbox
+     (`docs/CUTOVER.md`, "Before the day"). The owner decides.
+  4. Before the Pro trial ends (about 2026-10-11): stay on Pro or not.
+  5. Watch the JM DevOps race test (`store.db.test.ts`, "two people creating at the
+     same moment"): it failed ONCE on 2026-09-29, in a full run while the dev server
+     was restarting, in 0.18 s, error not captured; then 3 full runs and 15 alone
+     passed. Probably a refused connection (§1's 15 clients), unproven. If it fails
+     again, keep the output.
+  Demo 2026-10-08, freeze 2026-10-07. Everything built is in the demo: the portal, Cash
+  Balancing, JM DevOps.
 
 ## 2. Layout
 
