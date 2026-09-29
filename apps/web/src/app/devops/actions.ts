@@ -29,7 +29,7 @@ import { cookies } from 'next/headers';
 
 /** 'expired': no session any more, as opposed to 'denied': signed in, not an admin. */
 export type Refusal = 'expired' | 'denied' | 'error';
-export type Result = { outcome: Outcome | Refusal; prefix?: string; number?: number };
+export type Result = { outcome: Outcome | Refusal; id?: number; number?: number };
 
 async function run(action: string, fn: (actor: string) => Promise<Result>): Promise<Result> {
   try {

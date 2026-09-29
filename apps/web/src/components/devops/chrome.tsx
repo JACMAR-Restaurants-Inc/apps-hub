@@ -11,7 +11,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useSyncExternalStore, useTransition, type ReactNode } from 'react';
 
 export interface SideProject {
-  prefix: string;
+  id: number;
   name: string;
 }
 
@@ -43,7 +43,7 @@ export function DevopsChrome({
     if (path === '/devops') router.refresh();
     else router.push('/devops');
   };
-  const current = (prefix: string) => path === `/devops/${prefix}` || path.startsWith(`/devops/${prefix}/`);
+  const current = (id: number) => path === `/devops/${id}` || path.startsWith(`/devops/${id}/`);
 
   return (
     <>
@@ -91,8 +91,8 @@ export function DevopsChrome({
           </Link>
           <p className="dv-sidehead">{dt(lang, 'nav_projects')}</p>
           {projects.map((p) => (
-            <Link key={p.prefix} href={`/devops/${p.prefix}`} className="dv-sidel" aria-current={current(p.prefix) ? 'page' : undefined} onClick={() => setOpen(false)}>
-              <span className="dv-dot" style={{ background: `hsl(${projectHue(p.prefix)} 64% 52%)` }} aria-hidden="true" />
+            <Link key={p.id} href={`/devops/${p.id}`} className="dv-sidel" aria-current={current(p.id) ? 'page' : undefined} onClick={() => setOpen(false)}>
+              <span className="dv-dot" style={{ background: `hsl(${projectHue(p.id)} 64% 52%)` }} aria-hidden="true" />
               <span className="dv-sidename">{p.name}</span>
             </Link>
           ))}

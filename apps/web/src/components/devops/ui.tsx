@@ -22,20 +22,20 @@ export function StatusTag({ lang, status }: { lang: Lang; status: IssueStatus })
   );
 }
 
-export function Key({ prefix, number }: { prefix: string; number: number }) {
-  return <span className="dv-key">{issueKey(prefix, number)}</span>;
+export function Key({ number }: { number: number }) {
+  return <span className="dv-key">{issueKey(number)}</span>;
 }
 
 /** A project's square with its initials, in its own colour (the old Dashboard cards). */
-export function ProjectMark({ prefix, name, size = 40 }: { prefix: string; name: string; size?: number }) {
-  const h = projectHue(prefix);
+export function ProjectMark({ id, name, size = 40 }: { id: number; name: string; size?: number }) {
+  const h = projectHue(id);
   const initials =
     name
       .split(/\s+/)
       .filter(Boolean)
       .slice(0, 2)
       .map((w) => w[0]!.toUpperCase())
-      .join('') || prefix.slice(0, 2);
+      .join('') || '#';
   return (
     <span className="dv-pmark" style={{ width: size, height: size, background: `hsl(${h} 70% 93%)`, color: `hsl(${h} 58% 32%)` }} aria-hidden="true">
       {initials}
@@ -47,7 +47,6 @@ const OUTCOME: Record<string, DevopsKey> = {
   changed: 'out_changed',
   invalid: 'out_invalid',
   not_found: 'out_not_found',
-  prefix_taken: 'out_prefix_taken',
   name_taken: 'out_name_taken',
   denied: 'out_denied',
   expired: 'out_expired',

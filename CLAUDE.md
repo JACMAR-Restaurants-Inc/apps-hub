@@ -123,7 +123,12 @@ say what it used to say. A file that disagrees with reality is worse than none.
   sidebar of projects), light by default with Clair / Sombre (`dv_theme` cookie), the
   same avatar menu. Overview, each project's Dashboard / Board / List (Dashboard
   first and by default, owner 2026-09-29; the old app opened on the Board), an issue at
-  its own address (`/devops/CHK/66`). Beyond the old app, agreed with the owner:
+  its own address (`/devops/<project id>/66`). No prefixes (owner, 2026-09-29: the sheet
+  needed CHK-066 to tell projects apart; a database does not): issues show as #066
+  inside their project, projects are found by id, colours come from the id (migration
+  0011; it used to be CHK-066 at /devops/CHK/66). Staging's ids are large (Check-In
+  System is 164): rolled-back tests still use up sequence values; production starts at
+  1. Beyond the old app, agreed with the owner:
   Annulée with a required reason, comments (they replace the one-line Notes),
   history per issue, a "Déplacer vers" menu on every card besides drag and drop, real
   admins as assignees. The old "Requested by" field is gone (owner, 2026-09-29:
@@ -310,7 +315,7 @@ restaurants) and the apps they had starred. Their stars (`portal.favourites`) ar
 too. So the record of what they could do moves into the journal rather than being lost.
 Unstarring an app also deletes its row: a star is a preference, not history.
 The second exception (owner's calls, 2026-09-29): JM DevOps. An issue can be deleted
-(`deleteIssue` in `lib/devops/store.ts`): the admin types its key (CHK-066), its number is
+(`deleteIssue` in `lib/devops/store.ts`): the admin types its number (66 or #066), its number is
 never given out again, its history stays under the project and number, and a `deleted`
 event keeps a full copy of it and its comments. A PROJECT can be deleted completely
 (`deleteProject`, as the old app did): the admin types its exact name, and the project,
@@ -443,7 +448,9 @@ the roster email is how sign-in recognises people.
 - **JM DevOps** comes from its own spreadsheet ("Projects Management": a Config tab of
   projects, a tab per project), by `npm run import:devops`, a download in the same
   snapshot folder. Columns are found by header (the old code read them by position, so
-  the usual spellings are accepted). Issue numbers are kept (CHK-066 stays 66). A
+  the usual spellings are accepted). Issue numbers are kept (the sheet's CHK-066 is #066); the
+  sheet's prefix is read only to make sense of its IDs, and a project is matched again
+  by its name, since the app has no prefixes. A
   status, type or priority that is not the old app's word, a duplicate or foreign ID,
   or a titled row the sheet never stamped is a problem and nothing is written. The
   assignee becomes an admin only when the text is exactly one admin's first or full
@@ -525,7 +532,9 @@ admin check skipped, overdue and completion, GitHub links, and in its import: da
 through UTC, a guessed assignee, status or duplicate ID, numbering moving backwards,
 notes written twice, the verifier ignoring a field; then project delete, 5: without the
 exact name, in any case, keeping history rows, touching another project, no admin
-check), and RLS on every
+check; then no prefix, 3: a task deleted without its number and "CHK-066" read as 66
+were caught; removing the duplicate-name check survives on purpose, because the unique
+index on the name still refuses it and the same test sees that), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

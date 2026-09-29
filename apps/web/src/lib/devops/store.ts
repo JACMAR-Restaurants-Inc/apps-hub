@@ -20,11 +20,10 @@ import {
   MAX_REASON,
   MAX_TEXT,
   cleanDate,
-  cleanPrefix,
   cleanRepo,
   cleanText,
   cleanTitle,
-  issueKey,
+  parseNumber,
   isPriority,
   isStatus,
   isType,
@@ -37,12 +36,11 @@ import {
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 export type Conn = Db | Tx;
 
-export type Outcome = 'done' | 'unchanged' | 'changed' | 'invalid' | 'not_found' | 'prefix_taken' | 'name_taken';
+export type Outcome = 'done' | 'unchanged' | 'changed' | 'invalid' | 'not_found' | 'name_taken';
 
 export interface ProjectRow {
   id: number;
   name: string;
-  prefix: string;
   githubRepo: string | null;
 }
 
@@ -65,7 +63,7 @@ export interface IssueRow {
   updatedAt: Date;
 }
 
-const projectCols = { id: projects.id, name: projects.name, prefix: projects.prefix, githubRepo: projects.githubRepo };
+const projectCols = { id: projects.id, name: projects.name, githubRepo: projects.githubRepo };
 
 async function inTx<T>(db: Conn, fn: (tx: Tx) => Promise<T>): Promise<T> {
   return (db as Db).transaction(fn);
@@ -103,10 +101,9 @@ export async function listProjects(db: Conn, today: string): Promise<(ProjectRow
   return rows.map((p) => ({ ...p, counts: counts.get(p.id)! }));
 }
 
-export async function projectByPrefix(db: Conn, prefix: string): Promise<ProjectRow | null> {
-  const p = cleanPrefix(prefix);
-  if (!p) return null;
-  return (await db.select(projectCols).from(projects).where(eq(projects.prefix, p)))[0] ?? null;
+export async function projectById(db: Conn, id: number): Promise<ProjectRow | null> {
+  if (!Number.isSafeInteger(id)) return null;
+  return (await db.select(projectCols).from(projects).where(eq(projects.id, id)))[0] ?? null;
 }
 
 /** A project's issues, newest first. A few hundred at most: the page filters them. */
@@ -114,8 +111,9 @@ export async function listIssues(db: Conn, projectId: number): Promise<IssueRow[
   return db.select().from(issues).where(eq(issues.projectId, projectId)).orderBy(desc(issues.number));
 }
 
-export async function issueByKey(db: Conn, prefix: string, number: number): Promise<{ project: ProjectRow; issue: IssueRow } | null> {
-  const project = await projectByPrefix(db, prefix);
+/** An issue by its project and number (/devops/3/66). */
+export async function issueByNumber(db: Conn, projectId: number, number: number): Promise<{ project: ProjectRow; issue: IssueRow } | null> {
+  const project = await projectById(db, projectId);
   if (!project || !Number.isSafeInteger(number)) return null;
   const issue = (await db.select().from(issues).where(and(eq(issues.projectId, project.id), eq(issues.number, number))))[0];
   return issue ? { project, issue } : null;
@@ -163,33 +161,29 @@ export async function deletedIssues(db: Conn, projectId: number) {
 
 export interface ProjectInput {
   name: unknown;
-  prefix: unknown;
   repo: unknown;
 }
 
-export async function createProject(db: Conn, actor: string, raw: ProjectInput): Promise<{ outcome: Outcome; prefix?: string }> {
+/** A new project: a name (unique, whatever its case) and an optional GitHub link. */
+export async function createProject(db: Conn, actor: string, raw: ProjectInput): Promise<{ outcome: Outcome; id?: number }> {
   const name = cleanText(raw.name, MAX_NAME);
-  const prefix = cleanPrefix(raw.prefix);
   const repo = cleanRepo(raw.repo);
-  if (!name || !prefix || repo === null) return { outcome: 'invalid' };
+  if (!name || repo === null) return { outcome: 'invalid' };
   try {
     return await inTx(db, async (tx) => {
-      const clash = await tx.select({ prefix: projects.prefix, name: projects.name }).from(projects).where(sql`${projects.prefix} = ${prefix} or lower(${projects.name}) = lower(${name})`);
-      if (clash.some((c) => c.prefix === prefix)) return { outcome: 'prefix_taken' as const };
+      const clash = await tx.select({ id: projects.id }).from(projects).where(sql`lower(${projects.name}) = lower(${name})`);
       if (clash.length) return { outcome: 'name_taken' as const };
-      const [p] = await tx.insert(projects).values({ name, prefix, githubRepo: repo || null, createdBy: actor }).returning({ id: projects.id });
-      await tx.insert(events).values({ projectId: p.id, actorEmail: actor, event: 'project_created', after: `${prefix} · ${name}` });
-      return { outcome: 'done' as const, prefix };
+      const [p] = await tx.insert(projects).values({ name, githubRepo: repo || null, createdBy: actor }).returning({ id: projects.id });
+      await tx.insert(events).values({ projectId: p.id, actorEmail: actor, event: 'project_created', after: name });
+      return { outcome: 'done' as const, id: p.id };
     });
   } catch (e) {
-    const c = uniqueViolation(e);
-    if (c === 'projects_prefix_key') return { outcome: 'prefix_taken' };
-    if (c === 'projects_name_key') return { outcome: 'name_taken' };
+    if (uniqueViolation(e) === 'projects_name_key') return { outcome: 'name_taken' };
     throw e;
   }
 }
 
-/** Name and GitHub link. The prefix never changes: every issue key is built from it. */
+/** Name and GitHub link. */
 export async function updateProject(
   db: Conn,
   actor: string,
@@ -443,8 +437,8 @@ export async function addComment(db: Conn, actor: string, issueId: number, body:
 }
 
 /**
- * Delete an issue (owner's call, 2026-09-29). `confirm` must be its key, CHK-066, as
- * the dialog sends it, so a stray call cannot delete the wrong one. Its number is not
+ * Delete an issue (owner's call, 2026-09-29). `confirm` must be its number (66 or #066),
+ * as the dialog sends it, so a stray call cannot delete the wrong one. Its number is not
  * given out again. Its history stays under the project and number, and a `deleted`
  * event keeps a full copy of the issue and its comments.
  */
@@ -453,9 +447,7 @@ export async function deleteIssue(db: Conn, actor: string, issueId: number, conf
   return inTx(db, async (tx) => {
     const [i] = await tx.select().from(issues).where(eq(issues.id, issueId)).for('update');
     if (!i) return 'not_found';
-    const [p] = await tx.select({ prefix: projects.prefix }).from(projects).where(eq(projects.id, i.projectId));
-    if (!p) return 'not_found';
-    if (confirm.trim().toUpperCase() !== issueKey(p.prefix, i.number)) return 'invalid';
+    if (parseNumber(confirm) !== i.number) return 'invalid';
     const thread = await tx.select().from(comments).where(eq(comments.issueId, issueId)).orderBy(asc(comments.id));
     await tx.update(events).set({ issueId: null }).where(eq(events.issueId, issueId));
     if (thread.length) await tx.delete(comments).where(inArray(comments.id, thread.map((c) => c.id)));

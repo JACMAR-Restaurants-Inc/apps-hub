@@ -43,7 +43,7 @@ describe.skipIf(!db)('JM DevOps import on Postgres (rolled back)', () => {
       const report = await verifyDevops(tx, plan(), ADMINS);
       expect(report.failures).toEqual([]);
 
-      const [p] = await tx.select().from(projects).where(eq(projects.prefix, 'ZZIMP'));
+      const [p] = await tx.select().from(projects).where(eq(projects.name, 'Import test'));
       expect(p!.nextNumber).toBe(67);
       const rows = await tx.select().from(issues).where(eq(issues.projectId, p!.id));
       expect(rows).toHaveLength(2);
@@ -60,7 +60,7 @@ describe.skipIf(!db)('JM DevOps import on Postgres (rolled back)', () => {
   it('the verifier catches a changed field and a missing issue', async () => {
     await rolledBack(async (tx) => {
       await loadDevops(tx, plan(), ADMINS);
-      const [p] = await tx.select().from(projects).where(eq(projects.prefix, 'ZZIMP'));
+      const [p] = await tx.select().from(projects).where(eq(projects.name, 'Import test'));
       await tx.update(issues).set({ dueDate: '2026-07-02' }).where(and(eq(issues.projectId, p!.id), eq(issues.number, 3)));
       const other = plan();
       other[0]!.issues.push({ ...other[0]!.issues[1]!, number: 70 });
@@ -71,9 +71,9 @@ describe.skipIf(!db)('JM DevOps import on Postgres (rolled back)', () => {
   it('never moves numbering backwards', async () => {
     await rolledBack(async (tx) => {
       await loadDevops(tx, plan(), ADMINS);
-      await tx.update(projects).set({ nextNumber: 90 }).where(eq(projects.prefix, 'ZZIMP'));
+      await tx.update(projects).set({ nextNumber: 90 }).where(eq(projects.name, 'Import test'));
       await loadDevops(tx, plan(), ADMINS);
-      const [p] = await tx.select().from(projects).where(eq(projects.prefix, 'ZZIMP'));
+      const [p] = await tx.select().from(projects).where(eq(projects.name, 'Import test'));
       expect(p!.nextNumber).toBe(90);
     });
   });

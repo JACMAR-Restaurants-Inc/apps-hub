@@ -24,7 +24,7 @@ export default async function DevopsOverviewPage() {
       </div>
       <OverviewGrid
         lang={lang}
-        projects={projects.map((p) => ({ prefix: p.prefix, name: p.name, githubRepo: p.githubRepo, counts: p.counts }))}
+        projects={projects.map((p) => ({ id: p.id, name: p.name, githubRepo: p.githubRepo, counts: p.counts }))}
       />
     </main>
   );

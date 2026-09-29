@@ -3,7 +3,7 @@ import { Key, colon, showDate, showWhen } from '@/components/devops/ui';
 import { devopsDb } from '@/lib/devops/db';
 import { dt, type DevopsKey } from '@/lib/devops/i18n';
 import { isPriority, isStatus, isType, issueKey } from '@/lib/devops/rules';
-import { FIELDS, fieldValue, isField, issueByKey, issueThread, type EventRow, type Field } from '@/lib/devops/store';
+import { FIELDS, fieldValue, isField, issueByNumber, issueThread, type EventRow, type Field } from '@/lib/devops/store';
 import { getDevopsViewer, nameOf, type DevopsViewer } from '@/lib/devops/viewer';
 import type { Lang } from '@/lib/i18n';
 import { getLang } from '@/lib/lang';
@@ -12,25 +12,25 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
-export async function generateMetadata({ params }: PageProps<'/devops/[prefix]/[number]'>): Promise<Metadata> {
-  const { prefix, number } = await params;
-  return { title: `${issueKey(prefix.toUpperCase(), Number(number) || 0)} · JM DevOps` };
+export async function generateMetadata({ params }: PageProps<'/devops/[project]/[number]'>): Promise<Metadata> {
+  const { number } = await params;
+  return { title: `${issueKey(Number(number) || 0)} · JM DevOps` };
 }
 
 /**
- * One issue, at its own address (/devops/CHK/66), so a link can be pasted anywhere and
+ * One issue, at its own address (/devops/3/66), so a link can be pasted anywhere and
  * a refresh keeps it. The old app showed issues only in a modal. Its fields, then
  * comments (they replace the sheet's one-line Notes), then its history.
  */
-export default async function IssuePage({ params }: PageProps<'/devops/[prefix]/[number]'>) {
-  const [viewer, lang, { prefix, number }] = await Promise.all([getDevopsViewer(), getLang(), params]);
+export default async function IssuePage({ params }: PageProps<'/devops/[project]/[number]'>) {
+  const [viewer, lang, { project: param, number }] = await Promise.all([getDevopsViewer(), getLang(), params]);
   if (!viewer) return null;
   const n = /^\d{1,6}$/.test(number) ? Number(number) : NaN;
-  const found = await issueByKey(devopsDb(), prefix, n);
+  const found = /^\d{1,9}$/.test(param) ? await issueByNumber(devopsDb(), Number(param), n) : null;
   if (!found) notFound();
   const { project, issue } = found;
-  // One address per issue: /devops/chk/066 goes to /devops/CHK/66.
-  if (project.prefix !== prefix || String(issue.number) !== number) redirect(`/devops/${project.prefix}/${issue.number}`);
+  // One address per issue: /devops/03/066 goes to /devops/3/66.
+  if (String(project.id) !== param || String(issue.number) !== number) redirect(`/devops/${project.id}/${issue.number}`);
   const { comments, events } = await issueThread(devopsDb(), issue.id);
   const values = Object.fromEntries(FIELDS.map((f) => [f, fieldValue(issue, f)])) as Record<Field, string>;
   const creator = nameOf(viewer.people, issue.createdBy);
@@ -38,11 +38,11 @@ export default async function IssuePage({ params }: PageProps<'/devops/[prefix]/
   return (
     <main id="main" className="dv-page dv-issue" lang={lang}>
       <nav className="dv-crumbs" aria-label={project.name}>
-        <Link href={`/devops/${project.prefix}`} className="dv-link">
+        <Link href={`/devops/${project.id}`} className="dv-link">
           {project.name}
         </Link>
         <span aria-hidden="true">/</span>
-        <Key prefix={project.prefix} number={issue.number} />
+        <Key number={issue.number} />
       </nav>
       {issue.status === 'cancelled' && issue.cancelReason && (
         <p className="dv-note">
@@ -53,12 +53,12 @@ export default async function IssuePage({ params }: PageProps<'/devops/[prefix]/
       )}
 
       <section className="dv-card dv-issuecard">
-        <IssueEditor lang={lang} issue={{ id: issue.id, prefix: project.prefix, number: issue.number, values, assigneeText: issue.assigneeText }} people={viewer.people} />
+        <IssueEditor lang={lang} issue={{ id: issue.id, projectId: project.id, number: issue.number, values, assigneeText: issue.assigneeText }} people={viewer.people} />
         <footer className="dv-issuefoot">
           <p className="dv-muted">
             {creator ? `${dt(lang, 'created_by')} ${creator} ${dt(lang, 'created_on')}` : dt(lang, 'created_imported')} {showDate(lang, issue.createdOn)}
           </p>
-          <DeleteIssue lang={lang} issueId={issue.id} prefix={project.prefix} number={issue.number} />
+          <DeleteIssue lang={lang} issueId={issue.id} projectId={project.id} number={issue.number} />
         </footer>
       </section>
 
