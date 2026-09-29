@@ -2,7 +2,7 @@
 
 import { existsSync } from 'node:fs';
 import { createDb, restaurantSettings, settingsLog, tills } from '@hub/db';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import { addTill, adminOverview, cleanEmail, setExpectedTotal, setReportEmail, setTillActive, updateTill } from './settings';
 import { readSetup, type Conn } from './store';
@@ -82,7 +82,7 @@ describe.skipIf(!db)('Admin page on Postgres (rolled back)', () => {
 
       expect(await updateTill(tx, ME, RID, 42, { label: 'Autre', base: 20000 }, { label: 'SAV', base: 25000 })).toBe('changed');
       expect(await updateTill(tx, ME, RID, 42, { label: 'Service au volant', base: 20000 }, { label: 'SAV', base: 25000 })).toBe('done');
-      const events = (await tx.select().from(settingsLog).where(and(eq(settingsLog.restaurantId, RID), eq(settingsLog.tillNumber, 42)))).map((e) => [e.event, e.before, e.after]);
+      const events = (await tx.select().from(settingsLog).where(and(eq(settingsLog.restaurantId, RID), eq(settingsLog.tillNumber, 42))).orderBy(asc(settingsLog.id))).map((e) => [e.event, e.before, e.after]);
       expect(events).toEqual([
         ['till_add', null, 'Service au volant · 20000'],
         ['till_label', 'Service au volant', 'SAV'],

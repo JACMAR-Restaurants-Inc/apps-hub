@@ -11,13 +11,14 @@ const everywhere = ['packages/*/src/**/*.test.ts', 'apps/web/src/**/*.test.ts'];
 const onPostgres = ['packages/*/src/**/*.db.test.ts', 'apps/web/src/**/*.db.test.ts'];
 
 /**
- * Two groups. The pure tests run in parallel, as ever. The *.db.test.ts files, which
- * run against staging Postgres in rolled-back transactions (skipped in CI), run ONE FILE
- * AT A TIME with more time each: in parallel, each file opened its own pool against
- * the session pooler, which allows 15 clients for the whole project (CLAUDE.md §1)
- * alongside a running dev server, and the longest test (about 30 queries) shared the
- * database with four other files inside a 5 s limit. It failed now and then
- * (2026-09-28, twice), always passing alone.
+ * Two groups. The pure tests run in parallel. The *.db.test.ts files, which run
+ * against staging Postgres in rolled-back transactions (skipped in CI), run one file
+ * at a time in one process, with 30 s per test: each file opens its own pool, and the
+ * session pooler allows 15 clients for the whole project (CLAUDE.md §1), a running dev
+ * server included.
+ *
+ * This was first written as the cure for a test that failed now and then. It was not:
+ * that test compared audit rows without ORDER BY (see CLAUDE.md §6).
  */
 export default defineConfig({
   test: {

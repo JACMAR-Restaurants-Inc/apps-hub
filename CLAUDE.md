@@ -404,10 +404,14 @@ IPv6-only without a paid add-on and fails from most office and home networks. Wr
 lines as `KEY=value`, with no spaces around `=` and no brackets left around the
 password.
 
-**A test that touches the database is named `*.db.test.ts`.** That name puts it in the
-`postgres` group, which runs one file at a time with 30 s per test. Run in parallel,
-the database files each opened a pool against the session pooler's 15 clients, next
-to a dev server, and the access-rules test failed now and then (2026-09-28).
+**A test that reads several rows and compares them as a list says ORDER BY.** Without
+it Postgres returns rows as they lie on disk, and the rolled-back tests leave space that
+cleanup hands to new rows, so disk order stops being insertion order (seen 2026-09-28:
+7 of 74 `rbac.audit` rows). The access-rules test compared its audit events in order
+and failed now and then for exactly this; it was first blamed on parallel database
+tests, wrongly. Separately, tests that touch the database are named `*.db.test.ts`:
+that puts them in the `postgres` group, one file at a time in a single process, so they
+never add up against the session pooler's 15 clients (§1) beside a dev server.
 
 **Restart `next dev` after a schema change.** The database client lives on `globalThis`
 across hot reloads (§1), and drizzle keeps a column-name cache inside it: a column added

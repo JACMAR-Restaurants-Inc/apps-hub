@@ -9,7 +9,7 @@
 
 import { existsSync } from 'node:fs';
 import { appMembers, audit, createDb, memberStores, users } from '@hub/db';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import { endAccess, grantAccess, requestAccess, updateAccess, type AccessDeps } from './service';
 import { pgAccessStore } from './store';
@@ -69,7 +69,10 @@ describe.skipIf(!db)('access rules on Postgres (rolled back)', () => {
         expect(await requestAccess(deps, EMAIL, APP, '0014')).toBe('pending');
         expect(await membership()).toMatchObject({ status: 'pending', notifiedOn: null });
 
-        const events = (await tx.select({ event: audit.event }).from(audit).where(eq(audit.targetEmail, EMAIL))).map((r) => r.event);
+        // In id order, said out loud: without ORDER BY, Postgres returns rows as they lie on
+        // disk, and once cleanup reuses the space rolled-back tests leave, that is not the
+        // order they were written. It failed this way now and then (2026-09-28).
+        const events = (await tx.select({ event: audit.event }).from(audit).where(eq(audit.targetEmail, EMAIL)).orderBy(asc(audit.id))).map((r) => r.event);
         expect(events).toEqual(['request', 'notify', 'request', 'grant', 'notify', 'update', 'revoke', 'request', 'notify']);
         throw new Rollback();
       }),
