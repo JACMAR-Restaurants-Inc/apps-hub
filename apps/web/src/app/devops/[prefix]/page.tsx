@@ -14,12 +14,13 @@ import { businessDate } from '@hub/core';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
-const VIEWS = ['board', 'list', 'dashboard'] as const;
+// Dashboard first and by default (owner, 2026-09-29); the old app opened on the Board.
+const VIEWS = ['dashboard', 'board', 'list'] as const;
 type View = (typeof VIEWS)[number];
 
 /**
- * A project (the old ProjectView): its Board (the default), List and Dashboard, and the
- * filters for the first two. Everything is in the address: the view, the filters, the
+ * A project (the old ProjectView): its Dashboard (the default), Board and List, and the
+ * filters for the last two. Everything is in the address: the view, the filters, the
  * project. The old app had no router, so a refresh lost your place.
  */
 export default async function ProjectPage({ params, searchParams }: PageProps<'/devops/[prefix]'>) {
@@ -29,7 +30,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<'/
   if (!project) notFound();
   if (project.prefix !== prefix) redirect(`/devops/${project.prefix}`);
 
-  const view: View = VIEWS.includes(sp.view as View) ? (sp.view as View) : 'board';
+  const view: View = VIEWS.includes(sp.view as View) ? (sp.view as View) : 'dashboard';
   const filters = parseFilters(sp);
   const today = businessDate();
   const all = await listIssues(devopsDb(), project.id);
@@ -37,7 +38,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<'/
   const readOnly = !!project.archivedAt;
   const tabHref = (v: View) => {
     const q = new URLSearchParams();
-    if (v !== 'board') q.set('view', v);
+    if (v !== 'dashboard') q.set('view', v);
     if (v !== 'dashboard') for (const k of ['q', 'type', 'priority', 'assignee'] as const) if (filters[k]) q.set(k, filters[k]);
     return `/devops/${project.prefix}${q.size ? `?${q}` : ''}`;
   };
