@@ -6,7 +6,7 @@
 import { existsSync } from 'node:fs';
 import { createDb, reportEmails, reportJobs, safeCounts } from '@hub/db';
 import type { Message } from '@hub/email';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { FileStore } from './files';
 import type { CountInput } from './math';
@@ -102,7 +102,7 @@ describe.skipIf(!db)('report queue on Postgres (rolled back)', () => {
       const files = memoryFiles();
       const refuse: ReportDeps['send'] = async () => ({ sent: false, reason: 'token_unauthorized_client' });
       expect(await runReportJob(deps(tx, refuse, files), jobId)).toBe('failed');
-      const rows = await tx.select().from(reportEmails).where(eq(reportEmails.jobId, jobId));
+      const rows = await tx.select().from(reportEmails).where(eq(reportEmails.jobId, jobId)).orderBy(asc(reportEmails.id));
       expect(rows.map((r) => [r.kind, r.status, r.error])).toEqual([
         ['restaurant', 'not_sent', 'token_unauthorized_client'],
         ['accountant', 'not_sent', 'token_unauthorized_client'],
@@ -132,7 +132,7 @@ describe.skipIf(!db)('report queue on Postgres (rolled back)', () => {
       const { jobId } = await fileOne(tx, true);
       const d = { ...deps(tx, null), accountantEmail: null };
       expect(await runReportJob(d, jobId)).toBe('failed');
-      const rows = await tx.select().from(reportEmails).where(eq(reportEmails.jobId, jobId));
+      const rows = await tx.select().from(reportEmails).where(eq(reportEmails.jobId, jobId)).orderBy(asc(reportEmails.id));
       expect(rows.map((r) => [r.kind, r.error])).toEqual([
         ['restaurant', 'email_not_configured'],
         ['accountant', 'no_address'],
