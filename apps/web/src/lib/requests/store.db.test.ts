@@ -8,7 +8,7 @@
  */
 
 import { existsSync } from 'node:fs';
-import { appMembers, audit, createDb, memberStores, users } from '@hub/db';
+import { appMembers, audit, createDb, memberStores, notifications, users } from '@hub/db';
 import { and, asc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import { endAccess, grantAccess, requestAccess, updateAccess, type AccessDeps } from './service';
@@ -74,6 +74,12 @@ describe.skipIf(!db)('access rules on Postgres (rolled back)', () => {
         // order they were written. It failed this way now and then (2026-09-28).
         const events = (await tx.select({ event: audit.event }).from(audit).where(eq(audit.targetEmail, EMAIL)).orderBy(asc(audit.id))).map((r) => r.event);
         expect(events).toEqual(['request', 'notify', 'request', 'grant', 'notify', 'update', 'revoke', 'request', 'notify']);
+        // In their Notifications: the grant and the change, not the removal.
+        const told = await tx.select({ kind: notifications.kind, detail: notifications.detail }).from(notifications).where(eq(notifications.email, EMAIL)).orderBy(asc(notifications.id));
+        expect(told).toEqual([
+          { kind: 'granted', detail: { role: 'manager', stores: ['1647', '3472'] } },
+          { kind: 'changed', detail: { role: 'viewer', stores: ['3472'] } },
+        ]);
         throw new Rollback();
       }),
     ).rejects.toBeInstanceOf(Rollback);

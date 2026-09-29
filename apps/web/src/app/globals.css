@@ -71,7 +71,7 @@ body.shell { font-family: var(--font-inter), 'Segoe UI', -apple-system, BlinkMac
 #sec-apps .finder { margin-top: 12px; }
 .page > .askerr { margin: 0; color: var(--red); font-weight: 600; }
 
-/* The Demandes page: the person's own pending requests. */
+/* Notifications (it was the Demandes page): pending requests, then the office's decisions. */
 .reqlist { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
 .reqlist li {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 13px 15px;
@@ -79,3 +79,27 @@ body.shell { font-family: var(--font-inter), 'Segoe UI', -apple-system, BlinkMac
 }
 .reqlist b { flex: 1 1 200px; font-size: 14px; font-weight: 600; color: var(--text); }
 .reqlist span { font-size: 13px; color: var(--text-muted); }
+.notesec h2 { margin: 22px 0 0; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.reqlist li.note { border-left-width: 4px; }
+.reqlist li.note.pending { border-left-color: var(--border); }
+.reqlist li.note.granted { border-left-color: #1B873F; }
+.reqlist li.note.changed { border-left-color: var(--gold); }
+.reqlist li.note.declined { border-left-color: var(--red); }
+.reqlist li.note.unread { background: var(--tint); }
+.notebody { flex: 1 1 240px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.notebody b { flex: none; }
+/* .reqlist span would grey it out: the label needs the stronger selector. */
+.reqlist .notenew { display: inline-block; margin-right: 8px; padding: 1px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: var(--gold); color: #FFFFFF; vertical-align: 1px; }
+.reqlist .noteday { font-size: 12.5px; }
+.noteopen { flex: none; }
+.notekept { margin: 10px 2px 0; font-size: 12.5px; color: var(--text-muted); }
+
+/* Notifications is a bell in the bar (owner, 2026-09-29), its unread count a badge on
+   it. In the phone menu (below 761px) it is a row like the others: bell and word. */
+.navl .bell { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (min-width: 761px) {
+  .tnav .navbell { position: relative; width: 40px; padding: 0; justify-content: center; }
+  .tnav .navbell .bell { width: 20px; height: 20px; }
+  .tnav .navbell .navword { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tnav .navbell .count { position: absolute; top: 2px; right: 0; margin: 0; min-width: 18px; padding: 0 5px; font-size: 11px; line-height: 18px; text-align: center; }
+}

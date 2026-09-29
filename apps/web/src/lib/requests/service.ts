@@ -69,6 +69,19 @@ export interface AccessStore {
   /** Admins who asked to be told about requests. */
   notifyAdmins(): Promise<string[]>;
   audit(entry: AuditEntry): Promise<void>;
+  /** Tells the person in the portal (Notifications): written in the decision's transaction. */
+  notify(entry: NotificationEntry): Promise<void>;
+}
+
+/**
+ * What the office decided, for the person's Notifications (owner, 2026-09-29): granted,
+ * changed, declined. A removal writes none, as it emails nobody.
+ */
+export interface NotificationEntry {
+  email: string;
+  app: string;
+  kind: 'granted' | 'changed' | 'declined';
+  detail: { role: Role; stores: string[] } | null;
 }
 
 export interface AccessDeps {
@@ -228,6 +241,7 @@ export async function grantAccess(
       targetEmail: email,
       detail: { before: { status: member.status, role: member.role, stores: member.stores }, after: { role, stores: chosen } },
     });
+    await tx.notify({ email, app: appKey, kind: 'granted', detail: { role, stores: chosen } });
     return { outcome: 'done' as const, alreadyTold: member.notifiedOn !== null };
   });
   if (result.outcome !== 'done' || result.alreadyTold) return result.outcome;
@@ -246,7 +260,10 @@ export async function grantAccess(
   return sent.sent ? 'done' : 'done_unsent';
 }
 
-/** Change the role or restaurants of somebody who has access. Emails nobody; the person's switch is untouched. */
+/**
+ * Change the role or restaurants of somebody who has access. Emails nobody; the
+ * person's switch is untouched. It does tell them in Notifications (owner, 2026-09-29).
+ */
 export async function updateAccess(
   deps: AccessDeps,
   admin: string,
@@ -270,6 +287,7 @@ export async function updateAccess(
       targetEmail: email,
       detail: { before: { role: member.role, stores: member.stores }, after: { role, stores: chosen } },
     });
+    await tx.notify({ email, app: appKey, kind: 'changed', detail: { role, stores: chosen } });
     return 'done';
   });
 }
@@ -279,8 +297,8 @@ export async function updateAccess(
  * delete), keep its role and stores as the record, and leave the person's global switch
  * alone: they may hold another app (RBAC §48). They can ask again.
  *
- * A DECLINE emails the person (owner's call, 2026-09-25, reversing §48's silence).
- * A REMOVAL still emails nobody.
+ * A DECLINE emails the person (owner's call, 2026-09-25, reversing §48's silence) and
+ * tells them in Notifications. A REMOVAL still tells nobody, either way.
  */
 export async function endAccess(
   deps: AccessDeps,
@@ -302,6 +320,7 @@ export async function endAccess(
       targetEmail: email,
       detail: { before: { status: member.status, role: member.role, stores: member.stores } },
     });
+    if (expected === 'pending') await tx.notify({ email, app: appKey, kind: 'declined', detail: null });
     return 'done' as const;
   });
   if (outcome !== 'done' || expected !== 'pending') return outcome;

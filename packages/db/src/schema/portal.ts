@@ -7,9 +7,16 @@
  * normalised sign-in address, NOT a foreign key to rbac.users: somebody not yet on the
  * roster can star the app they are about to ask for. A star grants nothing; the home
  * page draws a favourite only if the person may see that app, in its real state.
+ *
+ * notifications: what the office decided about a person's access (owner, 2026-09-29):
+ * granted, changed, declined. Written in the SAME transaction as the decision, so there
+ * is never one without the other. Removal writes none (the owner's call; it emails
+ * nobody either). Pending requests are not stored here: they are the pending rows. A
+ * notification is not history (rbac.audit is): a read one is deleted 30 days after it
+ * was read.
  */
 
-import { pgSchema, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgSchema, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
 
 export const portal = pgSchema('portal');
 
@@ -21,4 +28,21 @@ export const favourites = portal.table(
     addedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.email, t.app] })],
+).enableRLS();
+
+export const notifications = portal.table(
+  'notifications',
+  {
+    id: integer().primaryKey().generatedByDefaultAsIdentity(),
+    /** The person told, normalised. Not a foreign key, as for favourites. */
+    email: text().notNull(),
+    app: text().notNull(),
+    /** 'granted' | 'changed' | 'declined' */
+    kind: text().notNull(),
+    /** What they now hold, for granted and changed: { role, stores }. */
+    detail: jsonb(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [index().on(t.email, t.createdAt)],
 ).enableRLS();

@@ -8,6 +8,7 @@ import { formatDay, type Lang } from './i18n';
 import { catalogueApp } from './catalogue';
 import { listFavourites } from './favourites';
 import { favouriteCards, greetingPart, holdsNothing, homeCards, initials, pageCategories, prettyFirstName, torontoHour } from './home';
+import { unreadCount } from './notifications';
 import { directory } from './requests/queries';
 import { getRoster, type Viewer } from './viewer';
 
@@ -17,7 +18,7 @@ import { getRoster, type Viewer } from './viewer';
  */
 export async function loadHome(viewer: Viewer, lang: Lang) {
   const isAdmin = viewer.standing === 'admin';
-  const [roster, mine, person, adminDir, stars] = await Promise.all([
+  const [roster, mine, person, adminDir, stars, unread] = await Promise.all([
     getRoster(),
     db()
       .select({ app: appMembers.app, status: appMembers.status, since: appMembers.lastModified, role: appMembers.role })
@@ -26,6 +27,7 @@ export async function loadHome(viewer: Viewer, lang: Lang) {
     db().select({ fullName: users.fullName }).from(users).where(eq(users.email, viewer.email)).limit(1),
     isAdmin ? directory() : Promise.resolve(null),
     listFavourites(db(), viewer.email),
+    isAdmin ? Promise.resolve(0) : unreadCount(db(), viewer.email),
   ]);
   const personActive = roster.users.get(viewer.email)?.active === true;
 
@@ -73,8 +75,8 @@ export async function loadHome(viewer: Viewer, lang: Lang) {
     initials: initials(person[0]?.fullName ?? viewer.name, viewer.email),
     role: role ?? null,
     isAdmin,
-    // An admin's badge is the office's queue; anyone else's is their own requests.
-    waiting: isAdmin ? waiting : mine.filter((m) => m.status === 'pending').length,
+    // An admin's badge is the office's queue; anyone else's, their unread notifications.
+    waiting: isAdmin ? waiting : unread,
   };
 
   return {
@@ -87,7 +89,7 @@ export async function loadHome(viewer: Viewer, lang: Lang) {
   };
 }
 
-/** The signed-in person's pending requests, oldest first, for the Demandes page. */
+/** The signed-in person's pending requests, oldest first, for Notifications. */
 export async function loadMyRequests(viewer: Viewer, lang: Lang) {
   const rows = await db()
     .select({ app: appMembers.app, since: appMembers.lastModified })
@@ -106,11 +108,12 @@ export async function loadMyRequests(viewer: Viewer, lang: Lang) {
  */
 export async function loadBar(viewer: Viewer): Promise<BarViewer> {
   const isAdmin = viewer.standing === 'admin';
-  const [roster, mine, person, pending] = await Promise.all([
+  const [roster, mine, person, pending, unread] = await Promise.all([
     getRoster(),
     db().select({ app: appMembers.app, status: appMembers.status, role: appMembers.role }).from(appMembers).where(eq(appMembers.email, viewer.email)),
     db().select({ fullName: users.fullName }).from(users).where(eq(users.email, viewer.email)).limit(1),
     isAdmin ? db().select({ n: count() }).from(appMembers).where(eq(appMembers.status, 'pending')) : Promise.resolve([{ n: 0 }]),
+    isAdmin ? Promise.resolve(0) : unreadCount(db(), viewer.email),
   ]);
   const personActive = roster.users.get(viewer.email)?.active === true;
   const cash = mine.find((m) => m.app === 'SafeCount' && m.status === 'active');
@@ -120,6 +123,6 @@ export async function loadBar(viewer: Viewer): Promise<BarViewer> {
     initials: initials(person[0]?.fullName ?? viewer.name, viewer.email),
     role: role ?? null,
     isAdmin,
-    waiting: isAdmin ? Number(pending[0]?.n ?? 0) : mine.filter((m) => m.status === 'pending').length,
+    waiting: isAdmin ? Number(pending[0]?.n ?? 0) : unread,
   };
 }

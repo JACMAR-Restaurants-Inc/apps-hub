@@ -34,7 +34,14 @@ say what it used to say. A file that disagrees with reality is worse than none.
   what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Then
   the owner's redesign (2026-09-26): Favoris (a star on each card, stored in
   `portal.favourites`), one Applications list and page, a menu for everybody, and a
-  Demandes page of the person's pending requests. Add to home screen (owner's call,
+  Demandes page of the person's pending requests, since replaced by NOTIFICATIONS (owner,
+  2026-09-29; `/requests` redirects): a bell in the bar for everyone but admins (the word
+  only in the phone menu, and for screen readers), its badge the unread count;
+  the page lists the requests still pending, then what the office decided (granted,
+  changed, declined; never a removal), written by `lib/requests/service.ts` in the
+  decision's own transaction into `portal.notifications` (migration 0012), so the person
+  learns of a grant even while Gmail is not authorised. Admins get none (not now, owner).
+  Add to home screen (owner's call,
   2026-09-28; the port had "no install button"): a Home banner until installed or
   dismissed, then an item in the avatar menu. Android installs in one tap through the
   browser's own offer; a web page cannot install itself on an iPhone, from any browser,
@@ -315,7 +322,9 @@ they are signed out at once), and the audit row `person_deleted` keeps a full co
 what they held (name, HR email, employee number, switch, every app row with role and
 restaurants) and the apps they had starred. Their stars (`portal.favourites`) are deleted
 too. So the record of what they could do moves into the journal rather than being lost.
-Unstarring an app also deletes its row: a star is a preference, not history.
+Unstarring an app also deletes its row: a star is a preference, not history. So is a
+notification: a read one is deleted 30 days after it was read (owner's call), when its
+owner next opens Notifications (`lib/notifications.ts`); rbac.audit keeps the decision.
 The second exception (owner's calls, 2026-09-29): JM DevOps. An issue can be deleted
 (`deleteIssue` in `lib/devops/store.ts`): the admin types its number (66 or #066), its number is
 never given out again, its history stays under the project and number, and a `deleted`
@@ -536,7 +545,10 @@ notes written twice, the verifier ignoring a field; then project delete, 5: with
 exact name, in any case, keeping history rows, touching another project, no admin
 check; then no prefix, 3: a task deleted without its number and "CHK-066" read as 66
 were caught; removing the duplicate-name check survives on purpose, because the unique
-index on the name still refuses it and the same test sees that), and RLS on every
+index on the name still refuses it and the same test sees that), Notifications (9:
+grant, change or decline telling nobody, a removal telling them, a grant's note written
+outside its transaction, read ones never cleared or cleared at 1 or 60 days instead of 30,
+marking everyone's read), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`
