@@ -44,7 +44,7 @@ export const cashDict = {
   counted_of: { fr: "compté sur", en: "counted of" },
   latest_count: { fr: "Dernier décompte", en: "Latest count" },
   counts_on_day: { fr: "Décomptes de la journée", en: "Counts on this day" },
-  counts_on_day_sub: { fr: "Du plus ancien au plus récent. Ouvrez-en un pour voir le détail.", en: "Oldest first. Open one to see the detail." },
+  counts_on_day_sub: { fr: "Du plus récent au plus ancien. Ouvrez-en un pour voir le détail.", en: "Newest first. Open one to see the detail." },
   latest_tag: { fr: "Dernier", en: "Latest" },
   no_counts_here: { fr: "Aucun décompte pour cette journée.", en: "No counts on this day." },
   nav_dashboard: { fr: "Tableau de bord", en: "Dashboard" },

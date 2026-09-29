@@ -84,6 +84,15 @@ describe.skipIf(!db)('cash counts on Postgres (rolled back)', () => {
     });
   });
 
+  it('a day’s counts come newest first (owner, 2026-09-29)', async () => {
+    await rolledBack(async (tx) => {
+      // 9:00 and 14:30 in Toronto (UTC-5 in January), filed in that order.
+      const morning = (await save(tx, await draft(tx), new Date('2030-01-15T14:00:00Z'))) as { id: number };
+      const afternoon = (await save(tx, await draft(tx), new Date('2030-01-15T19:30:00Z'))) as { id: number };
+      expect((await countsOn(tx, '2030-01-15', [RID])).map((x) => x.id)).toEqual([afternoon.id, morning.id]);
+    });
+  });
+
   it('a 9 pm count in Toronto is dated that day, though it is already tomorrow in UTC', async () => {
     await rolledBack(async (tx) => {
       const out = await save(tx, await draft(tx), new Date('2030-01-16T02:00:00Z'));

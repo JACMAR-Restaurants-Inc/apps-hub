@@ -189,14 +189,17 @@ function summary(r: typeof safeCounts.$inferSelect): CountSummary {
   };
 }
 
-/** The counts of one day at the given restaurants, in the order they were filed. */
+/**
+ * The counts of one day at the given restaurants, NEWEST FIRST (owner, 2026-09-29: see
+ * what was posted last at the top; it used to be oldest first, in the order filed).
+ */
 export async function countsOn(conn: Conn, date: string, storeIds: readonly string[]): Promise<CountSummary[]> {
   if (!storeIds.length) return [];
   const rows = await conn
     .select()
     .from(safeCounts)
     .where(and(eq(safeCounts.countDate, date), inArray(safeCounts.restaurantId, [...storeIds])))
-    .orderBy(asc(safeCounts.countTime), asc(safeCounts.id));
+    .orderBy(desc(safeCounts.countTime), desc(safeCounts.id));
   return rows.map(summary);
 }
 
