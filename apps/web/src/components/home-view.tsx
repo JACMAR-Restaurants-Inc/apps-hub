@@ -2,7 +2,7 @@
 
 import { favouriteAction } from '@/app/actions';
 import type { CategoryKey } from '@/lib/catalogue';
-import { canAsk, fold, greetingPart, type HomeCard } from '@/lib/home';
+import { appsPageOrder, canAsk, fold, greetingPart, type HomeCard } from '@/lib/home';
 import { t, type Lang } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useSyncExternalStore } from 'react';
@@ -75,7 +75,9 @@ export function HomeView(props: {
   // A category with nothing on this page falls back to All (§61).
   const activeCat = props.categories.some((c) => c.key === cat) ? cat : '';
   const needle = fold(q.trim());
-  const shown = cards.filter((c) => (!needle || c.hay.includes(needle)) && (!activeCat || c.category === activeCat));
+  const matched = cards.filter((c) => (!needle || c.hay.includes(needle)) && (!activeCat || c.category === activeCat));
+  // Applications: favourites first, then alphabetical (owner, 2026-09-29). Home keeps its order.
+  const shown = page === 'apps' ? appsPageOrder(matched, isFav, lang) : matched;
   const clear = () => {
     setQ('');
     setCat('');

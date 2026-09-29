@@ -130,6 +130,16 @@ export function favouriteCards(cards: readonly HomeCard[], order: readonly strin
   return order.flatMap((k) => byKey.get(k) ?? []);
 }
 
+/**
+ * The Applications page's order (owner, 2026-09-29): the person's favourites first,
+ * then everything else, each part alphabetical in the reader's language. The home page
+ * keeps homeCards' order (what they can open first), under its own Favoris section.
+ */
+export function appsPageOrder<C extends Pick<HomeCard, 'key' | 'name' | 'nameFr'>>(cards: readonly C[], favourites: ReadonlySet<string>, lang: 'fr' | 'en'): C[] {
+  const name = (c: C) => (lang === 'fr' ? c.nameFr : c.name);
+  return [...cards].sort((a, b) => Number(favourites.has(b.key)) - Number(favourites.has(a.key)) || name(a).localeCompare(name(b), lang, { sensitivity: 'base' }));
+}
+
 /** Somebody can ask for something on this list: its line says the office is told. */
 export const canAsk = (cards: readonly HomeCard[]) => cards.some((c) => c.state === 'askable' || c.state === 'revoked');
 
