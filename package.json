@@ -17,7 +17,8 @@
     "test:watch": "TZ=UTC vitest",
     "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config packages/db/drizzle.config.ts",
-    "import": "tsx packages/import/src/cli.ts"
+    "import": "tsx packages/import/src/cli.ts",
+    "import:devops": "tsx packages/import/src/devops-cli.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

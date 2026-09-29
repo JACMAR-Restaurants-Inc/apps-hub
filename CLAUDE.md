@@ -114,12 +114,24 @@ say what it used to say. A file that disagrees with reality is worse than none.
   for Drive until the Workspace grants Drive access (§4); `CASH_FILE_STORE` switches.
   Checked end to end on 2026-09-28 with test count 611 at Hull (its report job 603 is set
   to 8 attempts so the sweep never sends it).
+- **JM DevOps is built** (2026-09-29, branch `jm-devops`; `apps/web/src/app/devops`,
+  `lib/devops`): Project Management rebuilt, under the old app's own name (owner's call).
+  System admins ONLY (the owner and Pierre), no emails, no "my issues" (both see
+  everything). Its own app like Cash Balancing: the old app's look (DM Sans, navy
+  sidebar of projects), light by default with Clair / Sombre (`dv_theme` cookie), the
+  same avatar menu. Overview, each project's Board / List / Dashboard, and an issue at
+  its own address (`/devops/CHK/66`). Beyond the old app, agreed with the owner:
+  Annulée with a required reason, comments (they replace the one-line Notes),
+  history per issue, a "Déplacer vers" menu on every card besides drag and drop, real
+  admins as assignees. The portal card now opens `/devops` and says JM DevOps. Staging
+  holds the 2026-09-29 snapshot: 8 projects, 92 issues, 11 notes as comments, every
+  one of the 88 assignees matched to an admin; run twice, the second changed nothing.
 - Not built yet: the Drive file store (`CASH_FILE_STORE=drive`), moving the 256 imported
-  attachments from Drive (they keep their Drive file id and open by their old link),
-  Project Management. Accounts not created yet: production Supabase, domain, production
+  attachments from Drive (they keep their Drive file id and open by their old link).
+  Accounts not created yet: production Supabase, domain, production
   OAuth client. Staging on Vercel needs, besides the database: `SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
-  `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen".
+  `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then listed Project Management.
 
 ## 2. Layout
 
@@ -132,6 +144,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
     packages/import   the spreadsheet import: xlsx -> transform -> load -> verify
     packages/clearview  employee lookup in Clearview (HR): name, HR email, active, store
     apps/web/src/lib/requests  asking for access and granting it: rules, store, emails
+    apps/web/src/lib/devops    JM DevOps: rules, store, i18n; the app is app/devops
     packages/email    where an email actually goes (test vs live)
     docs/CUTOVER.md   the approval-day checklist
 
@@ -259,7 +272,7 @@ granted. Any exception denies. `explain()` gives the reason for logs and admin s
 **A blank never grants** (RBAC §4), and here the database enforces it: `active` and
 `status` are NOT NULL, and a store grant is a row, so there is no "denied" to mistype.
 
-**Nothing is deleted, with ONE guarded exception.** People are deactivated,
+**Nothing is deleted, with TWO guarded exceptions.** People are deactivated,
 memberships revoked. There are no cascading deletes, so a careless delete fails instead
 of taking history with it. The exception (owner's call, 2026-09-26): an admin can DELETE
 a person from the directory, so their next sign-in is a first visit. It is guarded
@@ -269,7 +282,24 @@ they are signed out at once), and the audit row `person_deleted` keeps a full co
 what they held (name, HR email, employee number, switch, every app row with role and
 restaurants) and the apps they had starred. Their stars (`portal.favourites`) are deleted
 too. So the record of what they could do moves into the journal rather than being lost.
-Unstarring an app also deletes its row: a star is a preference, not history. This used to say, without exception, "Nothing is deleted".
+Unstarring an app also deletes its row: a star is a preference, not history.
+The second exception (owner's call, 2026-09-29): a JM DevOps issue can be deleted
+(`deleteIssue` in `lib/devops/store.ts`). Guarded the same way: the admin types its key
+(CHK-066), its number is never given out again, its history stays under the project and
+number, and a `deleted` event keeps a full copy of it and its comments. Projects are
+archived, never deleted. This used to say, without exception, "Nothing is deleted",
+then "ONE guarded exception".
+
+**JM DevOps numbers issues under a row lock, and saves only what the page showed**
+(`lib/devops/store.ts`). A new issue takes its project's `next_number` in the same
+UPDATE that raises it, so two people creating at once never share a number (the old
+`nextId` took max+1 from the sheet, and deleting the newest issue let its number come
+back). Every field saves on its own, sending the value the page showed; if the issue
+no longer has it, nothing is written and the answer is `changed` (with two people on
+one issue, the second save must not silently undo the first). Every change is an event.
+Dates are `date` columns in Toronto: the old API sent them through UTC and showed them
+a day early. Every action is `requireSystemAdmin` first; a test calls each one as a
+non-admin and with no session and checks the store is never reached.
 
 **Emails are normalised on every read and write** with `normalizeEmail`: lowercase,
 trim, and strip dots ONLY for Gmail (Yahoo and Hotmail dots are significant).
@@ -381,6 +411,19 @@ the roster email is how sign-in recognises people.
     had a job do not get one.
   - Every number reconciled to the cent (totals, variances, every total against its
     lines). The verifier re-checks that from the database after each import.
+- **JM DevOps** comes from its own spreadsheet ("Projects Management": a Config tab of
+  projects, a tab per project), by `npm run import:devops`, a download in the same
+  snapshot folder. Columns are found by header (the old code read them by position, so
+  the usual spellings are accepted). Issue numbers are kept (CHK-066 stays 66). A
+  status, type or priority that is not the old app's word, a duplicate or foreign ID,
+  or a titled row the sheet never stamped is a problem and nothing is written. The
+  assignee becomes an admin only when the text is exactly one admin's first or full
+  name ("Sony"); anything else ("Teammate A") keeps its text. Notes become the issue's
+  first comment with no author, shown with its day only (the sheet kept no time).
+  Imported issues have no creator: the sheet never said. An .xlsx tab name is at most
+  31 characters, so the download cuts long ones ("ClearviewService Library Refactor"
+  arrives as "...Refact") while Config keeps the full name: the import accepts that
+  exact cut and nothing looser (found on the first real download, 2026-09-29).
 
 ## 6. Commands
 
@@ -392,6 +435,9 @@ the roster email is how sign-in recognises people.
     npm run import -- <snapshot folder>                        dry run: reads, checks, writes nothing
     npm run import -- <snapshot folder> --write --target <ref> import, then verify
     npm run import -- <snapshot folder> --verify --target <ref>
+    npm run import:devops -- <snapshot folder> [--write | --verify] --target <ref>
+                          JM DevOps, from the Projects Management sheet (its own
+                          command, so the app stays separable)
 
 `<ref>` is the Supabase project ref that `DATABASE_URL` points at (staging:
 `rdfzqfztzhvgvjzfmxwx`), typed out so an import cannot reach the wrong database. The
@@ -419,6 +465,11 @@ tests, wrongly. Separately, tests that touch the database are named `*.db.test.t
 that puts them in the `postgres` group, one file at a time in a single process, so they
 never add up against the session pooler's 15 clients (§1) beside a dev server.
 
+**A Drizzle table has its own `.name`, so a wrong column name can typecheck.**
+`users.name` compiled (the column is `fullName`) and failed at run time with "Cannot
+convert undefined or null to object" from inside Drizzle (2026-09-29, the JM DevOps
+layout). When that error appears, check the column names in the select.
+
 **Restart `next dev` after a schema change.** The database client lives on `globalThis`
 across hot reloads (§1), and drizzle keeps a column-name cache inside it: a column added
 while the server runs has no name, and every query touching it fails with
@@ -438,7 +489,12 @@ email, favourites (only a visible app can be starred, the order starred, a delet
 person's stars go), the add-to-home-screen rules (7), Cash Balancing (10: the variance
 against settings, negative amounts, the double-tap guard, linking only your own uploads,
 the sweep's 7 days, never resending, both stale-value checks on Admin, HTML escaping in
-the emails, the file type from the bytes), and RLS on every
+the emails, the file type from the bytes), JM DevOps (21, all caught: numbering from
+max+1 instead of the lock, a stale save, cancelling without a reason, delete without
+the key or losing its history, editing an archived project, a non-admin assignee, the
+admin check skipped, overdue and completion, GitHub links, and in its import: dates
+through UTC, a guessed assignee, status or duplicate ID, numbering moving backwards,
+notes written twice, the verifier ignoring a field), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

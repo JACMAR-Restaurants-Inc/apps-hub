@@ -57,6 +57,13 @@
       "when": 1790623261949,
       "tag": "0007_cash_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790656856703,
+      "tag": "0008_devops",
+      "breakpoints": true
     }
   ]
 }

@@ -69,9 +69,11 @@ describe('how a card opens (§76/§77/§82)', () => {
     expect(style('GitHub')).toEqual({ label: 'open', newTab: true });
     expect(style('Fujitsu')).toEqual({ label: 'open', newTab: true });
   });
-  it('a form of ours marked newTab opens in a new tab; Project Management does not', () => {
+  it('a form of ours marked newTab opens in a new tab', () => {
     expect(style('Prequart')).toEqual({ label: 'open', newTab: true });
-    expect(style('Projects')).toEqual({ label: 'open', newTab: false });
+  });
+  it('JM DevOps, rebuilt here, is an app of ours: same tab', () => {
+    expect(style('Projects')).toEqual({ label: 'openApp', newTab: false });
   });
 });
 

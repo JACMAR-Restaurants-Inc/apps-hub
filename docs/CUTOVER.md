@@ -61,6 +61,11 @@ carried over: it is full of rehearsal counts and test accounts.
 3. [ ] Run the import into PRODUCTION from that snapshot: first
        `npm run import -- <folder>` (dry run, must say "No problems"), then with
        `--write --target <production ref>`.
+   b. [ ] JM DevOps: download the Projects Management sheet into the same folder
+       (File → Download → Microsoft Excel), then `npm run import:devops -- <folder>`
+       (dry run, "No problems"), then with `--write --target <production ref>`. It
+       verifies itself and must end "All checks passed". Afterwards the old app
+       (GitHub Pages, project-manager-app) is left up read only, like the others.
 4. [ ] It verifies itself (below) and must end "All checks passed". Stop here if not.
    b. [ ] Cash Balancing → Admin: each restaurant's report address is the one decided
        (above), and each expected total matches the sheet.
