@@ -165,7 +165,13 @@ form .dv-btn.danger:not(:disabled) { background:var(--late); color:#FFFFFF; }
 .dv-pcard-name::after { content:""; position:absolute; inset:0; border-radius:10px; }
 .dv-pcard p { margin:0; }
 .dv-pmark { flex:none; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; font-weight:700; font-size:15px; }
-.dv-pills { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px !important; }
+/* The counts: three equal boxes at the bottom of every card, number over word. Cards in
+   a row share a height, so every row of counts lines up however many lines the name
+   takes, and they never wrap (owner, 2026-09-29: "inline for all cards"). */
+.dv-pills { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; margin-top:auto !important; padding-top:8px; }
+.dv-pills .dv-pill { flex-direction:column; justify-content:center; gap:1px; padding:6px 4px; border-radius:8px;
+                     font-size:11.5px; line-height:1.2; text-align:center; overflow-wrap:anywhere; }
+.dv-pills .dv-pill b { font-size:16px; font-weight:700; }
 .dv-pill { display:inline-flex; align-items:center; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; }
 .dv-s-new-soft { background:var(--feature-bg); color:var(--feature-ink); }
 .dv-s-active-soft { background:var(--high-bg); color:var(--high-ink); }
