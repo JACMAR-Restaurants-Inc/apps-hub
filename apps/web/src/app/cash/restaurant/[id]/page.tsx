@@ -32,7 +32,7 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
   const date = dateParam(sp.date) ?? today;
   const [counts, expected] = await Promise.all([countsOn(cashDb(), date, [store.id]), expectedTotals(cashDb(), [store.id])]);
   const exp = expected.get(store.id);
-  const latest = counts.at(-1);
+  const latest = counts[0]; // newest first
   const money = (c: number) => formatCents(c, lang);
   const signed = (c: number) => (c > 0 ? '+' : '') + money(c);
 
@@ -100,7 +100,7 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
                 <Link href={`/cash/count/${c.id}`} className="cb-dayrow">
                   <b>{c.countTime}</b>
                   <span className="dim">{c.managerName}</span>
-                  <span className="tag">{i === counts.length - 1 ? ct(lang, 'latest_tag') : ''}</span>
+                  <span className="tag">{i === 0 ? ct(lang, 'latest_tag') : ''}</span>
                   <span className="dim num">{money(c.grandTotalCents)}</span>
                   <span className={`cb-var num ${c.varianceCents === 0 ? 'zero' : 'neg'}`}>{signed(c.varianceCents)}</span>
                 </Link>

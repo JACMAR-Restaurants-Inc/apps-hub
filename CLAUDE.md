@@ -125,6 +125,10 @@ say what it used to say. A file that disagrees with reality is worse than none.
   for Drive until the Workspace grants Drive access (§4); `CASH_FILE_STORE` switches.
   Checked end to end on 2026-09-28 with test count 611 at Hull (its report job 603 is set
   to 8 attempts so the sweep never sends it).
+  A day's counts are listed NEWEST first, on the Daily view and a restaurant's page
+  (owner, 2026-09-29; the old app, and this one until then, listed oldest first).
+  On a touch screen New Count's totals bar keeps clear of an iPhone's rounded corners,
+  its three totals in equal centred columns (#41, #42).
 - **JM DevOps is built** (2026-09-29, PRs #29 to #36, merged; `apps/web/src/app/devops`,
   `lib/devops`): Project Management rebuilt, under the old app's own name (owner's call).
   System admins ONLY (the owner and Pierre), no emails, no "my issues" (both see
