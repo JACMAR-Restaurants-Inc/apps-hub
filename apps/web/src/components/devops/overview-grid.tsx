@@ -52,7 +52,6 @@ function Card({ lang, p }: { lang: Lang; p: OverviewProject }) {
       <Link href={`/devops/${p.prefix}`} className="dv-pcard-name">
         {p.name}
       </Link>
-      <p className="dv-key">{p.prefix}-###</p>
       {/* Always the same three boxes, number over word, so every card's row lines up
           (owner, 2026-09-29). "En retard", which only some cards have, sits at the top. */}
       <p className="dv-pills">
