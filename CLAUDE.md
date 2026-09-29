@@ -119,7 +119,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
   System admins ONLY (the owner and Pierre), no emails, no "my issues" (both see
   everything). Its own app like Cash Balancing: the old app's look (DM Sans, navy
   sidebar of projects), light by default with Clair / Sombre (`dv_theme` cookie), the
-  same avatar menu. Overview, each project's Board / List / Dashboard, and an issue at
+  same avatar menu. Overview, each project's Dashboard / Board / List (Dashboard
+  first and by default, owner 2026-09-29; the old app opened on the Board), an issue at
   its own address (`/devops/CHK/66`). Beyond the old app, agreed with the owner:
   Annulée with a required reason, comments (they replace the one-line Notes),
   history per issue, a "Déplacer vers" menu on every card besides drag and drop, real

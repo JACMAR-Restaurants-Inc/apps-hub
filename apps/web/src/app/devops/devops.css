@@ -263,7 +263,6 @@ form .dv-btn.danger:not(:disabled) { background:var(--late); color:#FFFFFF; }
 .dv-bar-n { text-align:right; font-weight:700; }
 
 /* --------------------------------------------------------------- issue */
-.dv-issue { max-width:980px; }
 .dv-crumbs { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-dim); }
 .dv-issuecard { padding:18px; display:flex; flex-direction:column; gap:16px; }
 .dv-editor { display:flex; flex-direction:column; gap:16px; }
