@@ -68,15 +68,22 @@
    than a 320px screen (safe-count §14). Classes are cb- so nothing leaks into the
    portal's pages. */
 
-.cb-tabs { display:flex; align-items:center; gap:4px; overflow-x:auto; padding:8px var(--gutter);
-           background:var(--card-bg); border-bottom:1px solid var(--border); scrollbar-width:none; }
-.cb-tabs::-webkit-scrollbar { display:none; }
-.cb-mark { flex:none; width:32px; height:32px; margin-right:6px; border-radius:8px;
+/* Its own bar (cash-bar.tsx): the portal's bar markup, the app's name and mark. The
+   five tabs do not fit beside the name and the avatar below 1024px, so there they go
+   behind the menu button, as the portal's do below 761px. */
+.cb-mark { flex:none; width:32px; height:32px; border-radius:8px;
            background:var(--brand-mark) center / contain no-repeat; }
-.cb-tabs a { flex:none; padding:9px 12px; border-radius:8px; font-weight:600; font-size:14px;
-             color:var(--text-muted); white-space:nowrap; min-height:40px; display:flex; align-items:center; }
-.cb-tabs a:hover { background:var(--card-bg-light); color:var(--text); }
-.cb-tabs a[aria-current='page'] { background:var(--tint); color:var(--gold-ink); }
+.cb-app .cb-bar .pname { color:var(--text); font-weight:700; }
+@media (min-width:761px) and (max-width:1023.98px) {
+  .cb-app .cb-bar .menubtn { display:flex; }
+  .cb-app .cb-bar.open + .scrim { display:block; }
+  .cb-app .cb-bar .tnav { display:none; position:absolute; top:100%; left:0; right:0; z-index:21;
+                          flex-direction:column; align-items:stretch; gap:4px; margin:0; padding:8px 14px 14px;
+                          background:var(--charcoal); border-bottom:1px solid var(--border);
+                          box-shadow:0 20px 30px -20px rgba(16,24,40,.4); }
+  .cb-app .cb-bar.open .tnav { display:flex; }
+  .cb-app .cb-bar .tnav .navl { width:100%; height:42px; }
+}
 
 .cb { padding-bottom:120px; }
 .cb-note { margin:0; padding:14px 16px; border-radius:10px; background:var(--card-bg); border:1px solid var(--border); }
