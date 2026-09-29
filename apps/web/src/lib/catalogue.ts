@@ -95,14 +95,17 @@ export const CATALOGUE: readonly CatalogueApp[] = [
     category: 'development',
     group: 'internal',
     adminOnly: true,
-    selfAuth: true,
+    isApp: true,
     logo: 'projects',
     mark: 'PM',
-    name: 'Project Management',
-    nameFr: 'Gestion de projets',
-    blurb: 'Issues, projects and the kanban board for the office.',
-    blurbFr: 'Dossiers, projets et le tableau kanban du bureau.',
-    defaultUrl: 'https://jacmar-restaurants-inc.github.io/project-manager-app/',
+    // The old app's own name (owner, 2026-09-29); the card used to say "Project
+    // Management", which is kept in the blurb so a search still finds it.
+    name: 'JM DevOps',
+    nameFr: 'JM DevOps',
+    blurb: 'Project management: issues, projects and the kanban board for the office.',
+    blurbFr: 'Gestion de projets\u00a0: les tâches, les projets et le tableau kanban du bureau.',
+    // This app, not the old GitHub Pages door: JM DevOps is rebuilt here.
+    defaultUrl: '/devops',
   },
   {
     key: 'GitHub',
