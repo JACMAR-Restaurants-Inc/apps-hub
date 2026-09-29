@@ -15,7 +15,7 @@ import {
   createIssue,
   createProject,
   deleteIssue,
-  setProjectArchived,
+  deleteProject,
   updateIssue,
   updateProject,
   type IssueInput,
@@ -54,8 +54,8 @@ export async function updateProjectAction(id: unknown, shown: { name: unknown; r
   return run('project.update', async (actor) => ({ outcome: await updateProject(devopsDb(), actor, id as number, shown ?? {}, next ?? {}) }));
 }
 
-export async function archiveProjectAction(id: unknown, archived: unknown): Promise<Result> {
-  return run('project.archive', async (actor) => ({ outcome: await setProjectArchived(devopsDb(), actor, id as number, archived as boolean) }));
+export async function deleteProjectAction(id: unknown, confirm: unknown): Promise<Result> {
+  return run('project.delete', async () => ({ outcome: await deleteProject(devopsDb(), id as number, confirm) }));
 }
 
 export async function createIssueAction(projectId: unknown, raw: IssueInput): Promise<Result> {

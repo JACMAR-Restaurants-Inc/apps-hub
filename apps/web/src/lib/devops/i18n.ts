@@ -15,25 +15,29 @@ export const devopsDict = {
 
   nav_overview: { fr: 'Vue d’ensemble', en: 'Overview' },
   nav_projects: { fr: 'Projets', en: 'Projects' },
-  nav_archived: { fr: 'Archivés', en: 'Archived' },
   nav_projects_menu: { fr: 'Projets JM DevOps', en: 'JM DevOps projects' },
 
   overview_line: { fr: 'Tous les projets et leurs tâches.', en: 'Every project and its issues.' },
   search_projects: { fr: 'Rechercher un projet', en: 'Search projects' },
   no_projects: { fr: 'Aucun projet pour l’instant.', en: 'No projects yet.' },
   no_project_match: { fr: 'Aucun projet ne correspond.', en: 'No project matches.' },
-  archived_projects: { fr: 'Projets archivés', en: 'Archived projects' },
-  archived_tag: { fr: 'Archivé', en: 'Archived' },
 
   new_project: { fr: 'Nouveau projet', en: 'New project' },
   edit_project: { fr: 'Modifier le projet', en: 'Edit project' },
-  archive_project: { fr: 'Archiver le projet', en: 'Archive project' },
-  restore_project: { fr: 'Réactiver le projet', en: 'Restore project' },
-  archive_body: {
-    fr: 'Le projet passe en lecture seule et sort de la liste. Rien n’est supprimé, et vous pourrez le réactiver.',
-    en: 'The project becomes read only and leaves the list. Nothing is deleted, and you can restore it.',
+  delete_project: { fr: 'Supprimer le projet', en: 'Delete project' },
+  delete_project_body: {
+    fr: 'seront supprimées définitivement, avec leurs commentaires et tout l’historique du projet. Rien n’est gardé et cela ne peut pas être annulé.',
+    en: 'will be deleted for good, with their comments and the project’s whole history. Nothing is kept and it cannot be undone.',
   },
-  archived_banner: { fr: 'Projet archivé, en lecture seule.', en: 'Archived project, read only.' },
+  delete_project_body_one: {
+    fr: 'sera supprimée définitivement, avec ses commentaires et tout l’historique du projet. Rien n’est gardé et cela ne peut pas être annulé.',
+    en: 'will be deleted for good, with its comments and the project’s whole history. Nothing is kept and it cannot be undone.',
+  },
+  delete_project_empty: {
+    fr: 'Ce projet n’a aucune tâche. Il sera supprimé définitivement, avec son historique. Cela ne peut pas être annulé.',
+    en: 'This project has no issues. It will be deleted for good, with its history. It cannot be undone.',
+  },
+  delete_type_name: { fr: 'Pour confirmer, tapez le nom exact du projet', en: 'To confirm, type the project’s exact name' },
   manage: { fr: 'Gérer', en: 'Manage' },
   proj_name: { fr: 'Nom', en: 'Name' },
   proj_prefix: { fr: 'Préfixe', en: 'Prefix' },
@@ -139,7 +143,6 @@ export const devopsDict = {
     en: 'Someone changed this meanwhile. The page now shows their version; make your change again if needed.',
   },
   out_invalid: { fr: 'Cette valeur n’est pas acceptée.', en: 'That value is not accepted.' },
-  out_archived: { fr: 'Ce projet est archivé, en lecture seule.', en: 'This project is archived, read only.' },
   out_not_found: { fr: 'Introuvable. Il a peut-être été supprimé.', en: 'Not found. It may have been deleted.' },
   out_prefix_taken: { fr: 'Ce préfixe est déjà pris.', en: 'That prefix is already taken.' },
   out_name_taken: { fr: 'Un projet porte déjà ce nom.', en: 'A project already has that name.' },

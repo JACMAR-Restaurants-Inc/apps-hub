@@ -9,7 +9,8 @@
  * - Every change is an event: who, when, before and after. The sheet kept none.
  * - A new issue takes its project's next number under that project's row lock, so a
  *   number is never given twice, nor reused after a delete (the old nextId was max+1).
- * - An archived project is read only.
+ * - A project can be deleted completely (owner, 2026-09-29), by typing its exact name
+ *   (the old DeleteProjectModal): its issues, comments and history go with it.
  */
 
 import { comments, events, issues, projects, type Db } from '@hub/db';
@@ -36,14 +37,13 @@ import {
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 export type Conn = Db | Tx;
 
-export type Outcome = 'done' | 'unchanged' | 'changed' | 'invalid' | 'not_found' | 'archived' | 'prefix_taken' | 'name_taken';
+export type Outcome = 'done' | 'unchanged' | 'changed' | 'invalid' | 'not_found' | 'prefix_taken' | 'name_taken';
 
 export interface ProjectRow {
   id: number;
   name: string;
   prefix: string;
   githubRepo: string | null;
-  archivedAt: Date | null;
 }
 
 export interface IssueRow {
@@ -65,7 +65,7 @@ export interface IssueRow {
   updatedAt: Date;
 }
 
-const projectCols = { id: projects.id, name: projects.name, prefix: projects.prefix, githubRepo: projects.githubRepo, archivedAt: projects.archivedAt };
+const projectCols = { id: projects.id, name: projects.name, prefix: projects.prefix, githubRepo: projects.githubRepo };
 
 async function inTx<T>(db: Conn, fn: (tx: Tx) => Promise<T>): Promise<T> {
   return (db as Db).transaction(fn);
@@ -78,7 +78,7 @@ const uniqueViolation = (e: unknown): string | null => {
 
 // ---------------------------------------------------------------- reads
 
-/** Every project, active first then archived, each with its counts. */
+/** Every project, by name, each with its counts. */
 export async function listProjects(db: Conn, today: string): Promise<(ProjectRow & { counts: Counts })[]> {
   const [rows, tallies] = await Promise.all([
     db.select(projectCols).from(projects).orderBy(sql`lower(${projects.name})`),
@@ -204,7 +204,6 @@ export async function updateProject(
     return await inTx(db, async (tx) => {
       const [p] = await tx.select().from(projects).where(eq(projects.id, id)).for('update');
       if (!p) return 'not_found';
-      if (p.archivedAt) return 'archived';
       if (p.name !== shown.name || (p.githubRepo ?? '') !== shown.repo) return 'changed';
       if (p.name === name && (p.githubRepo ?? '') === repo) return 'unchanged';
       if (name.toLowerCase() !== p.name.toLowerCase()) {
@@ -222,15 +221,24 @@ export async function updateProject(
   }
 }
 
-/** Archive (read only, out of the way) or bring back. Never a delete. */
-export async function setProjectArchived(db: Conn, actor: string, id: number, archived: boolean): Promise<Outcome> {
-  if (!Number.isSafeInteger(id) || typeof archived !== 'boolean') return 'invalid';
+/**
+ * Delete a project completely (owner, 2026-09-29; the old app did the same):
+ * `confirm` must be its exact name, as the dialog asks for it, so a stray call cannot
+ * delete the wrong one. Its issues, their comments and its whole history go with it,
+ * in one transaction, children first (there are no cascades, CLAUDE.md §3). Nothing
+ * of it is kept.
+ */
+export async function deleteProject(db: Conn, id: number, confirm: unknown): Promise<Outcome> {
+  if (!Number.isSafeInteger(id) || typeof confirm !== 'string') return 'invalid';
   return inTx(db, async (tx) => {
     const [p] = await tx.select().from(projects).where(eq(projects.id, id)).for('update');
     if (!p) return 'not_found';
-    if (!!p.archivedAt === archived) return 'unchanged';
-    await tx.update(projects).set({ archivedAt: archived ? new Date() : null }).where(eq(projects.id, id));
-    await tx.insert(events).values({ projectId: id, actorEmail: actor, event: archived ? 'project_archived' : 'project_restored' });
+    if (confirm.trim() !== p.name) return 'invalid';
+    const ids = (await tx.select({ id: issues.id }).from(issues).where(eq(issues.projectId, id))).map((i) => i.id);
+    await tx.delete(events).where(eq(events.projectId, id));
+    if (ids.length) await tx.delete(comments).where(inArray(comments.issueId, ids));
+    await tx.delete(issues).where(eq(issues.projectId, id));
+    await tx.delete(projects).where(eq(projects.id, id));
     return 'done';
   });
 }
@@ -290,9 +298,10 @@ export async function createIssue(
     return { outcome: 'invalid' };
   }
   return inTx(db, async (tx) => {
-    const [p] = await tx.select({ archivedAt: projects.archivedAt }).from(projects).where(eq(projects.id, projectId)).for('update');
+    // Locked: two new issues take numbers one after the other, and a project being
+    // deleted cannot gain one meanwhile.
+    const [p] = await tx.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).for('update');
     if (!p) return { outcome: 'not_found' as const };
-    if (p.archivedAt) return { outcome: 'archived' as const };
     const [{ number }] = await tx
       .update(projects)
       .set({ nextNumber: sql`${projects.nextNumber} + 1` })
@@ -401,8 +410,6 @@ export async function updateIssue(
   return inTx(db, async (tx) => {
     const [i] = await tx.select().from(issues).where(eq(issues.id, issueId)).for('update');
     if (!i) return 'not_found';
-    const [p] = await tx.select({ archivedAt: projects.archivedAt }).from(projects).where(eq(projects.id, i.projectId));
-    if (p?.archivedAt) return 'archived';
     const before = fieldValue(i, field);
     if (before !== shown) return 'changed';
     if (before === after) return 'unchanged';
@@ -430,8 +437,6 @@ export async function addComment(db: Conn, actor: string, issueId: number, body:
   return inTx(db, async (tx) => {
     const [i] = await tx.select({ projectId: issues.projectId }).from(issues).where(eq(issues.id, issueId)).for('update');
     if (!i) return 'not_found';
-    const [p] = await tx.select({ archivedAt: projects.archivedAt }).from(projects).where(eq(projects.id, i.projectId));
-    if (p?.archivedAt) return 'archived';
     await tx.insert(comments).values({ issueId, authorEmail: actor, body: text });
     return 'done';
   });
@@ -448,9 +453,8 @@ export async function deleteIssue(db: Conn, actor: string, issueId: number, conf
   return inTx(db, async (tx) => {
     const [i] = await tx.select().from(issues).where(eq(issues.id, issueId)).for('update');
     if (!i) return 'not_found';
-    const [p] = await tx.select({ prefix: projects.prefix, archivedAt: projects.archivedAt }).from(projects).where(eq(projects.id, i.projectId));
+    const [p] = await tx.select({ prefix: projects.prefix }).from(projects).where(eq(projects.id, i.projectId));
     if (!p) return 'not_found';
-    if (p.archivedAt) return 'archived';
     if (confirm.trim().toUpperCase() !== issueKey(p.prefix, i.number)) return 'invalid';
     const thread = await tx.select().from(comments).where(eq(comments.issueId, issueId)).orderBy(asc(comments.id));
     await tx.update(events).set({ issueId: null }).where(eq(events.issueId, issueId));

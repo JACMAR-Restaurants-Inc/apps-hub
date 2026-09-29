@@ -46,7 +46,6 @@ export function ProjectMark({ prefix, name, size = 40 }: { prefix: string; name:
 const OUTCOME: Record<string, DevopsKey> = {
   changed: 'out_changed',
   invalid: 'out_invalid',
-  archived: 'out_archived',
   not_found: 'out_not_found',
   prefix_taken: 'out_prefix_taken',
   name_taken: 'out_name_taken',

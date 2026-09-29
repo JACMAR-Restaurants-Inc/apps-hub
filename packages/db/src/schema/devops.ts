@@ -13,7 +13,8 @@
  * - An issue CAN be deleted (owner's call, 2026-09-29), an exception to "nothing is
  *   deleted" (CLAUDE.md §3). Its history stays: the events keep the project and number,
  *   and a `deleted` event keeps a full copy of the issue and its comments.
- * - A project is archived, never deleted.
+ * - A project can be deleted completely, with its issues, comments and history (owner,
+ *   2026-09-29, as the old app did). It used to be archived, never deleted (0010).
  * - Dates are calendar dates (`date`), Toronto's. The old API sent them through UTC and
  *   could show them a day early.
  * - The assignee is an admin's address (normalised). A name from the sheet that matches
@@ -43,8 +44,6 @@ export const projects = devops.table(
     githubRepo: text(),
     /** The number the next issue gets. Only ever goes up. */
     nextNumber: integer().notNull().default(1),
-    /** Set when archived; null while in use. */
-    archivedAt: timestamp({ withTimezone: true }),
     createdAt: stamp(),
     /** Null for projects brought over from the spreadsheet. */
     createdBy: text(),

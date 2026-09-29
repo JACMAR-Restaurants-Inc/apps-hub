@@ -71,6 +71,13 @@
       "when": 1790660036289,
       "tag": "0009_devops_no_requested_by",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790660500179,
+      "tag": "0010_devops_delete_projects",
+      "breakpoints": true
     }
   ]
 }

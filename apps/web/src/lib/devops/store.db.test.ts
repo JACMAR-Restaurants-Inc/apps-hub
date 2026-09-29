@@ -8,7 +8,7 @@ import { existsSync } from 'node:fs';
 import { comments, createDb, events, issues, projects } from '@hub/db';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
-import { addComment, createIssue, createProject, deleteIssue, issueByKey, listProjects, setProjectArchived, updateIssue, updateProject, type Conn } from './store';
+import { addComment, createIssue, createProject, deleteIssue, deleteProject, issueByKey, listProjects, updateIssue, updateProject, type Conn } from './store';
 
 if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
 const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
@@ -154,19 +154,31 @@ describe.skipIf(!db)('JM DevOps on Postgres (rolled back)', () => {
     });
   });
 
-  it('an archived project is read only, and can come back', async () => {
+  it('a project deletes completely, only by its exact name, and nothing else goes', async () => {
     await rolledBack(async (tx) => {
       const pid = await project(tx);
+      const other = await project(tx, 'ZZU', 'Other project');
       const i = await issue(tx, pid);
-      expect(await setProjectArchived(tx, ME, pid, true)).toBe('done');
-      expect(await setProjectArchived(tx, ME, pid, true)).toBe('unchanged');
-      expect((await createIssue(tx, ME, pid, blank, ADMINS, TODAY)).outcome).toBe('archived');
-      expect(await updateIssue(tx, ME, i.id, 'priority', 'medium', 'high', ADMINS)).toBe('archived');
-      expect(await addComment(tx, ME, i.id, 'x')).toBe('archived');
-      expect(await deleteIssue(tx, ME, i.id, 'ZZT-001')).toBe('archived');
-      expect(await updateProject(tx, ME, pid, { name: 'Test project', repo: '' }, { name: 'New', repo: '' })).toBe('archived');
-      expect(await setProjectArchived(tx, ME, pid, false)).toBe('done');
+      const kept = await issue(tx, other);
+      expect(await addComment(tx, ME, i.id, 'A note')).toBe('done');
+      expect(await addComment(tx, ME, kept.id, 'Stays')).toBe('done');
       expect(await updateIssue(tx, ME, i.id, 'priority', 'medium', 'high', ADMINS)).toBe('done');
+
+      expect(await deleteProject(tx, pid, 'test project')).toBe('invalid');
+      expect(await deleteProject(tx, pid, 'ZZT')).toBe('invalid');
+      expect(await deleteProject(tx, pid, '')).toBe('invalid');
+      expect(await deleteProject(tx, pid, ' Test project ')).toBe('done');
+      expect(await deleteProject(tx, pid, 'Test project')).toBe('not_found');
+
+      expect(await tx.select().from(projects).where(eq(projects.id, pid))).toEqual([]);
+      expect(await tx.select().from(issues).where(eq(issues.projectId, pid))).toEqual([]);
+      expect(await tx.select().from(comments).where(eq(comments.issueId, i.id))).toEqual([]);
+      expect(await tx.select().from(events).where(eq(events.projectId, pid))).toEqual([]);
+      // The other project is untouched.
+      expect(await tx.select({ id: issues.id }).from(issues).where(eq(issues.projectId, other))).toEqual([{ id: kept.id }]);
+      expect((await tx.select().from(comments).where(eq(comments.issueId, kept.id))).map((c) => c.body)).toEqual(['Stays']);
+      // Its prefix and name are free again.
+      expect((await createProject(tx, ME, { name: 'Test project', prefix: 'ZZT', repo: '' })).outcome).toBe('done');
     });
   });
 

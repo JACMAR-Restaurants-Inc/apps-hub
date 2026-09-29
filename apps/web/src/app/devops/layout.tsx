@@ -7,7 +7,7 @@ import { projects } from '@hub/db';
 import { loadBar } from '@/lib/home-data';
 import { getLang } from '@/lib/lang';
 import { getViewer } from '@/lib/viewer';
-import { isNull, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { Metadata } from 'next';
 import { DM_Sans } from 'next/font/google';
 import { redirect } from 'next/navigation';
@@ -35,7 +35,6 @@ export default async function DevopsLayout({ children }: LayoutProps<'/devops'>)
     ? await devopsDb()
         .select({ prefix: projects.prefix, name: projects.name })
         .from(projects)
-        .where(isNull(projects.archivedAt))
         .orderBy(sql`lower(${projects.name})`)
     : [];
 

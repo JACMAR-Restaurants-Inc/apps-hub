@@ -29,7 +29,7 @@ type State = { saving?: boolean; saved?: boolean; error?: string | null };
  * changed the field meanwhile, nothing is written, the page reloads with their value
  * and says so.
  */
-export function IssueEditor({ lang, issue, people, readOnly }: { lang: Lang; issue: EditableIssue; people: { email: string; name: string }[]; readOnly: boolean }) {
+export function IssueEditor({ lang, issue, people }: { lang: Lang; issue: EditableIssue; people: { email: string; name: string }[] }) {
   const router = useRouter();
   const [draft, setDraft] = useState(issue.values);
   const [state, setState] = useState<Partial<Record<Field, State>>>({});
@@ -69,7 +69,6 @@ export function IssueEditor({ lang, issue, people, readOnly }: { lang: Lang; iss
       {label(field)}
       <select
         value={draft[field]}
-        disabled={readOnly}
         onChange={(e) => {
           const v = e.target.value;
           if (field === 'status' && v === 'cancelled') return setCancelling(true);
@@ -90,12 +89,12 @@ export function IssueEditor({ lang, issue, people, readOnly }: { lang: Lang; iss
     <label className={`dv-field${props.multiline ? ' wide' : ''}`}>
       {label(field)}
       {props.multiline ? (
-        <textarea value={draft[field]} readOnly={readOnly} rows={8} maxLength={props.max} onChange={(e) => setDraft({ ...draft, [field]: e.target.value })} onBlur={(e) => save(field, e.target.value.trim())} />
+        <textarea value={draft[field]} rows={8} maxLength={props.max} onChange={(e) => setDraft({ ...draft, [field]: e.target.value })} onBlur={(e) => save(field, e.target.value.trim())} />
       ) : (
         <input
           type={props.type ?? 'text'}
           value={draft[field]}
-          readOnly={readOnly}
+         
           list={props.list}
           maxLength={props.max}
           onChange={(e) => {
@@ -123,7 +122,7 @@ export function IssueEditor({ lang, issue, people, readOnly }: { lang: Lang; iss
         {label('title')}
         <input
           value={draft.title}
-          readOnly={readOnly}
+         
           maxLength={200}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}
           onBlur={(e) => {
