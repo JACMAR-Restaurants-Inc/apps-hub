@@ -204,6 +204,16 @@
 .cb-totalbar span { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text-dim); }
 .cb-totalbar b { font-size:18px; font-variant-numeric:tabular-nums; color:var(--text); overflow-wrap:anywhere; }
 .cb-totalbar .mid b { color:var(--text-muted); font-size:15px; }
+/* On a phone the screen's corners are rounded and the home bar sits at the very bottom:
+   pinned to bottom:0, the safe total (left) and the variance (right) were cut off
+   (owner, 2026-09-29, an iPhone). env(safe-area-inset-bottom) above gives nothing,
+   because the app does not opt into viewport-fit=cover (that would move every page),
+   so on a touch screen the bar keeps its own room: lifted off the bottom, and its ends
+   kept in from the corners. A computer keeps the slim bar. */
+@media (hover:none) and (pointer:coarse) {
+  .cb-totalbar { padding:12px max(28px, var(--gutter)) max(30px, calc(14px + env(safe-area-inset-bottom))); }
+  .cb { padding-bottom:160px; }
+}
 
 .cb-prev { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
 .cb-prevnote { margin:0; font-size:12.5px; font-weight:700; color:var(--blue); }
