@@ -1,0 +1,102 @@
+import { MarkRead } from '@/components/mark-read';
+import { Footer, TopBar } from '@/components/top-bar';
+import { appUrl, catalogueApp } from '@/lib/catalogue';
+import { db } from '@/lib/db';
+import { loadHome, loadMyRequests } from '@/lib/home-data';
+import { formatDay, t, type Key, type Lang } from '@/lib/i18n';
+import { getLang } from '@/lib/lang';
+import { listNotifications, type NotificationRow } from '@/lib/notifications';
+import { listRestaurants } from '@/lib/restaurants';
+import { getViewer } from '@/lib/viewer';
+import { redirect } from 'next/navigation';
+
+const ROLE_KEY: Record<string, Key> = { office: 'role_office', manager: 'role_manager', viewer: 'role_viewer' };
+
+/**
+ * Notifications (owner, 2026-09-29), in place of the Demandes page: first the person's
+ * requests still waiting, then what the office decided (granted, changed, declined),
+ * newest first, the unread ones marked "Nouveau". Opening the page marks them read.
+ */
+export default async function NotificationsPage() {
+  const [viewer, lang] = await Promise.all([getViewer(), getLang()]);
+  if (!viewer) redirect('/');
+
+  const [home, pending, notes, stores] = await Promise.all([loadHome(viewer, lang), loadMyRequests(viewer, lang), listNotifications(db(), viewer.email), listRestaurants()]);
+  const storeName = new Map(stores.map((s) => [s.id, s.name]));
+  const unread = notes.some((n) => !n.readAt);
+
+  return (
+    <>
+      <TopBar lang={lang} viewer={home.bar} />
+      <main id="main" className="page" lang={lang}>
+        <div className="pagehead">
+          <h1>{t(lang, 'notificationsTitle')}</h1>
+          <p>{t(lang, 'notificationsLine')}</p>
+        </div>
+
+        {pending.length > 0 && (
+          <section className="notesec">
+            <h2>{t(lang, 'pendingTitle')}</h2>
+            <ul className="reqlist">
+              {pending.map((r) => (
+                <li key={r.key} className="note pending">
+                  <b>{r.name}</b>
+                  <span>{t(lang, 'pendingLine').replace('{date}', r.day)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section className="notesec">
+          <h2>{t(lang, 'notifTitle')}</h2>
+          {notes.length === 0 ? (
+            <p className="favempty">{t(lang, 'notifNone')}</p>
+          ) : (
+            <ul className="reqlist">
+              {notes.map((n) => (
+                <Note key={n.id} lang={lang} n={n} storeName={storeName} />
+              ))}
+            </ul>
+          )}
+          {notes.length > 0 && <p className="notekept">{t(lang, 'notifKept')}</p>}
+        </section>
+        {unread && <MarkRead />}
+      </main>
+      <Footer lang={lang} />
+    </>
+  );
+}
+
+function Note({ lang, n, storeName }: { lang: Lang; n: NotificationRow; storeName: Map<string, string> }) {
+  const app = catalogueApp(n.app);
+  const appName = app ? (lang === 'fr' ? app.nameFr : app.name) : n.app;
+  const title = t(lang, n.kind === 'granted' ? 'notifGranted' : n.kind === 'changed' ? 'notifChanged' : 'notifDeclined').replace('{app}', appName);
+  const role = n.detail ? (ROLE_KEY[n.detail.role] ? t(lang, ROLE_KEY[n.detail.role]!) : n.detail.role) : null;
+  const where = n.detail ? n.detail.stores.map((s) => storeName.get(s) ?? s).join(', ') : '';
+  const url = app ? appUrl(app) : null;
+  return (
+    <li className={`note ${n.kind}${n.readAt ? '' : ' unread'}`}>
+      <div className="notebody">
+        <b>
+          {!n.readAt && <span className="notenew">{t(lang, 'notifNew')}</span>}
+          {title}
+        </b>
+        {role && (
+          <span>
+            {n.kind === 'changed' ? `${t(lang, 'notifNow')} ` : ''}
+            {role}
+            {where ? ` · ${where}` : ''}
+          </span>
+        )}
+        {n.kind === 'declined' && <span>{t(lang, 'notifDeclinedHint')}</span>}
+        <span className="noteday">{formatDay(lang, n.createdAt)}</span>
+      </div>
+      {n.kind !== 'declined' && url && (
+        <a className="pbtn noteopen" href={url}>
+          {t(lang, 'openApp')}
+        </a>
+      )}
+    </li>
+  );
+}

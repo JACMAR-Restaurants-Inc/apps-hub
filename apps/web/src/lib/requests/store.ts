@@ -1,5 +1,5 @@
 import 'server-only';
-import { admins, appMembers, audit, memberStores, permissionRoles, restaurants, users, type Db } from '@hub/db';
+import { admins, appMembers, audit, memberStores, notifications, permissionRoles, restaurants, users, type Db } from '@hub/db';
 import type { Role } from '@hub/rbac';
 import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import type { AccessStore } from './service';
@@ -104,6 +104,10 @@ export function pgAccessStore(db: Db | Tx, inTransaction = false): AccessStore {
 
     async audit(entry) {
       await db.insert(audit).values(entry);
+    },
+
+    async notify(entry) {
+      await db.insert(notifications).values(entry);
     },
   };
   return self;

@@ -14,8 +14,9 @@ export interface BarViewer {
   /** 'admin' | 'office' | 'manager' | 'viewer' | null: the label beside the initials. */
   role: 'admin' | 'office' | 'manager' | 'viewer' | null;
   isAdmin: boolean;
-  /** The badge: for an admin the office's queue (Répertoire), for anyone else their own
-   *  pending requests (Demandes). Hidden at 0. */
+  /** The badge: for an admin the office's queue (Répertoire), for anyone else their
+   *  unread notifications (Notifications; it was their pending requests, on Demandes).
+   *  Hidden at 0. */
   waiting: number;
 }
 
@@ -25,7 +26,8 @@ const ROLE_KEY = { admin: 'roleAdmin', office: 'role_office', manager: 'role_man
  * The top bar, the Apps Script portal's markup (Ui.html, "the bar"; §44/§56/§59).
  * - The mark goes home, and refreshes the page's data (§56), for everybody.
  * - Everybody has the menu (owner's redesign, 2026-09-26), inline from 761px and behind
- *   ≡ below it: Accueil · Applications · Demandes, and for an admin Accueil ·
+ *   ≡ below it: Accueil · Applications · a bell (Notifications; owner, 2026-09-29: an
+ *   icon rather than the word, which the phone menu still shows), and for an admin Accueil ·
  *   Applications · Répertoire des accès · Administration. It used to be admins only,
  *   "a menu with one entry is not a menu"; a manager now has three.
  * - The account card: the address signed in with (the answer to "am I on the right
@@ -38,7 +40,7 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const at = (p: string) => path === p || path.startsWith(p + '/');
-  const links: { href: string; label: Key; current: boolean; count: number }[] = [
+  const links: { href: string; label: Key; current: boolean; count: number; bell?: boolean }[] = [
     { href: '/', label: 'navHome', current: path === '/', count: 0 },
     { href: '/apps', label: 'navApps', current: at('/apps'), count: 0 },
     ...(viewer.isAdmin
@@ -46,7 +48,7 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
           { href: '/admin/access', label: 'navDirectory' as const, current: at('/admin/access'), count: viewer.waiting },
           { href: '/admin/settings', label: 'navSettings' as const, current: at('/admin/settings') || at('/admin/audit'), count: 0 },
         ]
-      : [{ href: '/requests', label: 'navRequests' as const, current: at('/requests'), count: viewer.waiting }]),
+      : [{ href: '/notifications', label: 'navNotifications' as const, current: at('/notifications'), count: viewer.waiting, bell: true }]),
   ];
 
   const goHome = () => {
@@ -71,11 +73,20 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
               <Link
                 key={l.href}
                 href={l.href}
-                className="navl"
+                className={l.bell ? 'navl navbell' : 'navl'}
                 aria-current={l.current ? 'page' : undefined}
+                // The bell alone in the bar: its name is said, and shown in the phone menu.
+                aria-label={l.bell ? `${t(lang, l.label)}${l.count > 0 ? ` (${l.count})` : ''}` : undefined}
+                title={l.bell ? t(lang, l.label) : undefined}
                 onClick={() => setMenuOpen(false)}
               >
-                <span>{t(lang, l.label)}</span>
+                {l.bell && (
+                  <svg className="bell" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8" />
+                    <path d="M10.3 21a1.94 1.94 0 003.4 0" />
+                  </svg>
+                )}
+                <span className={l.bell ? 'navword' : undefined}>{t(lang, l.label)}</span>
                 {l.count > 0 && <span className="count">{l.count}</span>}
               </Link>
             ))}

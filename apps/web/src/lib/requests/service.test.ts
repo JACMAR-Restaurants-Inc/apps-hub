@@ -11,6 +11,7 @@ import {
   type AccessStore,
   type AuditEntry,
   type MemberRow,
+  type NotificationEntry,
   type UserRow,
 } from './service';
 
@@ -24,17 +25,19 @@ function memoryStore(seed: { users?: Record<string, UserRow>; members?: Record<s
     users: new Map(Object.entries(seed.users ?? {})),
     members: new Map(Object.entries(seed.members ?? {})),
     audit: [] as AuditEntry[],
+    notes: [] as NotificationEntry[],
   };
   const key = (app: string, email: string) => `${app}|${email}`;
   const store: AccessStore = {
     async transaction(fn) {
-      const snapshot = structuredClone({ users: [...state.users], members: [...state.members], audit: state.audit });
+      const snapshot = structuredClone({ users: [...state.users], members: [...state.members], audit: state.audit, notes: state.notes });
       try {
         return await fn(store);
       } catch (e) {
         state.users = new Map(snapshot.users);
         state.members = new Map(snapshot.members);
         state.audit = snapshot.audit;
+        state.notes = snapshot.notes;
         throw e;
       }
     },
@@ -65,6 +68,7 @@ function memoryStore(seed: { users?: Record<string, UserRow>; members?: Record<s
     rolesFor: async () => ['office', 'manager', 'viewer'] as Role[],
     notifyAdmins: async () => seed.notify ?? [ADMIN],
     audit: async (entry) => void state.audit.push(entry),
+    notify: async (entry) => void state.notes.push(structuredClone(entry)),
   };
   return { store, state, member: (email = ME) => state.members.get(key(APP, email)) ?? null };
 }
@@ -304,6 +308,45 @@ describe('updateAccess and endAccess', () => {
     expect(await endAccess(d, ADMIN, APP, ME, 'pending')).toBe('done');
     expect(m.member()!.status).toBe('revoked');
     expect(m.state.audit.at(-1)!.detail).toMatchObject({ mail: 'declined', sent: false });
+  });
+
+  it('the person is told in Notifications: granted, changed, declined; never a removal', async () => {
+    const g = memoryStore({ members: { [`${APP}|${ME}`]: { status: 'pending', role: null, notifiedOn: null, stores: [] } }, users: { [ME]: { fullName: 'Jane', hrEmail: null, employeeNumber: null, clearviewStore: null, active: false } } });
+    expect(await grantAccess(deps(g.store).d, ADMIN, APP, ME, 'manager', ['3472', '1647'])).toBe('done');
+    expect(g.state.notes).toEqual([{ email: ME, app: APP, kind: 'granted', detail: { role: 'manager', stores: ['1647', '3472'] } }]);
+
+    const c = active();
+    expect(await updateAccess(deps(c.store).d, ADMIN, APP, ME, 'viewer', ['3472'])).toBe('done');
+    expect(c.state.notes).toEqual([{ email: ME, app: APP, kind: 'changed', detail: { role: 'viewer', stores: ['3472'] } }]);
+
+    const d = memoryStore({ members: { [`${APP}|${ME}`]: { status: 'pending', role: null, notifiedOn: null, stores: [] } } });
+    expect(await endAccess(deps(d.store).d, ADMIN, APP, ME, 'pending')).toBe('done');
+    expect(d.state.notes).toEqual([{ email: ME, app: APP, kind: 'declined', detail: null }]);
+
+    const r = active();
+    expect(await endAccess(deps(r.store).d, ADMIN, APP, ME, 'active')).toBe('done');
+    expect(r.state.notes).toEqual([]);
+  });
+
+  it('no notification when the decision did not happen', async () => {
+    const m = active();
+    const { d } = deps(m.store);
+    expect(await grantAccess(d, ADMIN, APP, ME, 'manager', ['1647'])).toBe('changed');
+    expect(await endAccess(d, ADMIN, APP, ME, 'pending')).toBe('changed');
+    expect(await updateAccess(d, ADMIN, APP, ME, 'manager', ['99999'])).toBe('invalid');
+    expect(m.state.notes).toEqual([]);
+  });
+
+  it('a notification goes with its decision: if it cannot be written, the grant is not kept', async () => {
+    const m = memoryStore({ members: { [`${APP}|${ME}`]: { status: 'pending', role: null, notifiedOn: null, stores: [] } }, users: { [ME]: { fullName: 'Jane', hrEmail: null, employeeNumber: null, clearviewStore: null, active: false } } });
+    const { d, mails } = deps(m.store);
+    m.store.notify = async () => {
+      throw new Error('disk full');
+    };
+    await expect(grantAccess(d, ADMIN, APP, ME, 'manager', ['1647'])).rejects.toThrow('disk full');
+    expect(m.member()).toMatchObject({ status: 'pending', role: null, stores: [] });
+    expect(m.state.users.get(ME)!.active).toBe(false);
+    expect(mails).toHaveLength(0);
   });
 
   it('changed when the row is not in the state the admin saw', async () => {

@@ -20,6 +20,7 @@ import { db } from '@/lib/db';
 import { APPS } from '@/lib/requests/apps';
 import { getRoster, getSignedInEmail, getViewer } from '@/lib/viewer';
 import { setFavourite } from '@/lib/favourites';
+import { markAllRead } from '@/lib/notifications';
 import { addAdmin, addRestaurant, deletePerson, portalAllows, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
 
 const ROLES: readonly Role[] = ['office', 'manager', 'viewer'];
@@ -213,4 +214,14 @@ export async function favouriteAction(app: unknown, on: unknown): Promise<{ outc
     console.error('favouriteAction failed', error);
     return { outcome: 'error' };
   }
+}
+
+/**
+ * Opening Notifications marks the person's own as read (and clears what was read over
+ * 30 days ago). Their own only: the address is the session's, never an argument.
+ */
+export async function markNotificationsReadAction(): Promise<void> {
+  const who = await getSignedInEmail();
+  if (!who) return;
+  await markAllRead(db(), who.email);
 }
