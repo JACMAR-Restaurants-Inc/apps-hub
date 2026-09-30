@@ -93,6 +93,11 @@ carried over: it is full of rehearsal counts and test accounts.
       days (the spreadsheet holds one that failed in April 2026). Rapports lists them.
 - [ ] No `login` or `password` value exists anywhere in the database.
 - [ ] Only the admins are on the roster (nobody else is carried over, CLAUDE.md §5).
+- [ ] Bureau (office) holds every permission Gérant (manager) holds, in every app: the
+      import adds them over the sheet's `Perm_*` tabs (owner, 2026-09-30; CLAUDE.md §1),
+      and `--verify` fails if one is missing.
+- [ ] No beta tester rows (`rbac.beta_testers` is empty): testers are chosen again on
+      the Tests page in production, for whatever beta exists then.
 - [ ] Five real people sign in, request access, are approved, and then see only
       their own restaurants.
 
