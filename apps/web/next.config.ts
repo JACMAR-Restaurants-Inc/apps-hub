@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   // No "X-Powered-By: Next.js": it only tells an attacker what to try.
   poweredByHeader: false,
   async headers() {
-    return securityHeaders(process.env.NODE_ENV === "development");
+    return securityHeaders();
   },
   // Cash Balancing attachments come through a server action: 4 MB files (the old
   // app's limit), plus the form around them. Vercel caps any request at 4.5 MB, so

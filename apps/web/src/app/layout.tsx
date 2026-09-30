@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { connection } from 'next/server';
 import './globals.css';
 
 // Inter 400-700 for the signed-in pages, as the Apps Script portal loaded it (§44).
@@ -19,7 +20,11 @@ export const metadata: Metadata = {
 // and a page that cannot be zoomed shuts out people who need to zoom it.
 export const viewport: Viewport = { themeColor: '#0B2556' };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+  // Every page renders per request, so each gets the nonce the proxy made for it: a page
+  // built in advance (the 404 page was) would carry no nonce and its scripts would be
+  // refused (lib/security-headers.ts).
+  await connection();
   return (
     <html lang="fr" className={inter.variable}>
       <body className="shell">{children}</body>
