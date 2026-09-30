@@ -198,6 +198,7 @@ export const dict = {
     fr: 'Ce numéro d’employé est introuvable. Vérifiez-le auprès du bureau, puis réessayez.',
     en: 'That employee number was not found. Check it with the office, then try again.',
   },
+  rate_limited: { fr: 'Trop de tentatives. Réessayez dans 15 minutes.', en: 'Too many attempts. Try again in 15 minutes.' },
   clearview_unavailable: {
     fr: 'Impossible de vérifier votre numéro en ce moment. Réessayez dans quelques minutes.',
     en: 'Your number cannot be checked right now. Try again in a few minutes.',
@@ -451,6 +452,7 @@ export const dict = {
   ev_name_corrected: { fr: 'nom corrigé', en: 'name corrected' },
   ev_person_deleted: { fr: 'personne supprimée', en: 'person deleted' },
   ev_permission_add: { fr: 'permission ajoutée', en: 'permission added' },
+  ev_rate_limited: { fr: 'limite atteinte', en: 'limit reached' },
   ev_tester_add: { fr: 'testeur ajouté', en: 'tester added' },
   ev_tester_remove: { fr: 'testeur retiré', en: 'tester removed' },
   deletePerson: { fr: 'Supprimer', en: 'Delete' },

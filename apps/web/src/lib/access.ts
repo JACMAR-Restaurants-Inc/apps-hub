@@ -1,8 +1,8 @@
 import 'server-only';
-import { audit } from '@hub/db';
 import { authorizeBetaWith, authorizeWith, requireAdminWith, type AuthorizeDeps } from './authorize-core';
 import { isTester } from './beta/testers';
 import { db } from './db';
+import { journalUnderLimit } from './rate-limit';
 import { getRoster, getSignedInEmail } from './viewer';
 
 export { AccessDenied } from './authorize-core';
@@ -47,10 +47,11 @@ function deps(): AuthorizeDeps {
   return {
     signedInEmail: async () => (await getSignedInEmail())?.email ?? null,
     roster: getRoster,
+    // At most LIMITS.denialAudit rows per person per hour (lib/rate-limit.ts): anyone can
+    // sign in, so refusals must not grow the journal without end. Past the limit the
+    // refusal STILL stands; only its row is skipped, and one 'rate_limited' row says so.
     recordDenial: async (d) => {
-      await db()
-        .insert(audit)
-        .values({ ...d, event: 'denied' });
+      await journalUnderLimit(db(), 'denialAudit', { ...d, event: 'denied' });
     },
     log: (message, error) => console.error(message, error),
   };

@@ -1,6 +1,6 @@
 import 'server-only';
 import { normalizeEmail } from '@hub/core';
-import { audit, authAccounts, authSessions, authUsers, authVerifications, loadRoster } from '@hub/db';
+import { authAccounts, authSessions, authUsers, authVerifications, loadRoster } from '@hub/db';
 import { isSystemAdmin } from '@hub/rbac';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
@@ -8,6 +8,7 @@ import { nextCookies } from 'better-auth/next-js';
 import { eq } from 'drizzle-orm';
 import { authOptions, readAuthEnv } from './auth-options';
 import { db } from './db';
+import { journalUnderLimit } from './rate-limit';
 
 /**
  * "Signed in with no grants" (RBAC §72): somebody signed in whom the roster admits to
@@ -25,9 +26,8 @@ async function auditNoGrants(userId: string) {
     const person = roster.users.get(email);
     const holds = person?.active === true && [...roster.members.entries()].some(([k, m]) => k.endsWith(`|${email}`) && m.status === 'active');
     if (holds) return;
-    await db()
-      .insert(audit)
-      .values({ actorEmail: email, event: 'signed_in_no_grants', targetEmail: email, detail: { onRoster: Boolean(person) } });
+    // Anyone can sign in, again and again: at most LIMITS.noGrantsAudit rows an hour each.
+    await journalUnderLimit(db(), 'noGrantsAudit', { actorEmail: email, event: 'signed_in_no_grants', targetEmail: email, detail: { onRoster: Boolean(person) } });
   } catch (error) {
     console.error('auditNoGrants failed', error);
   }
