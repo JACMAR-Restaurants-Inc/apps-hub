@@ -164,15 +164,24 @@ say what it used to say. A file that disagrees with reality is worse than none.
   `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
   `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then
   listed Project Management.
-- **Pick up here (end of 2026-09-29).** `main` = 55dde4f, CI green, every branch
-  merged. The last changes of the day: JM DevOps' overview (each card's counts are
-  three equal boxes that line up across a row, "en retard" a badge at the top, no
-  prefix anywhere; #34 to #36), then the portal's Notifications, a bell in place of
-  Demandes (#38). Roles, for the record: three (manager / Gérant, office / Bureau,
-  viewer / Consultation), per app with restaurants; system admin is not a role but
-  passes every check. Open, in order:
+- **Pick up here (2026-09-30).** `main` = 2d3589c (and this docs PR after it), CI
+  green, every branch merged. Since 2026-09-29: JM DevOps' overview (counts that line up,
+  "en retard" badge, no prefix; #34 to #36); the portal's Notifications, a bell in place
+  of Demandes (#38); Applications sorted favourites first then alphabetical (#40); Cash
+  Balancing's New Count totals bar clear of an iPhone's corners and evenly spaced (#41,
+  #42, owner confirmed on an iPhone), a day's counts newest first (#43), and system
+  admins may file counts and send to the accountant like managers (#44, owner tested on
+  staging). Roles, for the record: three (manager / Gérant, office / Bureau, viewer /
+  Consultation), per app with restaurants; system admin is not a role but passes every
+  check. Open, in order:
   1. Gmail domain-wide delegation, from the owner's boss (the MUST DO above): no email
-     is sent until then. Drive's scope too, only if files are to move to Drive.
+     is sent until then. Drive's scope too, only if files are to move to Drive. The
+     owner met the boss about it on 2026-09-29; the outcome is not recorded here yet.
+     Every email goes out from `GMAIL_SENDER`, today the OWNER's own address, whoever
+     granted: access emails even show no display name (the Cash reports say "Cash
+     balancing - Jacmar"). For production, a shared Workspace mailbox is better (see
+     `docs/CUTOVER.md`); a display name on the access emails is a small code change, not
+     made yet.
   2. Open JM DevOps on the Vercel staging site, signed in (it has only been seen on the
      laptop), and let the owner walk through it on real data. Also see the bell as a
      NON-admin (the owner's Gmail tester, Gérant at Hull): grant it something and check
