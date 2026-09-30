@@ -32,7 +32,7 @@ export function authorize(app: string, resource: string, action: string, storeId
  * live app it is a new version of, with their role and restaurants there
  * (lib/beta/rules.ts). Same contract: fails closed, audits signed-in refusals.
  *
- *   const { email } = await authorizeBeta('BetaDemo', 'count', 'create', storeId);
+ *   const { email } = await authorizeBeta('CashV2', 'count', 'create', storeId);
  */
 export function authorizeBeta(betaKey: string, resource: string, action: string, storeId?: string | null) {
   return authorizeBetaWith({ ...deps(), isTester: (email, key) => isTester(db(), email, key) }, betaKey, resource, action, storeId);

@@ -21,6 +21,9 @@ type Busy = '' | 'grant' | 'update' | 'decline' | 'revoke';
  * at most 480px, full screen on a phone.
  * - Opens with the Clearview restaurant ticked on a request, or what they hold now.
  * - Only the roles the app's permissions name, each with its help; only open restaurants.
+ * - A Gérant gets ONE restaurant (owner, 2026-09-30): radio buttons instead of boxes, so
+ *   a second cannot be ticked by mistake. Choosing Gérant keeps one of those ticked (the
+ *   Clearview one if it is there) only when it is the only one; otherwise the admin picks.
  * - The note says why the main button is disabled, or what pressing it will do.
  * - While saving: the pressed button spins, a line says what is happening and after 6 s
  *   that it is still going, and the panel cannot be closed, so a failure has somewhere
@@ -74,7 +77,11 @@ export function GrantDrawer(props: {
 
   // grantCheck, from the old panel.
   let check: { ok: boolean; key: Key };
+  // A Gérant runs one restaurant. Only an existing manager saved with several (before
+  // the rule) can arrive here with more; they must be brought down to one to save.
+  const single = role === 'manager';
   if (!role) check = { ok: false, key: 'needRole' };
+  else if (single && stores.length > 1) check = { ok: false, key: 'needOneStoreMgr' };
   else if (!stores.length) check = { ok: false, key: role === 'manager' ? 'needStoreMgr' : 'needStore' };
   else if (target.mode === 'manage') {
     const was = app.stores.filter((id) => openIds.has(id)).sort().join();
@@ -183,7 +190,11 @@ export function GrantDrawer(props: {
                       value={r}
                       checked={role === r}
                       disabled={Boolean(busy)}
-                      onChange={() => setRole(r)}
+                      onChange={() => {
+                        setRole(r);
+                        // To Gérant with several ticked: keep none, so the admin chooses.
+                        if (r === 'manager') setStores((s) => (s.length > 1 ? [] : s));
+                      }}
                     />
                     <span>
                       <b>{t(lang, `role_${r}`)}</b>
@@ -197,20 +208,31 @@ export function GrantDrawer(props: {
 
           <fieldset className="gp-fld">
             <legend>
-              {t(lang, 'restaurants')} <span>{t(lang, 'gpStoresHelp')}</span>
+              {t(lang, 'restaurants')} <span>{t(lang, single ? 'gpStoreHelpMgr' : 'gpStoresHelp')}</span>
             </legend>
             <div className="gp-stores">
               {data.restaurants
                 .filter((r) => r.active)
                 .map((r) => (
                   <label className="gp-store" key={r.id}>
-                    <input
-                      type="checkbox"
-                      value={r.id}
-                      checked={stores.includes(r.id)}
-                      disabled={Boolean(busy)}
-                      onChange={(e) => setStores((s) => (e.target.checked ? [...s, r.id] : s.filter((x) => x !== r.id)))}
-                    />
+                    {single ? (
+                      <input
+                        type="radio"
+                        name="gpstore"
+                        value={r.id}
+                        checked={stores.length === 1 && stores[0] === r.id}
+                        disabled={Boolean(busy)}
+                        onChange={() => setStores([r.id])}
+                      />
+                    ) : (
+                      <input
+                        type="checkbox"
+                        value={r.id}
+                        checked={stores.includes(r.id)}
+                        disabled={Boolean(busy)}
+                        onChange={(e) => setStores((s) => (e.target.checked ? [...s, r.id] : s.filter((x) => x !== r.id)))}
+                      />
+                    )}
                     <span>
                       {storeLabel(r.id)}
                       {person.clearviewStore === r.id && <em>{t(lang, 'fromClearview')}</em>}
@@ -218,14 +240,16 @@ export function GrantDrawer(props: {
                   </label>
                 ))}
             </div>
-            <div className="gp-quick">
-              <button type="button" className="textlink" disabled={Boolean(busy)} onClick={() => setStores([...openIds])}>
-                {t(lang, 'gpAll')}
-              </button>
-              <button type="button" className="textlink" disabled={Boolean(busy)} onClick={() => setStores([])}>
-                {t(lang, 'gpClear')}
-              </button>
-            </div>
+            {!single && (
+              <div className="gp-quick">
+                <button type="button" className="textlink" disabled={Boolean(busy)} onClick={() => setStores([...openIds])}>
+                  {t(lang, 'gpAll')}
+                </button>
+                <button type="button" className="textlink" disabled={Boolean(busy)} onClick={() => setStores([])}>
+                  {t(lang, 'gpClear')}
+                </button>
+              </div>
+            )}
           </fieldset>
 
           <p className={`gp-note${check.key.startsWith('need') ? ' warn' : ''}`}>

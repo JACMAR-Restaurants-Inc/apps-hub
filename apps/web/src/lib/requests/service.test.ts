@@ -197,9 +197,9 @@ describe('grantAccess', () => {
   it('switches the person on, sets role and stores, and emails them once', async () => {
     const m = pending();
     const { d, mails } = deps(m.store);
-    expect(await grantAccess(d, ADMIN, APP, ME, 'manager', ['3472', '1647', '1647'])).toBe('done');
+    expect(await grantAccess(d, ADMIN, APP, ME, 'viewer', ['3472', '1647', '1647'])).toBe('done');
     expect(m.state.users.get(ME)!.active).toBe(true);
-    expect(m.member()).toMatchObject({ status: 'active', role: 'manager', stores: ['1647', '3472'] });
+    expect(m.member()).toMatchObject({ status: 'active', role: 'viewer', stores: ['1647', '3472'] });
     expect(m.member()!.notifiedOn).toBeInstanceOf(Date);
     expect(mails).toHaveLength(1);
     expect(mails[0]!.to).toEqual([ME]);
@@ -207,10 +207,11 @@ describe('grantAccess', () => {
     expect(mails[0]!.text).toContain('1647 - Hull, 3472 - Aylmer');
   });
 
-  it('refuses a role the app does not have, no restaurant, or a closed restaurant', async () => {
+  it('refuses a role the app does not have, no restaurant, a closed restaurant, or a manager at two', async () => {
     for (const [role, stores] of [
       ['boss', ['1647']],
       ['manager', []],
+      ['manager', ['1647', '3472']],
       ['manager', ['99999']],
       ['manager', ['12345']],
     ] as const) {
@@ -312,8 +313,8 @@ describe('updateAccess and endAccess', () => {
 
   it('the person is told in Notifications: granted, changed, declined; never a removal', async () => {
     const g = memoryStore({ members: { [`${APP}|${ME}`]: { status: 'pending', role: null, notifiedOn: null, stores: [] } }, users: { [ME]: { fullName: 'Jane', hrEmail: null, employeeNumber: null, clearviewStore: null, active: false } } });
-    expect(await grantAccess(deps(g.store).d, ADMIN, APP, ME, 'manager', ['3472', '1647'])).toBe('done');
-    expect(g.state.notes).toEqual([{ email: ME, app: APP, kind: 'granted', detail: { role: 'manager', stores: ['1647', '3472'] } }]);
+    expect(await grantAccess(deps(g.store).d, ADMIN, APP, ME, 'viewer', ['3472', '1647'])).toBe('done');
+    expect(g.state.notes).toEqual([{ email: ME, app: APP, kind: 'granted', detail: { role: 'viewer', stores: ['1647', '3472'] } }]);
 
     const c = active();
     expect(await updateAccess(deps(c.store).d, ADMIN, APP, ME, 'viewer', ['3472'])).toBe('done');
@@ -334,6 +335,7 @@ describe('updateAccess and endAccess', () => {
     expect(await grantAccess(d, ADMIN, APP, ME, 'manager', ['1647'])).toBe('changed');
     expect(await endAccess(d, ADMIN, APP, ME, 'pending')).toBe('changed');
     expect(await updateAccess(d, ADMIN, APP, ME, 'manager', ['99999'])).toBe('invalid');
+    expect(await updateAccess(d, ADMIN, APP, ME, 'manager', ['1647', '3472'])).toBe('invalid');
     expect(m.state.notes).toEqual([]);
   });
 

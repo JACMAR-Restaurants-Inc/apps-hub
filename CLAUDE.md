@@ -167,9 +167,12 @@ say what it used to say. A file that disagrees with reality is worse than none.
   Tests menu item shows for admins, and for a tester only while they can open a beta.
   The tester is told in Notifications ("testing"), not by email. Going live: take it
   out of `BETA_APPS`, clear its schema with a deliberate script (never a button),
-  delete its tester rows; the emptied schema is the live one. For now the only beta is
-  a placeholder, `BetaDemo` at `/beta/demo`, which shows what a beta knows of its
-  tester; delete it when the owner's version 2 moves in.
+  delete its tester rows; the emptied schema is the live one. There is NO beta today:
+  the placeholder (`BetaDemo`, `/beta/demo`) was removed on 2026-09-30 once the owner had
+  tried Tests with it and two fakes, and its one tester row and invitation were deleted
+  from staging. With no beta, nobody sees the Tests menu, admins included. The owner will
+  say when the real one (their version 2) is ready; it goes in `BETA_APPS`, its actions
+  call `authorizeBeta()`. The tests bring their own beta (`vi.mock` of `lib/beta/apps`).
 - Not built yet: the Drive file store (`CASH_FILE_STORE=drive`), moving the 256 imported
   attachments from Drive (they keep their Drive file id and open by their old link).
   Accounts not created yet: production Supabase, domain, production
@@ -207,10 +210,9 @@ say what it used to say. A file that disagrees with reality is worse than none.
      was restarting, in 0.18 s, error not captured; then 3 full runs and 15 alone
      passed. Probably a refused connection (§1's 15 clients), unproven. If it fails
      again, keep the output.
-  6. Tests (beta apps, 2026-09-30, migration 0013 applied to staging): try it by hand.
-     As admin, open Tests, add the Gmail tester (Gérant at Hull) to Démo bêta; as that
-     tester, check the bell says 1, the Tests item appears, and the demo shows Gérant ·
-     Hull with "oui" at Hull only. Checked so far by tests and a signed-out visit only.
+  6. Tests (beta apps, PR #46, migration 0013 applied to staging): the owner tried it
+     on localhost, 2026-09-30 ("looks great"). No beta exists now (placeholder removed),
+     so the menu is hidden until the owner's version 2 arrives.
   Demo 2026-10-08, freeze 2026-10-07. Everything built is in the demo: the portal, Cash
   Balancing, JM DevOps, and Tests.
 
@@ -275,7 +277,10 @@ audited under the beta's key.
 `pending` row with no role; `can()` refuses both. Only a system admin can grant,
 change, decline or remove (`requireSystemAdmin`, RBAC §48), and every admin write
 checks under a row lock that the row is still what the page showed, or answers
-`changed`. A declined or removed person may ask again (RBAC §45). The rules live in
+`changed`. A declined or removed person may ask again (RBAC §45). A Gérant holds ONE
+restaurant (owner, 2026-09-30: only office staff and admins span several): the Grant
+panel shows radio buttons for a Gérant, and `validChoice` refuses a manager with more
+than one, since the action is callable with anything. Staging had none with more. The rules live in
 `lib/requests/service.ts`, tested on an in-memory roster AND against Postgres
 (`store.db.test.ts`, inside a transaction that is always rolled back; it runs when
 `.env.local` has a `DATABASE_URL` and is skipped in CI). The employee number is required
@@ -377,8 +382,8 @@ too. So the record of what they could do moves into the journal rather than bein
 Unstarring an app also deletes its row: a star is a preference, not history. Removing a
 beta tester deletes their `rbac.beta_testers` row, like an admins row (a permission, not
 history; the audit keeps `tester_add` / `tester_remove`), and deleting a person takes
-their tester rows too, the journal listing which betas. So is a
-notification: a read one is deleted 30 days after it was read (owner's call), when its
+their tester rows too, the journal listing which betas. A notification is not history
+either: a read one is deleted 30 days after it was read (owner's call), when its
 owner next opens Notifications (`lib/notifications.ts`); rbac.audit keeps the decision.
 The second exception (owner's calls, 2026-09-29): JM DevOps. An issue can be deleted
 (`deleteIssue` in `lib/devops/store.ts`): the admin types its number (66 or #066), its number is

@@ -27,21 +27,10 @@ export interface BetaApp {
   tint: string;
 }
 
-export const BETA_APPS: readonly BetaApp[] = [
-  {
-    // A placeholder, until the first real beta (the owner's version 2) moves in. It
-    // only shows a tester what the beta sees of them; delete it then.
-    key: 'BetaDemo',
-    base: 'SafeCount',
-    name: 'Beta demo',
-    nameFr: 'Démo bêta',
-    blurb: 'A test page: shows the role and restaurants you test with.',
-    blurbFr: 'Une page d’essai : montre le rôle et les restaurants avec lesquels vous testez.',
-    path: '/beta/demo',
-    mark: 'β',
-    tint: '#0369A1',
-  },
-];
+// None yet: the owner's version 2 goes here when it reaches beta. The placeholder
+// (BetaDemo, /beta/demo) was removed on 2026-09-30 once the owner had tried Tests.
+// The tests use their own beta (vi.mock of this module).
+export const BETA_APPS: readonly BetaApp[] = [];
 
 export const betaApp = (key: string) => BETA_APPS.find((a) => a.key === key);
 

@@ -174,16 +174,6 @@ export const dict = {
   out_not_eligible: { fr: 'Cette personne doit être active dans l’application actuelle.', en: 'This person must be active in the current app.' },
   notifTesting: { fr: 'Vous êtes invité à tester {app}', en: 'You are invited to test {app}' },
   notifTestingHint: { fr: 'Elle se trouve sous Tests, avec vos accès habituels.', en: 'It is under Tests, with your usual access.' },
-  // The placeholder beta (app/beta/demo).
-  demoLine: {
-    fr: 'Cette page sert seulement à vérifier les tests\u00a0: voici ce qu’une application bêta sait de vous.',
-    en: 'This page only checks testing works: here is what a beta app knows about you.',
-  },
-  demoTestingAs: { fr: 'Vous testez avec votre accès à {app}', en: 'You are testing with your access to {app}' },
-  demoAdmin: { fr: 'Administrateur\u00a0: tous les restaurants', en: 'Administrator: every restaurant' },
-  demoCheck: { fr: 'Pourrait créer un décompte', en: 'Could file a count' },
-  demoYes: { fr: 'oui', en: 'yes' },
-  demoNo: { fr: 'non', en: 'no' },
   notificationsTitle: { fr: 'Notifications', en: 'Notifications' },
   notificationsLine: { fr: 'Ce que le bureau a décidé de vos demandes d’accès, et celles qui attendent encore.', en: 'What the office decided about your access requests, and the ones still waiting.' },
   pendingTitle: { fr: 'En attente', en: 'Waiting' },
@@ -316,7 +306,9 @@ export const dict = {
   gpClear: { fr: 'Effacer', en: 'Clear' },
   needRole: { fr: 'Choisissez un rôle et au moins un restaurant.', en: 'Choose a role and at least one restaurant.' },
   needStore: { fr: 'Choisissez au moins un restaurant.', en: 'Choose at least one restaurant.' },
-  needStoreMgr: { fr: 'Un gérant a besoin d’au moins un restaurant.', en: 'A manager needs at least one restaurant.' },
+  needStoreMgr: { fr: 'Choisissez le restaurant du gérant.', en: 'Choose the manager’s restaurant.' },
+  needOneStoreMgr: { fr: 'Un gérant a un seul restaurant\u00a0: choisissez-en un.', en: 'A manager has one restaurant: choose one.' },
+  gpStoreHelpMgr: { fr: 'un seul pour un gérant', en: 'only one for a manager' },
   readyGrant: {
     fr: 'L’accès sera activé et {who} recevra le lien de {app} par courriel, en français. Enregistré dans le journal d’audit à votre nom.',
     en: '{who} will be switched on and emailed the {app} link, in French. Recorded in the audit log under your name.',
