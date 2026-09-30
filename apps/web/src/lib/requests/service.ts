@@ -209,6 +209,9 @@ async function validChoice(store: AccessStore, appKey: string, role: Role, store
   if (!appByKey(appKey)) return false;
   if (!(await store.rolesFor(appKey)).includes(role)) return false;
   if (!stores.length) return false;
+  // A manager runs ONE restaurant (owner, 2026-09-30); only office staff and viewers
+  // span several. The Grant panel offers one choice for a Gérant; this refuses the rest.
+  if (role === 'manager' && stores.length !== 1) return false;
   const open = new Set((await store.restaurants()).filter((r) => r.active).map((r) => r.id));
   // Only open restaurants: a closed one denies whatever a row says (can() step 5).
   return stores.every((s) => open.has(s));

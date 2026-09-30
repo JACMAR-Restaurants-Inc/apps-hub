@@ -52,9 +52,9 @@ describe.skipIf(!db)('access rules on Postgres (rolled back)', () => {
         expect(await membership()).toMatchObject({ status: 'pending', role: null, notifiedOn: null });
         expect(await requestAccess(deps, EMAIL, APP, '0014')).toBe('duplicate');
 
-        expect(await grantAccess(deps, 'sony@jacmar-restaurants.com', APP, EMAIL, 'manager', ['1647', '3472'])).toBe('done');
+        expect(await grantAccess(deps, 'sony@jacmar-restaurants.com', APP, EMAIL, 'office', ['1647', '3472'])).toBe('done');
         expect((await person())!.active).toBe(true);
-        expect(await membership()).toMatchObject({ status: 'active', role: 'manager', grantedBy: 'sony@jacmar-restaurants.com' });
+        expect(await membership()).toMatchObject({ status: 'active', role: 'office', grantedBy: 'sony@jacmar-restaurants.com' });
         expect(await stores()).toEqual(['1647', '3472']);
         expect(mails).toEqual(['Demande d’accès à Cash Balancing : store-test@example.invalid', 'Vous avez maintenant accès à Cash Balancing']);
 
@@ -77,7 +77,7 @@ describe.skipIf(!db)('access rules on Postgres (rolled back)', () => {
         // In their Notifications: the grant and the change, not the removal.
         const told = await tx.select({ kind: notifications.kind, detail: notifications.detail }).from(notifications).where(eq(notifications.email, EMAIL)).orderBy(asc(notifications.id));
         expect(told).toEqual([
-          { kind: 'granted', detail: { role: 'manager', stores: ['1647', '3472'] } },
+          { kind: 'granted', detail: { role: 'office', stores: ['1647', '3472'] } },
           { kind: 'changed', detail: { role: 'viewer', stores: ['3472'] } },
         ]);
         throw new Rollback();

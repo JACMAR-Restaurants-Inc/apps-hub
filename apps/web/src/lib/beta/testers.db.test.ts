@@ -87,7 +87,9 @@ describe.skipIf(!db)('beta testers on Postgres (rolled back)', () => {
       expect(await addTester(tx, ME, 'BetaDemo', 'nobody@example.invalid')).toBe('not_found');
       expect(await addTester(tx, ME, 'SafeCount', TESTER)).toBe('invalid');
       expect(await addTester(tx, ME, 'BetaDemo', 'not an address')).toBe('invalid');
-      expect(await tx.select().from(betaTesters).where(eq(betaTesters.app, 'BetaDemo'))).toEqual([]);
+      // Only these people: staging may hold real testers the owner added by hand.
+      const ours = await tx.select().from(betaTesters).where(eq(betaTesters.app, 'BetaDemo'));
+      expect(ours.filter((r) => [OFF, LOST, NONE, ME].includes(r.email))).toEqual([]);
     });
   });
 
