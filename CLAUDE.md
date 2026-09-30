@@ -132,7 +132,14 @@ say what it used to say. A file that disagrees with reality is worse than none.
   SYSTEM admins may do whatever a manager can (owner, 2026-09-29, chosen over a "view as
   manager" toggle): file counts at any restaurant and send to the accountant
   (`cashAbilities` in `lib/cash/viewer.ts`, tested). This used to say admins never file
-  counts (safe-count §4); office staff still never do, and the server refuses them.
+  counts (safe-count §4). OFFICE staff (Bureau) may too (owner, 2026-09-30): "office can
+  do whatever managers can do on top of whatever we say office roles can do". The import
+  gives office every permission a manager holds (`officeAsManager` in
+  `packages/import/src/transform.ts`, over the sheet's `Perm_*` tabs, so production gets
+  it on the day and the verifier agrees); staging got the same 5 rows by hand, audited
+  as `permission_add`. This used to say office staff never file counts and the server
+  refuses them. Viewers (Consultation) still only look. On the portal, roles change
+  nothing: Development (JM DevOps, GitHub, Twilio, Intuit) is admins only for everyone.
 - **JM DevOps is built** (2026-09-29, PRs #29 to #36, merged; `apps/web/src/app/devops`,
   `lib/devops`): Project Management rebuilt, under the old app's own name (owner's call).
   System admins ONLY (the owner and Pierre), no emails, no "my issues" (both see
@@ -189,7 +196,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
   admins may file counts and send to the accountant like managers (#44, owner tested on
   staging). Roles, for the record: three (manager / Gérant, office / Bureau, viewer /
   Consultation), per app with restaurants; system admin is not a role but passes every
-  check. Open, in order:
+  check. Bureau does whatever Gérant does plus the consolidated view and Admin (#48); a
+  Gérant holds one restaurant (#47). Open, in order:
   1. Gmail domain-wide delegation, from the owner's boss (the MUST DO above): no email
      is sent until then. Drive's scope too, only if files are to move to Drive. The
      owner met the boss about it on 2026-09-29; the outcome is not recorded here yet.
@@ -596,7 +604,9 @@ email, favourites (only a visible app can be starred, the order starred, a delet
 person's stars go), the add-to-home-screen rules (7), Cash Balancing (10: the variance
 against settings, negative amounts, the double-tap guard, linking only your own uploads,
 the sweep's 7 days, never resending, both stale-value checks on Admin, HTML escaping in
-the emails, the file type from the bytes), JM DevOps (21, all caught: numbering from
+the emails, the file type from the bytes; then office as manager, 5: the import
+forgetting it, giving office viewer rows or duplicates, office not counting, a viewer
+counting), JM DevOps (21, all caught: numbering from
 max+1 instead of the lock, a stale save, cancelling without a reason, delete without
 the key or losing its history, a non-admin assignee, the
 admin check skipped, overdue and completion, GitHub links, and in its import: dates

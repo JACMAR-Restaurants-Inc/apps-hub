@@ -13,11 +13,12 @@ import { CASH_APP } from './math';
  *   system admin (the RBAC library's requireActor did the same).
  * - Three flags, not one role (safe-count §4): manager (files counts, sends to the
  *   accountant), office (the consolidated view), admin (the admin page).
- * - canCount: who files counts. Managers do; office staff never do (safe-count §4, App.html
- *   canCount). SYSTEM admins do too (owner, 2026-09-29: "admins can do whatever the
- *   managers can"); they used to be kept out like office staff. The server already let
- *   them: a system admin passes every can().
- * - canSendToAccountant: a manager's, and a system admin's since the same day.
+ * - canCount: who files counts. Managers do, and so do OFFICE staff (owner, 2026-09-30:
+ *   office does whatever a manager does, on top of its own; the import grants office
+ *   every manager permission, packages/import officeAsManager). This used to say office
+ *   staff never do (safe-count §4). SYSTEM admins do too (owner, 2026-09-29); the server
+ *   already let them: a system admin passes every can(). Viewers never do.
+ * - canSendToAccountant: the same people.
  */
 export interface CashViewer {
   email: string;
@@ -31,10 +32,11 @@ export interface CashViewer {
 }
 
 /** Who may file counts and send to the accountant, from who they are. Pure, so tested. */
-export function cashAbilities(p: { systemAdmin: boolean; office: boolean; adminPanel: boolean; role: string | null | undefined; stores: number }) {
+export function cashAbilities(p: { systemAdmin: boolean; role: string | null | undefined; stores: number }) {
+  const files = p.systemAdmin || p.role === 'manager' || p.role === 'office';
   return {
-    canCount: p.stores > 0 && (p.systemAdmin || !(p.office || p.adminPanel)),
-    canSendToAccountant: p.systemAdmin || p.role === 'manager',
+    canCount: p.stores > 0 && files,
+    canSendToAccountant: files,
   };
 }
 
@@ -59,6 +61,6 @@ export const getCashViewer = cache(async (): Promise<CashViewer | null> => {
     isManager: member?.role === 'manager',
     isOffice,
     isAdmin,
-    ...cashAbilities({ systemAdmin: admin, office: isOffice, adminPanel: isAdmin, role: member?.role, stores: stores.length }),
+    ...cashAbilities({ systemAdmin: admin, role: member?.role, stores: stores.length }),
   };
 });

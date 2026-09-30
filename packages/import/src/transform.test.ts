@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Cell } from './cells';
 import { projectRef } from './cli-ref';
-import { transform } from './transform';
+import { officeAsManager, transform } from './transform';
 import { toCell, type Workbook } from './workbook';
 
 // The xlsx reader returns Toronto wall-clock readings in a Date's UTC fields.
@@ -99,6 +99,18 @@ describe('who is carried over', () => {
   });
 });
 
+describe('office does whatever a manager does (owner, 2026-09-30)', () => {
+  it('adds office to every permission a manager holds, once, and to nothing else', () => {
+    const rows = [
+      { app: 'A', resource: 'count', action: 'create', role: 'manager' },
+      { app: 'A', resource: 'count', action: 'view', role: 'manager' },
+      { app: 'A', resource: 'count', action: 'view', role: 'office' },
+      { app: 'A', resource: 'report', action: 'view', role: 'viewer' },
+    ];
+    expect(officeAsManager(rows)).toEqual([{ app: 'A', resource: 'count', action: 'create', role: 'office' }]);
+  });
+});
+
 describe('what the cells mean', () => {
   const { plan } = transform(access(), cash());
 
@@ -107,6 +119,8 @@ describe('what the cells mean', () => {
       { app: 'SafeCount', resource: 'count', action: 'create', role: 'manager' },
       { app: 'SafeCount', resource: 'count', action: 'view', role: 'office' },
       { app: 'SafeCount', resource: 'count', action: 'view', role: 'viewer' },
+      // Office does whatever a manager does (owner, 2026-09-30), whatever the sheet says.
+      { app: 'SafeCount', resource: 'count', action: 'create', role: 'office' },
     ]);
     expect(plan.restaurants.map((r) => [r.restaurantId, r.active])).toEqual([
       ['1647', true],
