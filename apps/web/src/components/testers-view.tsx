@@ -1,11 +1,12 @@
 'use client';
 
 import { testerAction } from '@/app/actions';
-import { baseName, betaApp } from '@/lib/beta/apps';
+import { betaApp } from '@/lib/beta/apps';
 import type { LivePerson } from '@/lib/beta/testers';
+import { fold } from '@/lib/home';
 import { t, type Key, type Lang } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { BetaCard } from './beta-card';
 import { SessionExpired } from './session-expired';
 
@@ -31,6 +32,7 @@ export function TestersView({ lang, betas, storeNames }: { lang: Lang; betas: Be
   const [confirm, setConfirm] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
   const [pick, setPick] = useState('');
+  const [query, setQuery] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
 
@@ -68,7 +70,7 @@ export function TestersView({ lang, betas, storeNames }: { lang: Lang; betas: Be
       {betas.map((b) => {
         const app = betaApp(b.key);
         if (!app) return null;
-        const live = baseName(app, lang);
+        const appName = lang === 'fr' ? app.nameFr : app.name;
         return (
           <section className="panel betapanel" key={b.key} aria-labelledby={`testers-${b.key}`}>
             <div className="appgrid">
@@ -95,7 +97,7 @@ export function TestersView({ lang, betas, storeNames }: { lang: Lang; betas: Be
                       </div>
                       <div className="acts">
                         {lost ? (
-                          <span className="pill off">{t(lang, 'testerLost').replace('{app}', live)}</span>
+                          <span className="pill off">{t(lang, 'testerLost')}</span>
                         ) : (
                           <span className="testeraccess">{access(x)}</span>
                         )}
@@ -133,6 +135,7 @@ export function TestersView({ lang, betas, storeNames }: { lang: Lang; betas: Be
                 onClick={() => {
                   setMessage(null);
                   setPick('');
+                  setQuery('');
                   setAdding(b.key);
                 }}
               >
@@ -140,7 +143,7 @@ export function TestersView({ lang, betas, storeNames }: { lang: Lang; betas: Be
               </button>
             ) : b.candidates.length === 0 ? (
               <div className="askbox" style={{ marginTop: 12 }}>
-                <p>{t(lang, 'addTesterNobody').replace('{app}', live)}</p>
+                <p>{t(lang, 'addTesterNobody').replace('{app}', appName)}</p>
                 <div className="askrow">
                   <button type="button" className="btn-x" onClick={() => setAdding(null)}>
                     {t(lang, 'cancel')}
@@ -159,20 +162,16 @@ export function TestersView({ lang, betas, storeNames }: { lang: Lang; betas: Be
                 <p>
                   <b>{t(lang, 'addTester')}</b>
                 </p>
-                <label>
-                  {t(lang, 'addTesterPick')}
-                  <select required autoFocus value={pick} onChange={(e) => setPick(e.target.value)}>
-                    <option value="" disabled>
-                      …
-                    </option>
-                    {b.candidates.map((c) => (
-                      <option key={c.email} value={c.email}>
-                        {`${c.fullName ?? c.email} · ${access(c)}`}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="hint">{t(lang, 'addTesterHelp').replace('{app}', live)}</span>
-                </label>
+                <PersonSearch
+                  lang={lang}
+                  people={b.candidates}
+                  describe={access}
+                  query={query}
+                  onQuery={setQuery}
+                  pick={pick}
+                  onPick={setPick}
+                  help={t(lang, 'addTesterHelp').replace('{app}', appName)}
+                />
                 <div className="askrow">
                   <button type="submit" className="btn-go" disabled={!pick || busy === `${b.key}:new`}>
                     {busy === `${b.key}:new` ? t(lang, 'gpSaving') : t(lang, 'add')}
@@ -187,5 +186,70 @@ export function TestersView({ lang, betas, storeNames }: { lang: Lang; betas: Be
         );
       })}
     </>
+  );
+}
+
+const SHOWN = 8;
+
+/**
+ * Finding a tester among many (owner, 2026-09-30: "lets say we have 100 users"): type
+ * any part of a name, address, role or restaurant, accents and case ignored, and pick
+ * from the first few matches. Nothing is listed before a letter is typed.
+ */
+function PersonSearch(props: {
+  lang: Lang;
+  people: LivePerson[];
+  describe: (p: LivePerson) => string;
+  query: string;
+  onQuery: (q: string) => void;
+  pick: string;
+  onPick: (email: string) => void;
+  help: string;
+}) {
+  const { lang, people, describe, query, pick } = props;
+  const id = useId();
+  const needle = fold(query.trim());
+  const chosen = people.find((p) => p.email === pick);
+  const matches = needle ? people.filter((p) => fold(`${p.fullName ?? ''} ${p.email} ${describe(p)}`).includes(needle)) : [];
+
+  return (
+    <div className="pickperson">
+      <label htmlFor={`${id}-q`}>{t(lang, 'addTesterSearch')}</label>
+      <input
+        id={`${id}-q`}
+        type="search"
+        autoFocus
+        autoComplete="off"
+        placeholder={t(lang, 'addTesterSearchHint')}
+        value={query}
+        onChange={(e) => props.onQuery(e.target.value)}
+        aria-describedby={`${id}-help`}
+      />
+      <span className="hint" id={`${id}-help`}>
+        {props.help}
+      </span>
+      {chosen && (
+        <div className="pickchosen" role="status">
+          <span className="mini">{t(lang, 'addTesterChosen')}</span>
+          <b>{chosen.fullName ?? chosen.email}</b>
+          <span>{describe(chosen)}</span>
+        </div>
+      )}
+      {needle && (
+        <ul className="picklist" aria-label={t(lang, 'addTesterSearch')}>
+          {matches.slice(0, SHOWN).map((p) => (
+            <li key={p.email}>
+              <button type="button" aria-pressed={p.email === pick} onClick={() => props.onPick(p.email)}>
+                <b>{p.fullName ?? p.email}</b>
+                <span>{p.email}</span>
+                <span>{describe(p)}</span>
+              </button>
+            </li>
+          ))}
+          {matches.length === 0 && <li className="picknone">{t(lang, 'addTesterNoMatch')}</li>}
+          {matches.length > SHOWN && <li className="picknone">{t(lang, 'addTesterMore').replace('{n}', String(matches.length - SHOWN))}</li>}
+        </ul>
+      )}
+    </div>
   );
 }
