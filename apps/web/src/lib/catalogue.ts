@@ -85,8 +85,8 @@ export const CATALOGUE: readonly CatalogueApp[] = [
         fr: 'Voit les décomptes et les tableaux de bord de ses restaurants, et de tous les restaurants ensemble. Ne modifie rien.',
       },
       office: {
-        en: 'Everything a viewer sees, plus the admin panel.',
-        fr: 'Tout ce que voit la consultation, plus le panneau d’administration.',
+        en: 'Everything a manager does, at their restaurants, plus all restaurants together and the admin panel.',
+        fr: 'Tout ce que fait un gérant, dans ses restaurants, plus tous les restaurants ensemble et le panneau d’administration.',
       },
     },
   },

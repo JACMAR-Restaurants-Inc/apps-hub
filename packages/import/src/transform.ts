@@ -73,6 +73,18 @@ export interface Plan {
 
 const PSEUDO_RESTAURANTS = new Set(['ALL', 'ADMIN']);
 const ROLES = ['office', 'manager', 'viewer'] as const;
+
+/**
+ * Office staff (Bureau) may do whatever a manager (Gérant) may, on top of what the sheet
+ * gives office (owner, 2026-09-30). This reverses safe-count §4, where office staff never
+ * filed counts. Applied here, over the Perm_* tabs, so production gets it on the day from
+ * the same snapshot and the verifier agrees with it. Returns only the rows to ADD.
+ */
+export function officeAsManager<R extends { app: string; resource: string; action: string; role: string }>(rows: readonly R[]): R[] {
+  const key = (r: R) => `${r.app}|${r.resource}|${r.action}`;
+  const office = new Set(rows.filter((r) => r.role === 'office').map(key));
+  return rows.filter((r) => r.role === 'manager' && !office.has(key(r))).map((r) => ({ ...r, role: 'office' }));
+}
 const SCOPES = new Set(['global', 'store', 'consolidated']);
 const REPORT_STATUS: Record<string, 'sent' | 'failed'> = { done: 'sent', sent: 'sent', failed: 'failed' };
 
@@ -163,6 +175,7 @@ export function transform(access: Workbook, cash: Workbook): Result {
       for (const role of ROLES) if (exactly('granted', c[role])) permissionRoleRows.push({ app, resource, action, role });
     }
   }
+  permissionRoleRows.push(...officeAsManager(permissionRoleRows));
 
   // ---- Cash Balancing ----
 

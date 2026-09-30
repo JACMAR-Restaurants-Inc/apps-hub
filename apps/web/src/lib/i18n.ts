@@ -450,6 +450,7 @@ export const dict = {
   ev_signed_in_no_grants: { fr: 'connexion sans accès', en: 'signed in with no grants' },
   ev_name_corrected: { fr: 'nom corrigé', en: 'name corrected' },
   ev_person_deleted: { fr: 'personne supprimée', en: 'person deleted' },
+  ev_permission_add: { fr: 'permission ajoutée', en: 'permission added' },
   ev_tester_add: { fr: 'testeur ajouté', en: 'tester added' },
   ev_tester_remove: { fr: 'testeur retiré', en: 'tester removed' },
   deletePerson: { fr: 'Supprimer', en: 'Delete' },
