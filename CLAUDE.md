@@ -467,8 +467,8 @@ from ANOTHER site (a script, font, image, an iframe), or a hand-written `<script
 be refused until it is added on purpose. Checked in headless Chrome through its
 debugging protocol on a production build: the door, the 404 page and /requests run
 with 0 violations and every script carries the nonce, and a script without the nonce
-was refused. Signed-in pages were clicked through by the owner for #50; for #53, see
-the PR.
+was refused. Signed-in pages: the owner clicked through them on a local production build for
+#50 and again for #53 ("Everythings working"); staging, after the merge, is theirs to try.
 
 **Abuse is rate-limited, in Postgres** (`apps/web/src/lib/rate-limit.ts`,
 `portal.rate_limits`, migration 0014; 2026-09-30). Per person, in fixed windows counted
