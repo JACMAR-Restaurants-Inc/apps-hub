@@ -446,6 +446,22 @@ schema, and `rls.test.ts` fails if a new table leaves it out. Never use Supabase
 `NEXT_PUBLIC_SUPABASE_*` snippet: it is for browser access, which we do not use. The
 service-role key never goes near the browser.
 
+**Every response carries the browser security headers** (`apps/web/src/lib/security-headers.ts`,
+wired in `next.config.ts`; 2026-09-30, the owner asked whether the app is protected
+from web attacks and it sent none). A Content-Security-Policy on every page (only this
+site's own scripts, styles, images and fonts; no plugins; no posting forms elsewhere;
+nobody may frame the pages, so no clickjacking an admin's buttons), X-Frame-Options,
+nosniff, Referrer-Policy `same-origin`, a Permissions-Policy, and no "X-Powered-By".
+HSTS comes from Vercel. The policy is left OFF the two private file addresses
+(`/cash/files/*`, `/cash/count/*/pdf`), which keep their own headers: a policy on a PDF
+blanked Chrome's viewer once. It is Next's "without nonces" policy, so scripts still
+allow 'unsafe-inline'; a nonce-based policy is the stronger next step. Anything new
+loaded from ANOTHER site (a script, font, image, an iframe) will be blocked until it is
+added to the policy on purpose. Checked 2026-09-30 in headless Chrome through its
+debugging protocol: the door page runs with no violation (and a deliberately broken
+page was caught, so the check can see one). Signed-in pages: the owner clicked through
+them on a local production build and approved the merge (#50).
+
 **Never store or log SIN, address or birth date** from Clearview. Drop them on arrival.
 
 ## 4. Email: live on staging, by the owner's choice
