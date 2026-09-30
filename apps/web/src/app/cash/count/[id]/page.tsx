@@ -47,7 +47,7 @@ export default async function CountDetailPage({ params }: PageProps<'/cash/count
 
   const [restaurants, roster] = await Promise.all([listRestaurants(), getRoster()]);
   const name = restaurants.find((r) => r.id === d.restaurantId)?.name ?? d.restaurantId;
-  const canSend = cash.isManager && can(roster, cash.email, CASH_APP, 'accountant', 'send', d.restaurantId);
+  const canSend = cash.canSendToAccountant && can(roster, cash.email, CASH_APP, 'accountant', 'send', d.restaurantId);
   const money = (c: number) => formatCents(c, lang);
   const signed = (c: number) => (c > 0 ? '+' : '') + money(c);
   const tone = (c: number) => (c < 0 ? 'neg' : c > 0 ? 'pos' : 'zero');

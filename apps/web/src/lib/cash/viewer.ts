@@ -13,7 +13,11 @@ import { CASH_APP } from './math';
  *   system admin (the RBAC library's requireActor did the same).
  * - Three flags, not one role (safe-count §4): manager (files counts, sends to the
  *   accountant), office (the consolidated view), admin (the admin page).
- * - canCount: Office and Admin never file counts (safe-count §4, App.html canCount).
+ * - canCount: who files counts. Managers do; office staff never do (safe-count §4, App.html
+ *   canCount). SYSTEM admins do too (owner, 2026-09-29: "admins can do whatever the
+ *   managers can"); they used to be kept out like office staff. The server already let
+ *   them: a system admin passes every can().
+ * - canSendToAccountant: a manager's, and a system admin's since the same day.
  */
 export interface CashViewer {
   email: string;
@@ -23,6 +27,15 @@ export interface CashViewer {
   isOffice: boolean;
   isAdmin: boolean;
   canCount: boolean;
+  canSendToAccountant: boolean;
+}
+
+/** Who may file counts and send to the accountant, from who they are. Pure, so tested. */
+export function cashAbilities(p: { systemAdmin: boolean; office: boolean; adminPanel: boolean; role: string | null | undefined; stores: number }) {
+  return {
+    canCount: p.stores > 0 && (p.systemAdmin || !(p.office || p.adminPanel)),
+    canSendToAccountant: p.systemAdmin || p.role === 'manager',
+  };
 }
 
 export const getCashViewer = cache(async (): Promise<CashViewer | null> => {
@@ -46,6 +59,6 @@ export const getCashViewer = cache(async (): Promise<CashViewer | null> => {
     isManager: member?.role === 'manager',
     isOffice,
     isAdmin,
-    canCount: !(isOffice || isAdmin) && stores.length > 0,
+    ...cashAbilities({ systemAdmin: admin, office: isOffice, adminPanel: isAdmin, role: member?.role, stores: stores.length }),
   };
 });
