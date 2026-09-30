@@ -24,9 +24,10 @@ export default defineConfig({
   test: {
     projects: [
       { test: { name: 'unit', include: everywhere, exclude: onPostgres, alias } },
-      // One fork for the whole group: its files run one after another in that process.
-      // (fileParallelism cannot be set per project.)
-      { test: { name: 'postgres', include: onPostgres, alias, pool: 'forks', poolOptions: { forks: { singleFork: true } }, testTimeout: 30_000 } },
+      // One worker for the whole group: its files run one after another. Vitest 4 allows
+      // this per project; Vitest 3 needed poolOptions.forks.singleFork, which 4 removed
+      // (2026-09-30), and silently ran these files in parallel until this was changed.
+      { test: { name: 'postgres', include: onPostgres, alias, pool: 'forks', maxWorkers: 1, testTimeout: 30_000 } },
     ],
   },
 });

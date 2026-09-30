@@ -609,8 +609,14 @@ cleanup hands to new rows, so disk order stops being insertion order (seen 2026-
 7 of 74 `rbac.audit` rows). The access-rules test compared its audit events in order
 and failed now and then for exactly this; it was first blamed on parallel database
 tests, wrongly. Separately, tests that touch the database are named `*.db.test.ts`:
-that puts them in the `postgres` group, one file at a time in a single process, so they
-never add up against the session pooler's 15 clients (§1) beside a dev server.
+that puts them in the `postgres` group, one file at a time (`maxWorkers: 1`), so they
+never add up against the session pooler's 15 clients (§1) beside a dev server. Vitest 4
+REMOVED the old way (`poolOptions.forks.singleFork`) and would have run them in
+parallel without a word but a deprecation line; checked 2026-09-30 with two sleeping
+test files, sequential with the setting and overlapping without it. The same run prints
+a `pg` warning, "client.query() when the client is already executing a query": `main`
+printed it before the upgrade too; some test sends two queries at once on one
+transaction. Harmless in pg 8, an error in pg 9: find it before upgrading `pg`.
 
 **A Drizzle table has its own `.name`, so a wrong column name can typecheck.**
 `users.name` compiled (the column is `fullName`) and failed at run time with "Cannot
@@ -625,6 +631,20 @@ while the server runs has no name, and every query touching it fails with
 
 CI runs typecheck, tests, lint, build, and fails if the committed migrations do not
 match the schema.
+
+**`npm audit` is clean, with two pins** (`overrides` in the root `package.json`,
+2026-09-30). drizzle-kit (already latest) still loads `@esbuild-kit/core-utils`, which
+asks for esbuild 0.18, open to a dev-server advisory: pinned to drizzle-kit's own 0.25.
+exceljs (already latest) asks for uuid 8, which has a buffer bounds advisory: pinned to
+11.1.1, which keeps the same `v4()`. Both are laptop-only tools (migrations, the import).
+npm 11 marks both "invalid" in `npm ls`: that is how it shows an override, not a fault.
+Proved: `db:generate` finds no changes, `drizzle-kit check` passes, both imports read
+the real snapshots with no problems, `--verify` passes against staging. npm does NOT
+re-resolve an override inside an existing lockfile: it silently left the packages
+missing, and `npm audit` then said 0 because they were gone. The two entries were taken
+from a freshly generated lockfile instead (a whole new lockfile moved 302 entries,
+`pg` included). Remove a pin when drizzle-kit or exceljs no longer needs it.
+Vitest went 3.2.7 to 4.1.11 for its own advisory. Nothing the website runs changed.
 
 **Mutation-check new tests.** Break the rule, confirm a test fails, restore. It is how
 the time-zone gap above was found. Done for the break-glass admin, fail-closed, store
