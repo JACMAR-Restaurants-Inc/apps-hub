@@ -114,10 +114,6 @@ body.shell { font-family: var(--font-inter), 'Segoe UI', -apple-system, BlinkMac
 .askbox select { font: inherit; font-size: 16px; font-weight: 400; padding: 8px 10px; color: var(--text);
                  background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 7px; max-width: 100%; }
 .reqlist li.note.testing { border-left-color: #0369A1; }
-.betademo { display: flex; flex-direction: column; gap: 8px; }
-.betademo dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 8px 0 0; font-size: 14px; }
-.betademo dt { color: var(--text-muted); }
-.betademo dd { margin: 0; color: var(--text); font-weight: 600; }
 /* Ajouter un testeur: a search, not a long dropdown (owner, 2026-09-30). */
 .pickperson { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
 .pickperson input { font: inherit; font-size: 16px; font-weight: 400; padding: 8px 10px; color: var(--text);

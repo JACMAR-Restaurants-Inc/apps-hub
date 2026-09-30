@@ -174,16 +174,6 @@ export const dict = {
   out_not_eligible: { fr: 'Cette personne doit être active dans l’application actuelle.', en: 'This person must be active in the current app.' },
   notifTesting: { fr: 'Vous êtes invité à tester {app}', en: 'You are invited to test {app}' },
   notifTestingHint: { fr: 'Elle se trouve sous Tests, avec vos accès habituels.', en: 'It is under Tests, with your usual access.' },
-  // The placeholder beta (app/beta/demo).
-  demoLine: {
-    fr: 'Cette page sert seulement à vérifier les tests\u00a0: voici ce qu’une application bêta sait de vous.',
-    en: 'This page only checks testing works: here is what a beta app knows about you.',
-  },
-  demoTestingAs: { fr: 'Vous testez avec votre accès à {app}', en: 'You are testing with your access to {app}' },
-  demoAdmin: { fr: 'Administrateur\u00a0: tous les restaurants', en: 'Administrator: every restaurant' },
-  demoCheck: { fr: 'Pourrait créer un décompte', en: 'Could file a count' },
-  demoYes: { fr: 'oui', en: 'yes' },
-  demoNo: { fr: 'non', en: 'no' },
   notificationsTitle: { fr: 'Notifications', en: 'Notifications' },
   notificationsLine: { fr: 'Ce que le bureau a décidé de vos demandes d’accès, et celles qui attendent encore.', en: 'What the office decided about your access requests, and the ones still waiting.' },
   pendingTitle: { fr: 'En attente', en: 'Waiting' },

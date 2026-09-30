@@ -167,9 +167,12 @@ say what it used to say. A file that disagrees with reality is worse than none.
   Tests menu item shows for admins, and for a tester only while they can open a beta.
   The tester is told in Notifications ("testing"), not by email. Going live: take it
   out of `BETA_APPS`, clear its schema with a deliberate script (never a button),
-  delete its tester rows; the emptied schema is the live one. For now the only beta is
-  a placeholder, `BetaDemo` at `/beta/demo`, which shows what a beta knows of its
-  tester; delete it when the owner's version 2 moves in.
+  delete its tester rows; the emptied schema is the live one. There is NO beta today:
+  the placeholder (`BetaDemo`, `/beta/demo`) was removed on 2026-09-30 once the owner had
+  tried Tests with it and two fakes, and its one tester row and invitation were deleted
+  from staging. With no beta, nobody sees the Tests menu, admins included. The owner will
+  say when the real one (their version 2) is ready; it goes in `BETA_APPS`, its actions
+  call `authorizeBeta()`. The tests bring their own beta (`vi.mock` of `lib/beta/apps`).
 - Not built yet: the Drive file store (`CASH_FILE_STORE=drive`), moving the 256 imported
   attachments from Drive (they keep their Drive file id and open by their old link).
   Accounts not created yet: production Supabase, domain, production
@@ -208,8 +211,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
      passed. Probably a refused connection (§1's 15 clients), unproven. If it fails
      again, keep the output.
   6. Tests (beta apps, PR #46, migration 0013 applied to staging): the owner tried it
-     on localhost, 2026-09-30 ("looks great"), and added a tester there. Not yet seen on
-     the Vercel staging site.
+     on localhost, 2026-09-30 ("looks great"). No beta exists now (placeholder removed),
+     so the menu is hidden until the owner's version 2 arrives.
   Demo 2026-10-08, freeze 2026-10-07. Everything built is in the demo: the portal, Cash
   Balancing, JM DevOps, and Tests.
 

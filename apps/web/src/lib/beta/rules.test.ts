@@ -1,11 +1,20 @@
 import { memberKey, permissionKey, type RosterSnapshot } from '@hub/rbac';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CATALOGUE } from '../catalogue';
 import { homeCards } from '../home';
 import { APPS } from '../requests/apps';
 import { canSee } from '../favourites';
 import { BETA_APPS, betaApp } from './apps';
 import { betaDecision, testingApps } from './rules';
+
+// No real beta exists yet (lib/beta/apps.ts), so these tests bring their own.
+vi.mock('./apps', async (importOriginal) => {
+  const real = await importOriginal<typeof import('./apps')>();
+  const TEST = [
+    { key: 'TestBeta', base: 'SafeCount', name: 'Test beta', nameFr: 'Bêta de test', blurb: 'A test.', blurbFr: 'Un test.', path: '/beta/test', mark: 'TB', tint: '#0369A1' },
+  ];
+  return { ...real, BETA_APPS: TEST, betaApp: (key: string) => TEST.find((a) => a.key === key) };
+});
 
 const ADMIN = 'admin@jacmar-restaurants.com';
 const HULL = 'hullmanager@gmail.com';
@@ -35,7 +44,7 @@ const roster: RosterSnapshot = {
   ]),
 };
 
-const decide = (email: string, tester: boolean, resource = 'app', action = 'access', store?: string, key = 'BetaDemo') =>
+const decide = (email: string, tester: boolean, resource = 'app', action = 'access', store?: string, key = 'TestBeta') =>
   betaDecision(roster, email, tester, key, resource, action, store).reason;
 
 describe('who may do what in a beta', () => {
@@ -68,14 +77,23 @@ describe('who may do what in a beta', () => {
 describe('the Tests menu and page', () => {
   it('an admin sees every beta; a tester, the ones they can open; anyone else, none', () => {
     expect(testingApps(roster, ADMIN, new Set()).map((b) => b.key)).toEqual(BETA_APPS.map((b) => b.key));
-    expect(testingApps(roster, HULL, new Set(['BetaDemo'])).map((b) => b.key)).toEqual(['BetaDemo']);
+    expect(testingApps(roster, HULL, new Set(['TestBeta'])).map((b) => b.key)).toEqual(['TestBeta']);
     expect(testingApps(roster, HULL, new Set())).toEqual([]);
     // On the list but cut off live: no tab offering a door that refuses them.
-    expect(testingApps(roster, GONE, new Set(['BetaDemo']))).toEqual([]);
+    expect(testingApps(roster, GONE, new Set(['TestBeta']))).toEqual([]);
   });
 });
 
 describe('beta apps stay out of every ordinary list', () => {
+  it('the REAL list obeys the same rules as the test one', async () => {
+    const real = await vi.importActual<typeof import('./apps')>('./apps');
+    for (const b of real.BETA_APPS) {
+      expect(CATALOGUE.map((a) => a.key)).not.toContain(b.key);
+      expect(CATALOGUE.find((a) => a.key === b.base)?.governed).toBe(true);
+    }
+    expect(new Set(real.BETA_APPS.map((b) => b.key)).size).toBe(real.BETA_APPS.length);
+  });
+
   it('each has its own key, and is a new version of a live, roster-governed app', () => {
     for (const b of BETA_APPS) {
       expect(CATALOGUE.map((a) => a.key)).not.toContain(b.key);
