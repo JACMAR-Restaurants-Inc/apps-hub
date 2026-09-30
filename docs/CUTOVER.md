@@ -12,6 +12,11 @@ carried over: it is full of rehearsal counts and test accounts.
 - [ ] The import has run cleanly against a fresh snapshot at least three times on staging.
 - [ ] Production Supabase project exists, migrations applied, empty.
 - [ ] Production Vercel environment has its own secrets, with `EMAIL_MODE=test` for now.
+- [ ] **Which address the emails come from.** `GMAIL_SENDER` is the owner's own address on
+      staging, so every report and access email looks as if the owner sent it, even
+      decisions Pierre made. For production, a shared Workspace mailbox (for example
+      `portail@jacmar-restaurants.com`) that the Workspace admin creates. The same
+      service account and `gmail.send` scope cover it: only the setting changes.
 - [ ] Production's `ACCOUNTANT_EMAIL` is the real accountant's address, and
       `REPORT_EMAIL_OVERRIDE` is NOT set (on staging it sends every restaurant's report
       to the owner; in production it would hide every report). See CLAUDE.md §4.
