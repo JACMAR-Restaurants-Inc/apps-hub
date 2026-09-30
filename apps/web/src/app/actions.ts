@@ -14,13 +14,14 @@ import { AccessDenied, requireSystemAdmin } from '@/lib/access';
 import { LANG_COOKIE } from '@/lib/i18n';
 import { accessDeps } from '@/lib/requests/deps';
 import { endAccess, grantAccess, requestAccess, updateAccess, type AdminOutcome, type RequestOutcome } from '@/lib/requests/service';
-import { restaurants as restaurantsTable } from '@hub/db';
+import { audit, restaurants as restaurantsTable } from '@hub/db';
 import { explain } from '@hub/rbac';
 import { db } from '@/lib/db';
 import { APPS } from '@/lib/requests/apps';
 import { getRoster, getSignedInEmail, getViewer } from '@/lib/viewer';
 import { setFavourite } from '@/lib/favourites';
 import { markAllRead } from '@/lib/notifications';
+import { allow } from '@/lib/rate-limit';
 import { addTester, removeTester, type TesterOutcome } from '@/lib/beta/testers';
 import { addAdmin, addRestaurant, deletePerson, portalAllows, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
 
@@ -28,7 +29,7 @@ const ROLES: readonly Role[] = ['office', 'manager', 'viewer'];
 const str = (v: FormDataEntryValue | null, max: number) => (typeof v === 'string' && v.length <= max ? v : null);
 
 export interface RequestState {
-  outcome: RequestOutcome | 'not_signed_in' | 'error' | null;
+  outcome: RequestOutcome | 'not_signed_in' | 'rate_limited' | 'error' | null;
   /** What they typed, so a refusal puts the form back with it (RBAC §65). */
   employeeNumber: string;
 }
@@ -40,6 +41,12 @@ export async function requestAccessAction(_: RequestState, form: FormData): Prom
   if (!who) return { outcome: 'not_signed_in', employeeNumber };
   if (!app) return { outcome: 'unknown_app', employeeNumber };
   try {
+    // Each attempt can reach Clearview and email the admins (lib/rate-limit.ts).
+    const gate = await allow(db(), 'accessRequest', who.email);
+    if (!gate.allowed) {
+      if (gate.justTripped) await db().insert(audit).values({ actorEmail: who.email, app, event: 'rate_limited', targetEmail: who.email, detail: { limit: 'accessRequest' } });
+      return { outcome: 'rate_limited', employeeNumber };
+    }
     const outcome = await requestAccess(accessDeps(), who.email, app, employeeNumber);
     if (outcome === 'pending' || outcome === 'duplicate') revalidatePath('/');
     return { outcome, employeeNumber };

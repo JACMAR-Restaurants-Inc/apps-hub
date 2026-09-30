@@ -46,3 +46,19 @@ export const notifications = portal.table(
   },
   (t) => [index().on(t.email, t.createdAt)],
 ).enableRLS();
+
+/**
+ * Rate limits (2026-09-30): how many times a key (an action and a person) was used in a
+ * fixed window. One row per key and window, counted up by one atomic upsert, so every
+ * Vercel instance shares the count; a count held in memory would be per instance.
+ * Rows older than a day are removed as the same key is used again (lib/rate-limit.ts).
+ */
+export const rateLimits = portal.table(
+  'rate_limits',
+  {
+    key: text().notNull(),
+    windowStart: timestamp({ withTimezone: true }).notNull(),
+    hits: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.windowStart] })],
+).enableRLS();

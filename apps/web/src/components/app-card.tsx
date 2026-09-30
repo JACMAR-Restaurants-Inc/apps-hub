@@ -30,7 +30,7 @@ export function AppCard(props: { lang: Lang; card: HomeCard; favourite: boolean;
   const sent = result.outcome === 'pending' || result.outcome === 'duplicate';
   const state = sent ? 'pending' : card.state;
   const refusal: Key | null =
-    result.outcome === 'employee_required' || result.outcome === 'employee_not_found' || result.outcome === 'clearview_unavailable'
+    result.outcome === 'employee_required' || result.outcome === 'employee_not_found' || result.outcome === 'clearview_unavailable' || result.outcome === 'rate_limited'
       ? result.outcome
       : result.outcome === 'not_signed_in'
         ? 'errSession'

@@ -462,6 +462,18 @@ debugging protocol: the door page runs with no violation (and a deliberately bro
 page was caught, so the check can see one). Signed-in pages: the owner clicked through
 them on a local production build and approved the merge (#50).
 
+**Abuse is rate-limited, in Postgres** (`apps/web/src/lib/rate-limit.ts`,
+`portal.rate_limits`, migration 0014; 2026-09-30). Per person, in fixed windows counted
+by one atomic upsert (a count in memory would be per Vercel instance): access requests 5
+per 15 minutes (each reaches Clearview and emails the admins; the form says "Trop de
+tentatives"); refusal rows in the journal 30 an hour, and "signed in with no access"
+rows 5 an hour, because ANYONE with a Google account can sign in and would otherwise
+grow `rbac.audit` without end. Past a journal limit the refusal still stands; its row is
+skipped and ONE `rate_limited` row says so (`journalUnderLimit`). Limits FAIL OPEN (a
+brake, not an access rule; `authorize()` still fails closed). Uploads, counts and report
+emails were already bounded. Not covered here: a flood of anonymous page loads, which is
+Vercel's job (its Firewall can rate-limit by IP on Pro, set in the dashboard).
+
 **Never store or log SIN, address or birth date** from Clearview. Drop them on arrival.
 
 ## 4. Email: live on staging, by the owner's choice
