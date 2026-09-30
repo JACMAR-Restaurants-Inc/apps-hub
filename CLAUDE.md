@@ -698,3 +698,43 @@ transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`
 mutation survives on purpose: letting a no-session caller through is still refused by
 the `allowed && email` guard, and removing both fails a test.
+
+## 7. After the demo: architecture work
+
+An architecture review on 2026-09-30 (the owner asked "are we following great design
+architecture?"), checked in the code that night, not from memory. By the same hands
+that wrote most of the code, so it is a careful self-review, not the independent one
+in `docs/CUTOVER.md`. NOTHING here is for before the demo (freeze 2026-10-07).
+
+**What holds, and must keep holding:** pure rules in packages (`@hub/rbac` has no
+database); per area the same shape, pure rules, a store, server actions that check
+access first (requests, Cash Balancing, JM DevOps, Tests); no app code reaches the
+portal's `rbac` / `identity` tables except through the narrow door (§3, separable;
+none found); every server action checks its caller; no database code in components and
+no client component importing server-only code; rules tested in memory and on Postgres
+in rolled-back transactions, mutation-checked, pinned to UTC.
+
+**What to do, in this order:**
+1. **End-to-end tests of the paths that matter** (sign in, file a count, grant access),
+   e.g. Playwright against a production build. There are 40 test files and NONE for
+   components: screen problems are caught by the owner's hands today (the memory note
+   "owner tests by hand"), which works but does not scale. The biggest gain.
+2. **Error monitoring before production** (Sentry, or Vercel's own). Today errors go to
+   the server log only; in production nobody learns of a failure until someone
+   complains.
+3. **Split New Count** (`components/cash/count-form.tsx`, 710 lines, the largest file):
+   its calculations into tested `lib` code, the screen into smaller parts. The access
+   directory (`components/directory.tsx`, 516) is next.
+4. **Small consistency fixes:** the role names (Gérant, Bureau, Consultation) are mapped
+   in 3 places (`ROLE_KEY` in `app/notifications/page.tsx`, `components/top-bar.tsx`,
+   `components/testers-view.tsx`) and the "1647 - Hull" restaurant label is built in 6:
+   one of each. Two screens query tables directly (`app/admin/settings/page.tsx`,
+   `app/devops/layout.tsx`) where everything else goes through `lib`: move them.
+5. **Move the status log out of this file** (§1 is a running log; the rules are what
+   this file is for) into its own, e.g. `docs/STATUS.md`, keeping §1 short.
+6. **One styling approach, over time.** Tailwind is loaded beside the hand-written CSS
+   and has already bitten (§3: a class named like a utility is one; the "Corrigé"
+   badges vanished).
+
+Also noted, not architecture: the `pg` warning "client.query() when the client is
+already executing a query" (§6) must be found before upgrading to pg 9.
