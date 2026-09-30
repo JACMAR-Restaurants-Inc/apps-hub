@@ -18,6 +18,8 @@ export interface BarViewer {
    *  unread notifications (Notifications; it was their pending requests, on Demandes).
    *  Hidden at 0. */
   waiting: number;
+  /** Shows Tests: a system admin while any beta exists, anyone else while they test one they can open. */
+  testing: boolean;
 }
 
 const ROLE_KEY = { admin: 'roleAdmin', office: 'role_office', manager: 'role_manager', viewer: 'role_viewer' } as const;
@@ -28,7 +30,8 @@ const ROLE_KEY = { admin: 'roleAdmin', office: 'role_office', manager: 'role_man
  * - Everybody has the menu (owner's redesign, 2026-09-26), inline from 761px and behind
  *   ≡ below it: Accueil · Applications · a bell (Notifications; owner, 2026-09-29: an
  *   icon rather than the word, which the phone menu still shows), and for an admin Accueil ·
- *   Applications · Répertoire des accès · Administration. It used to be admins only,
+ *   Applications · Répertoire des accès · Administration. Tests comes after
+ *   Applications, only for a beta's testers and the admins (owner, 2026-09-30). It used to be admins only,
  *   "a menu with one entry is not a menu"; a manager now has three.
  * - The account card: the address signed in with (the answer to "am I on the right
  *   account?"), the language, "Ajouter à l'écran d'accueil" on a phone (install.tsx),
@@ -43,6 +46,7 @@ export function TopBar({ lang, viewer }: { lang: Lang; viewer: BarViewer }) {
   const links: { href: string; label: Key; current: boolean; count: number; bell?: boolean }[] = [
     { href: '/', label: 'navHome', current: path === '/', count: 0 },
     { href: '/apps', label: 'navApps', current: at('/apps'), count: 0 },
+    ...(viewer.testing ? [{ href: '/tests', label: 'navTests' as const, current: at('/tests') || at('/beta'), count: 0 }] : []),
     ...(viewer.isAdmin
       ? [
           { href: '/admin/access', label: 'navDirectory' as const, current: at('/admin/access'), count: viewer.waiting },

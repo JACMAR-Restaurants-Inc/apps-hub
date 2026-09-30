@@ -16,7 +16,7 @@
  */
 
 import { normalizeEmail } from '@hub/core';
-import { admins, appMembers, audit, authAccounts, authSessions, authUsers, favourites, memberStores, restaurants, users, type Db } from '@hub/db';
+import { admins, appMembers, audit, authAccounts, authSessions, authUsers, betaTesters, favourites, memberStores, restaurants, users, type Db } from '@hub/db';
 import { and, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -168,7 +168,8 @@ export async function readAudit(db: Conn, opts: { q?: string; event?: string; li
  * - the admin must type the person's address (`confirm`), not just click;
  * - never an admin (remove the admin role first), never yourself;
  * - the journal keeps a full copy of what they held at that moment (name, HR email,
- *   employee number, switch, every app row with role and restaurants), so the record of
+ *   employee number, switch, every app row with role and restaurants, the betas they
+ *   tested), so the record of
  *   what they could do moves into the audit instead of being lost;
  * - their sign-in (Better Auth's rows) goes too, which signs them out at once.
  * Past counts keep the manager's name as text and the journal keeps addresses as text,
@@ -201,6 +202,7 @@ export async function deletePerson(db: Conn, admin: string, rawEmail: string, co
     // Children first: there are no cascades, on purpose. Their stars go too, so the
     // next visit really is a first visit.
     const stars = await tx.delete(favourites).where(eq(favourites.email, email)).returning({ app: favourites.app });
+    const testing = await tx.delete(betaTesters).where(eq(betaTesters.email, email)).returning({ app: betaTesters.app });
     await tx.delete(memberStores).where(eq(memberStores.email, email));
     await tx.delete(appMembers).where(eq(appMembers.email, email));
     await tx.delete(users).where(eq(users.email, email));
@@ -213,7 +215,7 @@ export async function deletePerson(db: Conn, admin: string, rawEmail: string, co
       await tx.delete(authUsers).where(eq(authUsers.id, u.id));
     }
 
-    await tx.insert(audit).values({ actorEmail: admin, event: 'person_deleted', targetEmail: email, detail: { ...snapshot, favourites: stars.map((f) => f.app), signedOut: identities.length > 0 } });
+    await tx.insert(audit).values({ actorEmail: admin, event: 'person_deleted', targetEmail: email, detail: { ...snapshot, favourites: stars.map((f) => f.app), testing: testing.map((b) => b.app), signedOut: identities.length > 0 } });
     return 'done';
   });
 }

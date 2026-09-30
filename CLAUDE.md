@@ -157,6 +157,19 @@ say what it used to say. A file that disagrees with reality is worse than none.
   matched to an admin; run twice, the second changed nothing. The owner has since added
   a project named "test" there. Seen on the laptop only: NOT yet opened on the Vercel
   staging site.
+- **Tests: beta apps for chosen people** (owner, 2026-09-30; `lib/beta`, `app/tests`).
+  A beta is a new version of a live app (`BETA_APPS` in `lib/beta/apps.ts`, kept OUT of
+  the catalogue so Home, Applications, favourites and Request access never show one),
+  built here with its own schema like Cash Balancing. An admin picks testers on the
+  Tests page from the people active in the live app; a tester keeps the role and
+  restaurants they hold THERE (owner: "a manager who works for Hull keeps the same on
+  testing"), so the only thing stored is `rbac.beta_testers` (migration 0013). The
+  Tests menu item shows for admins, and for a tester only while they can open a beta.
+  The tester is told in Notifications ("testing"), not by email. Going live: take it
+  out of `BETA_APPS`, clear its schema with a deliberate script (never a button),
+  delete its tester rows; the emptied schema is the live one. For now the only beta is
+  a placeholder, `BetaDemo` at `/beta/demo`, which shows what a beta knows of its
+  tester; delete it when the owner's version 2 moves in.
 - Not built yet: the Drive file store (`CASH_FILE_STORE=drive`), moving the 256 imported
   attachments from Drive (they keep their Drive file id and open by their old link).
   Accounts not created yet: production Supabase, domain, production
@@ -194,8 +207,12 @@ say what it used to say. A file that disagrees with reality is worse than none.
      was restarting, in 0.18 s, error not captured; then 3 full runs and 15 alone
      passed. Probably a refused connection (§1's 15 clients), unproven. If it fails
      again, keep the output.
+  6. Tests (beta apps, 2026-09-30, migration 0013 applied to staging): try it by hand.
+     As admin, open Tests, add the Gmail tester (Gérant at Hull) to Démo bêta; as that
+     tester, check the bell says 1, the Tests item appears, and the demo shows Gérant ·
+     Hull with "oui" at Hull only. Checked so far by tests and a signed-out visit only.
   Demo 2026-10-08, freeze 2026-10-07. Everything built is in the demo: the portal, Cash
-  Balancing, JM DevOps.
+  Balancing, JM DevOps, and Tests.
 
 ## 2. Layout
 
@@ -209,6 +226,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
     packages/clearview  employee lookup in Clearview (HR): name, HR email, active, store
     apps/web/src/lib/requests  asking for access and granting it: rules, store, emails
     apps/web/src/lib/devops    JM DevOps: rules, store, i18n; the app is app/devops
+    apps/web/src/lib/beta      beta apps and their testers; the page is app/tests
     packages/email    where an email actually goes (test vs live)
     docs/CUTOVER.md   the approval-day checklist
 
@@ -242,6 +260,16 @@ the session or roster cannot be read, and audits denials by signed-in people (RB
 not grants, and not calls with no session, which would let anyone grow the table).
 Where it touches an existing record, pass the restaurant ON THE RECORD, not one the
 caller names. A perfect UI proves nothing.
+
+**A beta app checks `authorizeBeta()`, never `authorize()`** (`lib/access.ts`, rules in
+`lib/beta/rules.ts`). In order: an unknown beta denies; a system admin passes; anyone
+else must be on the beta's tester list; then `can()` decides on the LIVE app, with the
+person's role and restaurants there, read fresh on every click. So there is no second
+grant to keep in step: removing a tester, switching someone off, or changing their
+restaurants in the live app takes effect in the beta on the next click. A tester can
+only be added while switched on, not an admin, and active in the live app (checked
+under row locks in `lib/beta/testers.ts`, not only by the page's list). Denials are
+audited under the beta's key.
 
 **A request grants nothing.** Asking adds the person with `active = false` and a
 `pending` row with no role; `can()` refuses both. Only a system admin can grant,
@@ -346,7 +374,10 @@ they are signed out at once), and the audit row `person_deleted` keeps a full co
 what they held (name, HR email, employee number, switch, every app row with role and
 restaurants) and the apps they had starred. Their stars (`portal.favourites`) are deleted
 too. So the record of what they could do moves into the journal rather than being lost.
-Unstarring an app also deletes its row: a star is a preference, not history. So is a
+Unstarring an app also deletes its row: a star is a preference, not history. Removing a
+beta tester deletes their `rbac.beta_testers` row, like an admins row (a permission, not
+history; the audit keeps `tester_add` / `tester_remove`), and deleting a person takes
+their tester rows too, the journal listing which betas. So is a
 notification: a read one is deleted 30 days after it was read (owner's call), when its
 owner next opens Notifications (`lib/notifications.ts`); rbac.audit keeps the decision.
 The second exception (owner's calls, 2026-09-29): JM DevOps. An issue can be deleted
@@ -572,7 +603,11 @@ were caught; removing the duplicate-name check survives on purpose, because the 
 index on the name still refuses it and the same test sees that), Notifications (9:
 grant, change or decline telling nobody, a removal telling them, a grant's note written
 outside its transaction, read ones never cleared or cleared at 1 or 60 days instead of 30,
-marking everyone's read), and RLS on every
+marking everyone's read), beta testing (13, all caught: no tester check, deciding on
+the beta's key instead of the live app, no admin bypass, an unknown beta allowed, the
+tab showing every beta, a denial audited under the live app, adding someone switched
+off, without live access or an admin, no invitation, a removal not audited, switched-off
+people offered as candidates, a deleted person keeping tester rows), and RLS on every
 table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`

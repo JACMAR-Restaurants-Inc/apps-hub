@@ -92,6 +92,13 @@
       "when": 1790699140108,
       "tag": "0012_portal_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790783550208,
+      "tag": "0013_beta_testers",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,6 @@
 import { MarkRead } from '@/components/mark-read';
 import { Footer, TopBar } from '@/components/top-bar';
+import { betaApp } from '@/lib/beta/apps';
 import { appUrl, catalogueApp } from '@/lib/catalogue';
 import { db } from '@/lib/db';
 import { loadHome, loadMyRequests } from '@/lib/home-data';
@@ -70,11 +71,15 @@ export default async function NotificationsPage() {
 
 function Note({ lang, n, storeName }: { lang: Lang; n: NotificationRow; storeName: Map<string, string> }) {
   const app = catalogueApp(n.app);
-  const appName = app ? (lang === 'fr' ? app.nameFr : app.name) : n.app;
-  const title = t(lang, n.kind === 'granted' ? 'notifGranted' : n.kind === 'changed' ? 'notifChanged' : 'notifDeclined').replace('{app}', appName);
+  // An invitation to test names a beta app, which is not in the catalogue.
+  const beta = n.kind === 'testing' ? betaApp(n.app) : undefined;
+  const named = app ?? beta;
+  const appName = named ? (lang === 'fr' ? named.nameFr : named.name) : n.app;
+  const title = t(lang, n.kind === 'granted' ? 'notifGranted' : n.kind === 'changed' ? 'notifChanged' : n.kind === 'testing' ? 'notifTesting' : 'notifDeclined').replace('{app}', appName);
   const role = n.detail ? (ROLE_KEY[n.detail.role] ? t(lang, ROLE_KEY[n.detail.role]!) : n.detail.role) : null;
   const where = n.detail ? n.detail.stores.map((s) => storeName.get(s) ?? s).join(', ') : '';
-  const url = app ? appUrl(app) : null;
+  // A beta that has since gone live, or been withdrawn, has no door here.
+  const url = n.kind === 'testing' ? (beta ? beta.path : null) : app ? appUrl(app) : null;
   return (
     <li className={`note ${n.kind}${n.readAt ? '' : ' unread'}`}>
       <div className="notebody">
@@ -90,6 +95,7 @@ function Note({ lang, n, storeName }: { lang: Lang; n: NotificationRow; storeNam
           </span>
         )}
         {n.kind === 'declined' && <span>{t(lang, 'notifDeclinedHint')}</span>}
+        {n.kind === 'testing' && <span>{t(lang, 'notifTestingHint')}</span>}
         <span className="noteday">{formatDay(lang, n.createdAt)}</span>
       </div>
       {n.kind !== 'declined' && url && (

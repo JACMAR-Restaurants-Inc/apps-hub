@@ -21,6 +21,7 @@ import { APPS } from '@/lib/requests/apps';
 import { getRoster, getSignedInEmail, getViewer } from '@/lib/viewer';
 import { setFavourite } from '@/lib/favourites';
 import { markAllRead } from '@/lib/notifications';
+import { addTester, removeTester, type TesterOutcome } from '@/lib/beta/testers';
 import { addAdmin, addRestaurant, deletePerson, portalAllows, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, type SettingsOutcome } from '@/lib/admin/settings';
 
 const ROLES: readonly Role[] = ['office', 'manager', 'viewer'];
@@ -224,4 +225,29 @@ export async function markNotificationsReadAction(): Promise<void> {
   const who = await getSignedInEmail();
   if (!who) return;
   await markAllRead(db(), who.email);
+}
+
+/**
+ * Add or remove a beta tester (owner, 2026-09-30). System admins only; the rules
+ * (who may be added, the audit, the invitation) are lib/beta/testers.ts's.
+ */
+export async function testerAction(intent: unknown, app: unknown, rawEmail: unknown): Promise<{ outcome: TesterOutcome | 'denied' | 'expired' | 'error' }> {
+  let admin: string;
+  try {
+    ({ email: admin } = await requireSystemAdmin(`tester:${String(intent).slice(0, 10)}`));
+  } catch (e) {
+    if (e instanceof AccessDenied) return { outcome: refusal(e) };
+    throw e;
+  }
+  if ((intent !== 'add' && intent !== 'remove') || typeof app !== 'string' || app.length > 40 || typeof rawEmail !== 'string' || rawEmail.length > 320) {
+    return { outcome: 'invalid' };
+  }
+  try {
+    const outcome = intent === 'add' ? await addTester(db(), admin, app, rawEmail) : await removeTester(db(), admin, app, rawEmail);
+    revalidatePath('/', 'layout');
+    return { outcome };
+  } catch (error) {
+    console.error('testerAction failed', error);
+    return { outcome: 'error' };
+  }
 }

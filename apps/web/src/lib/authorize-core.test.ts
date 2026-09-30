@@ -1,6 +1,6 @@
 import { memberKey, permissionKey, type RosterSnapshot } from '@hub/rbac';
 import { describe, expect, it } from 'vitest';
-import { AccessDenied, authorizeWith, requireAdminWith, type AuthorizeDeps, type Denial } from './authorize-core';
+import { AccessDenied, authorizeBetaWith, authorizeWith, requireAdminWith, type AuthorizeDeps, type Denial } from './authorize-core';
 
 const roster: RosterSnapshot = {
   admins: new Set(['admin@jacmar-restaurants.com']),
@@ -75,6 +75,46 @@ describe('authorize', () => {
     const { d, logged } = deps({ recordDenial: async () => Promise.reject(new Error('audit down')) });
     expect(await reasonOf(authorizeWith(d, 'cash', 'count', 'create', '3472'))).toBe('store_inactive');
     expect(logged).toEqual(['authorize: could not audit a denial']);
+  });
+});
+
+describe('authorizeBeta', () => {
+  // The placeholder beta, BetaDemo, is a new version of Cash Balancing (SafeCount).
+  const live: RosterSnapshot = {
+    ...roster,
+    members: new Map([[memberKey('SafeCount', 'manager@gmail.com'), { role: 'manager', status: 'active', stores: new Set(['1647']) }]]),
+    permissions: new Map([[permissionKey('SafeCount', 'count', 'create'), { scope: 'store', roles: new Set(['manager']) }]]),
+  };
+  const beta = (tester: boolean | (() => Promise<boolean>), over: Partial<AuthorizeDeps> = {}) => {
+    const x = deps({ roster: async () => live, ...over });
+    const isTester = typeof tester === 'function' ? tester : async () => tester;
+    return { ...x, d: { ...x.d, isTester } };
+  };
+
+  it('lets a tester through with their live role and restaurant, and records nothing', async () => {
+    const { d, denials } = beta(true);
+    await expect(authorizeBetaWith(d, 'BetaDemo', 'count', 'create', '1647')).resolves.toEqual({ email: 'manager@gmail.com' });
+    expect(denials).toEqual([]);
+  });
+
+  it('refuses a non-tester, audited under the BETA, not the live app', async () => {
+    const { d, denials } = beta(false);
+    expect(await reasonOf(authorizeBetaWith(d, 'BetaDemo', 'count', 'create', '1647'))).toBe('not_tester');
+    expect(denials).toEqual([
+      { actorEmail: 'manager@gmail.com', app: 'BetaDemo', restaurantId: '1647', detail: { resource: 'count', action: 'create', reason: 'not_tester' } },
+    ]);
+  });
+
+  it('fails closed when the tester list cannot be read', async () => {
+    const { d, logged } = beta(() => Promise.reject(new Error('db down')));
+    expect(await reasonOf(authorizeBetaWith(d, 'BetaDemo', 'count', 'create', '1647'))).toBe('error');
+    expect(logged).toHaveLength(1);
+  });
+
+  it('denies a caller with no session, without writing to the audit', async () => {
+    const { d, denials } = beta(true, { signedInEmail: async () => null });
+    expect(await reasonOf(authorizeBetaWith(d, 'BetaDemo', 'count', 'create', '1647'))).toBe('not_signed_in');
+    expect(denials).toEqual([]);
   });
 });
 

@@ -147,3 +147,25 @@ export const audit = rbac.table('audit', {
   /** Before/after values for a change. Never SIN, address or birth date. */
   detail: jsonb().notNull().default(sql`'{}'::jsonb`),
 }).enableRLS();
+
+/**
+ * Beta testers (owner, 2026-09-30): who may try a beta app before it goes live. A row
+ * is a PERMISSION TO TEST and nothing more: inside the beta, the tester's role and
+ * restaurants are those they hold in the live app the beta is a new version of, read
+ * fresh on every click (lib/beta). So a row grants nothing on its own, and removing
+ * one cuts the tester off on their next click. Removal deletes the row (like an admins
+ * row, it is a permission, not history); the audit keeps who, whom and when.
+ */
+export const betaTesters = rbac.table(
+  'beta_testers',
+  {
+    /** The beta app's key (lib/beta/apps.ts), never a live app's. */
+    app: text().notNull(),
+    email: text()
+      .notNull()
+      .references(() => users.email),
+    addedBy: text().notNull(),
+    addedAt: stamp(),
+  },
+  (t) => [primaryKey({ columns: [t.app, t.email] })],
+).enableRLS();

@@ -19,7 +19,8 @@ export const KEEP_READ_DAYS = 30;
 export interface NotificationRow {
   id: number;
   app: string;
-  kind: 'granted' | 'changed' | 'declined';
+  /** 'testing': invited to test a beta app (lib/beta/testers.ts). */
+  kind: 'granted' | 'changed' | 'declined' | 'testing';
   detail: { role: string; stores: string[] } | null;
   createdAt: Date;
   readAt: Date | null;
