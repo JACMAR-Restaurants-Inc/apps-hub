@@ -459,8 +459,8 @@ allow 'unsafe-inline'; a nonce-based policy is the stronger next step. Anything 
 loaded from ANOTHER site (a script, font, image, an iframe) will be blocked until it is
 added to the policy on purpose. Checked 2026-09-30 in headless Chrome through its
 debugging protocol: the door page runs with no violation (and a deliberately broken
-page was caught, so the check can see one). Signed-in pages: NOT yet checked; the
-owner clicks through them before this is trusted.
+page was caught, so the check can see one). Signed-in pages: the owner clicked through
+them on a local production build and approved the merge (#50).
 
 **Never store or log SIN, address or birth date** from Clearview. Drop them on arrival.
 
