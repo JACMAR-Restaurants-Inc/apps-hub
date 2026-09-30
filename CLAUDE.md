@@ -50,7 +50,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
   so it gets the steps (`components/install.tsx`, rules in `lib/install.ts`). Code is at
   github.com/JACMAR-Restaurants-Inc/apps-hub (private).
 - Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
-  Data API off. Migrations 0000–0005 are applied. It holds the 2026-09-25 snapshot:
+  Data API off. Migrations 0000–0013 are applied (this said 0000–0005). It holds the 2026-09-25 snapshot:
   552 counts and their lines, the 7 restaurants, 40 tills, and 2 admins (no one else is
   on the roster; see §5).
   Connection strings live only in `.env.local` (see §6).
@@ -187,8 +187,12 @@ say what it used to say. A file that disagrees with reality is worse than none.
   `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
   `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then
   listed Project Management.
-- **Pick up here (2026-09-30).** `main` = 2d3589c (and this docs PR after it), CI
-  green, every branch merged. Since 2026-09-29: JM DevOps' overview (counts that line up,
+- **Pick up here (2026-09-30, evening).** `main` = fabb98c (and this docs PR after it),
+  CI green, every branch merged. On 2026-09-30: Tests, beta apps for chosen testers
+  (#46; its placeholder removed in #47, so no beta exists until the owner's version 2);
+  a Gérant holds one restaurant (#47); Bureau does whatever Gérant does (#48). A
+  nightly export of Cash Balancing to a Drive sheet was discussed and PARKED (purpose
+  not decided: backup, or a sheet people work in). Since 2026-09-29: JM DevOps' overview (counts that line up,
   "en retard" badge, no prefix; #34 to #36); the portal's Notifications, a bell in place
   of Demandes (#38); Applications sorted favourites first then alphabetical (#40); Cash
   Balancing's New Count totals bar clear of an iPhone's corners and evenly spaced (#41,
