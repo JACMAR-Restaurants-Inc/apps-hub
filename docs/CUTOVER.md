@@ -52,6 +52,14 @@ carried over: it is full of rehearsal counts and test accounts.
         (`drive`, not built yet), the Workspace admin must add the Drive scope to the
         service account's domain-wide delegation, and the production folders must belong
         to the company, not to Pierre, whose Drive holds the old app's PDFs today.
+- [ ] **Vercel on a paid plan, and its Firewall rate rules on.** The app limits abuse per
+      signed-in person (CLAUDE.md §3, rate limits); a flood of anonymous page loads is
+      Vercel's to stop, by IP, in the dashboard. Deferred by the owner until the boss pays
+      for Pro rather than the trial (2026-09-30).
+- [ ] **An independent security review or penetration test** of production before real
+      users sign in. The code's own checks (tests, mutation checks, the headers and the
+      nonce policy checked in Chrome) were written by the same hands that wrote the code.
+      Deferred with the Firewall, the owner's call (2026-09-30).
 - [ ] Managers told the date, the new link, and that they sign in with the same Google account.
 
 ## On the day, after the evening counts

@@ -187,8 +187,16 @@ say what it used to say. A file that disagrees with reality is worse than none.
   `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
   `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then
   listed Project Management.
-- **Pick up here (2026-09-30, evening).** `main` = fabb98c (and this docs PR after it),
-  CI green, every branch merged. On 2026-09-30: Tests, beta apps for chosen testers
+- **Pick up here (2026-09-30, night).** `main` = 2b90e34 (and this docs PR after it),
+  CI green, every branch merged. Late on 2026-09-30, a security pass after the owner
+  asked "is our application protected from web app attacks?": browser security headers
+  (#50), rate limits in Postgres (#51), tool packages with `npm audit` at 0 (#52), a
+  nonce-based Content-Security-Policy (#53); each is described in §3 and §6, and the
+  owner checked the signed-in pages for #50 and #53, #53 on staging too. Two items left,
+  both deferred by the owner until the boss pays for Vercel Pro (no longer the trial):
+  Vercel Firewall rate rules by IP (dashboard, no code), and an independent security
+  review or penetration test before real users; both are in `docs/CUTOVER.md`. Earlier
+  on 2026-09-30: Tests, beta apps for chosen testers
   (#46; its placeholder removed in #47, so no beta exists until the owner's version 2);
   a Gérant holds one restaurant (#47); Bureau does whatever Gérant does (#48). A
   nightly export of Cash Balancing to a Drive sheet was discussed and PARKED (purpose
@@ -216,7 +224,8 @@ say what it used to say. A file that disagrees with reality is worse than none.
      the badge says 1; neither the real non-admin bar nor "En attente" has been seen.
   3. Where each restaurant's report goes: 5 of 7 point at Pierre's mailbox
      (`docs/CUTOVER.md`, "Before the day"). The owner decides.
-  4. Before the Pro trial ends (about 2026-10-11): stay on Pro or not.
+  4. Before the Pro trial ends (about 2026-10-11): stay on Pro or not. The owner's boss
+     decides; the Firewall and the independent review wait for that (above).
   5. Watch the JM DevOps race test (`store.db.test.ts`, "two people creating at the
      same moment"): it failed ONCE on 2026-09-29, in a full run while the dev server
      was restarting, in 0.18 s, error not captured; then 3 full runs and 15 alone
@@ -468,7 +477,8 @@ be refused until it is added on purpose. Checked in headless Chrome through its
 debugging protocol on a production build: the door, the 404 page and /requests run
 with 0 violations and every script carries the nonce, and a script without the nonce
 was refused. Signed-in pages: the owner clicked through them on a local production build for
-#50 and again for #53 ("Everythings working"); staging, after the merge, is theirs to try.
+#50 and again for #53, then on the deployed staging site after #53 merged
+("everythings working and looking good", 2026-09-30).
 
 **Abuse is rate-limited, in Postgres** (`apps/web/src/lib/rate-limit.ts`,
 `portal.rate_limits`, migration 0014; 2026-09-30). Per person, in fixed windows counted
