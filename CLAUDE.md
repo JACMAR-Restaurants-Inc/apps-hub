@@ -446,21 +446,29 @@ schema, and `rls.test.ts` fails if a new table leaves it out. Never use Supabase
 `NEXT_PUBLIC_SUPABASE_*` snippet: it is for browser access, which we do not use. The
 service-role key never goes near the browser.
 
-**Every response carries the browser security headers** (`apps/web/src/lib/security-headers.ts`,
-wired in `next.config.ts`; 2026-09-30, the owner asked whether the app is protected
-from web attacks and it sent none). A Content-Security-Policy on every page (only this
-site's own scripts, styles, images and fonts; no plugins; no posting forms elsewhere;
-nobody may frame the pages, so no clickjacking an admin's buttons), X-Frame-Options,
-nosniff, Referrer-Policy `same-origin`, a Permissions-Policy, and no "X-Powered-By".
-HSTS comes from Vercel. The policy is left OFF the two private file addresses
-(`/cash/files/*`, `/cash/count/*/pdf`), which keep their own headers: a policy on a PDF
-blanked Chrome's viewer once. It is Next's "without nonces" policy, so scripts still
-allow 'unsafe-inline'; a nonce-based policy is the stronger next step. Anything new
-loaded from ANOTHER site (a script, font, image, an iframe) will be blocked until it is
-added to the policy on purpose. Checked 2026-09-30 in headless Chrome through its
-debugging protocol: the door page runs with no violation (and a deliberately broken
-page was caught, so the check can see one). Signed-in pages: the owner clicked through
-them on a local production build and approved the merge (#50).
+**Every response carries the browser security headers** (`apps/web/src/lib/security-headers.ts`;
+2026-09-30, the owner asked whether the app is protected from web attacks and it sent
+none). X-Frame-Options, nosniff, Referrer-Policy `same-origin`, a Permissions-Policy and
+no "X-Powered-By" come from `next.config.ts`; HSTS from Vercel.
+The Content-Security-Policy is NONCE-based (#53, the same evening; #50 had Next's
+"without nonces" policy, which let any inline script run): `apps/web/src/proxy.ts` makes
+a fresh random nonce for every page request and puts the policy on the request, where
+Next reads it and stamps its own scripts, and on the response. Only scripts with that
+nonce run, so an injected `<script>` does not. It needs every page rendered per
+request (a page built in advance carries no nonce and its scripts are refused): the
+root layout calls `connection()`; before that the 404 page and /requests were built in
+advance. Styles keep 'unsafe-inline' (the pages use style attributes, which a nonce
+cannot cover, and a nonce in style-src would switch 'unsafe-inline' off). Otherwise:
+only this site's scripts, styles, images and fonts; no plugins; no posting forms
+elsewhere; nobody may frame the pages. The proxy skips API routes, built files, brand
+images, the manifest and the two private file addresses (`/cash/files/*`,
+`/cash/count/*/pdf`): a policy on a PDF blanked Chrome's viewer once. Anything new loaded
+from ANOTHER site (a script, font, image, an iframe), or a hand-written `<script>`, will
+be refused until it is added on purpose. Checked in headless Chrome through its
+debugging protocol on a production build: the door, the 404 page and /requests run
+with 0 violations and every script carries the nonce, and a script without the nonce
+was refused. Signed-in pages were clicked through by the owner for #50; for #53, see
+the PR.
 
 **Abuse is rate-limited, in Postgres** (`apps/web/src/lib/rate-limit.ts`,
 `portal.rate_limits`, migration 0014; 2026-09-30). Per person, in fixed windows counted

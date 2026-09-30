@@ -1,25 +1,33 @@
 /**
- * The browser security headers, on every response (2026-09-30, after the owner asked
- * whether the app is protected from web attacks: it sent none of these). Next's
- * "without nonces" setup (node_modules/next/dist/docs/01-app/02-guides/
- * content-security-policy.md); a nonce-based policy, which drops 'unsafe-inline' for
- * scripts, is the stronger next step.
+ * The browser security headers (2026-09-30, after the owner asked whether the app is
+ * protected from web attacks: it sent none of these).
+ *
+ * The Content-Security-Policy is NONCE-based (the same day, the stronger step after
+ * Next's "without nonces" policy): src/proxy.ts makes a fresh random nonce for every
+ * page request, and only scripts carrying it run. Next puts it on its own scripts by
+ * itself, reading it from the policy on the request. So an injected <script> does not
+ * run, which 'unsafe-inline' used to allow. Every page must render per request for
+ * this (a page built in advance has no nonce): the root layout calls connection().
+ *
+ * Styles keep 'unsafe-inline': the pages use style={...} attributes, which a nonce
+ * cannot cover, and a nonce in style-src would switch 'unsafe-inline' off.
  *
  * Everything the pages use comes from this site: fonts are bundled at build time
  * (next/font), logos are data: URLs in the stylesheets, attachments are shrunk in a
  * canvas (blob:), and Google sign-in is a redirect, not a frame or a form post.
  *
  * The policy is NOT sent on the two private file addresses (an attachment, a count's
- * PDF): a policy on a PDF response blanked Chrome's PDF viewer once already (CLAUDE.md
- * §3), and those responses carry their own nosniff and no-store (lib/cash/serve.ts).
- * They still get every other header here, framing refused included.
+ * PDF; the proxy skips them): a policy on a PDF response blanked Chrome's PDF viewer
+ * once already (CLAUDE.md §3), and those responses carry their own nosniff and no-store
+ * (lib/cash/serve.ts). They still get every other header here, framing refused included.
  */
 
-export function contentSecurityPolicy(dev: boolean): string {
+export function contentSecurityPolicy(dev: boolean, nonce: string): string {
   return [
     "default-src 'self'",
-    // Next's own inline bootstrap needs 'unsafe-inline'; React's dev tools need eval.
-    `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ''}`,
+    // Only scripts with this request's nonce, and what they load ('strict-dynamic').
+    // React's dev tools need eval, in development only.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' blob: data:",
     "font-src 'self'",
@@ -34,6 +42,11 @@ export function contentSecurityPolicy(dev: boolean): string {
   ].join('; ');
 }
 
+/** 128 random bits, base64: new for every page request. */
+export function newNonce(): string {
+  return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+}
+
 const EVERYWHERE = [
   // The old header for frame-ancestors, for browsers that predate it.
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -44,13 +57,7 @@ const EVERYWHERE = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
 ];
 
-/** For next.config.ts headers(). The CSP's source skips the two file addresses (see above). */
-export function securityHeaders(dev: boolean) {
-  return [
-    { source: '/:path*', headers: EVERYWHERE },
-    {
-      source: '/((?!cash/files/|cash/count/[^/]+/pdf).*)',
-      headers: [{ key: 'Content-Security-Policy', value: contentSecurityPolicy(dev) }],
-    },
-  ];
+/** For next.config.ts headers(): everything but the policy, which src/proxy.ts sets. */
+export function securityHeaders() {
+  return [{ source: '/:path*', headers: EVERYWHERE }];
 }
