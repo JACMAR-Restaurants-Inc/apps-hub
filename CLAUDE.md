@@ -129,6 +129,10 @@ say what it used to say. A file that disagrees with reality is worse than none.
   (owner, 2026-09-29; the old app, and this one until then, listed oldest first).
   On a touch screen New Count's totals bar keeps clear of an iPhone's rounded corners,
   its three totals in equal centred columns (#41, #42).
+  SYSTEM admins may do whatever a manager can (owner, 2026-09-29, chosen over a "view as
+  manager" toggle): file counts at any restaurant and send to the accountant
+  (`cashAbilities` in `lib/cash/viewer.ts`, tested). This used to say admins never file
+  counts (safe-count §4); office staff still never do, and the server refuses them.
 - **JM DevOps is built** (2026-09-29, PRs #29 to #36, merged; `apps/web/src/app/devops`,
   `lib/devops`): Project Management rebuilt, under the old app's own name (owner's call).
   System admins ONLY (the owner and Pierre), no emails, no "my issues" (both see

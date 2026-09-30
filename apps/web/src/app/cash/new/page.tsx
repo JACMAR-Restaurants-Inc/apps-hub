@@ -71,7 +71,7 @@ export default async function NewCountPage({ searchParams }: PageProps<'/cash/ne
           today={today}
           setup={setup}
           previous={previous!}
-          canSendToAccountant={cash.isManager}
+          canSendToAccountant={cash.canSendToAccountant}
         />
       )}
     </main>
