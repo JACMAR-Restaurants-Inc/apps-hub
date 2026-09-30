@@ -1,6 +1,7 @@
 import 'server-only';
 import { audit } from '@hub/db';
-import { authorizeWith, requireAdminWith, type AuthorizeDeps } from './authorize-core';
+import { authorizeBetaWith, authorizeWith, requireAdminWith, type AuthorizeDeps } from './authorize-core';
+import { isTester } from './beta/testers';
 import { db } from './db';
 import { getRoster, getSignedInEmail } from './viewer';
 
@@ -23,6 +24,18 @@ export { AccessDenied } from './authorize-core';
  */
 export function authorize(app: string, resource: string, action: string, storeId?: string | null) {
   return authorizeWith(deps(), app, resource, action, storeId);
+}
+
+/**
+ * The first line of every server action in a BETA app, in place of authorize(): the
+ * caller must be one of its testers (or a system admin), and then can() decides on the
+ * live app it is a new version of, with their role and restaurants there
+ * (lib/beta/rules.ts). Same contract: fails closed, audits signed-in refusals.
+ *
+ *   const { email } = await authorizeBeta('BetaDemo', 'count', 'create', storeId);
+ */
+export function authorizeBeta(betaKey: string, resource: string, action: string, storeId?: string | null) {
+  return authorizeBetaWith({ ...deps(), isTester: (email, key) => isTester(db(), email, key) }, betaKey, resource, action, storeId);
 }
 
 /** The first line of every admin action: only a system admin passes. */

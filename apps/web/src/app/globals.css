@@ -103,3 +103,18 @@ body.shell { font-family: var(--font-inter), 'Segoe UI', -apple-system, BlinkMac
   .tnav .navbell .navword { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .tnav .navbell .count { position: absolute; top: 2px; right: 0; margin: 0; min-width: 18px; padding: 0 5px; font-size: 11px; line-height: 18px; text-align: center; }
 }
+
+/* Tests (owner, 2026-09-30): beta apps and their testers. The app cards' and
+   Administration's own parts; only what they lacked is here. */
+.app .betaof { margin-top: -4px; font-size: 12.5px; color: var(--text-dim); }
+.betapanel .appgrid { margin-top: 0; }
+.betapanel .ph h2 .cnt { margin-left: 6px; font-weight: 600; color: var(--text-muted); letter-spacing: 0; }
+.setrow .testeraccess { font-size: 13px; color: var(--text); }
+.setrow .testersince { font-size: 12px; color: var(--text-dim); }
+.askbox select { font: inherit; font-size: 16px; font-weight: 400; padding: 8px 10px; color: var(--text);
+                 background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 7px; max-width: 100%; }
+.reqlist li.note.testing { border-left-color: #0369A1; }
+.betademo { display: flex; flex-direction: column; gap: 8px; }
+.betademo dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 8px 0 0; font-size: 14px; }
+.betademo dt { color: var(--text-muted); }
+.betademo dd { margin: 0; color: var(--text); font-weight: 600; }

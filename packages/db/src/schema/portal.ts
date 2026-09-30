@@ -37,7 +37,7 @@ export const notifications = portal.table(
     /** The person told, normalised. Not a foreign key, as for favourites. */
     email: text().notNull(),
     app: text().notNull(),
-    /** 'granted' | 'changed' | 'declined' */
+    /** 'granted' | 'changed' | 'declined', or 'testing' (invited to test a beta app) */
     kind: text().notNull(),
     /** What they now hold, for granted and changed: { role, stores }. */
     detail: jsonb(),

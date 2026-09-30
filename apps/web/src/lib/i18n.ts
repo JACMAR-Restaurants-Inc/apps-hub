@@ -137,6 +137,49 @@ export const dict = {
   appsLine: { fr: 'Toutes les applications du portail.', en: 'Every app in the portal.' },
   // Notifications (owner, 2026-09-29): they replace the Demandes page.
   navNotifications: { fr: 'Notifications', en: 'Notifications' },
+  // Tests (owner, 2026-09-30): beta apps, for their testers and the admins.
+  navTests: { fr: 'Tests', en: 'Tests' },
+  testsTitle: { fr: 'Tests', en: 'Tests' },
+  testsLineTester: {
+    fr: 'Des nouvelles versions de nos applications, avant leur lancement. Vous les testez avec vos accès habituels.',
+    en: 'New versions of our apps, before they launch. You test them with your usual access.',
+  },
+  testsLineAdmin: {
+    fr: 'Les applications en bêta et leurs testeurs. Un testeur garde le rôle et les restaurants qu’il a dans l’application actuelle.',
+    en: 'The beta apps and their testers. A tester keeps the role and restaurants they have in the current app.',
+  },
+  testsNone: { fr: 'Aucune application en bêta pour l’instant.', en: 'No beta apps right now.' },
+  betaBadge: { fr: 'Bêta', en: 'Beta' },
+  betaOf: { fr: 'Nouvelle version de {app}', en: 'New version of {app}' },
+  testersTitle: { fr: 'Testeurs', en: 'Testers' },
+  testersNone: { fr: 'Aucun testeur. Les administrateurs peuvent toujours la tester.', en: 'No testers. Admins can always test it.' },
+  addTester: { fr: 'Ajouter un testeur', en: 'Add a tester' },
+  addTesterPick: { fr: 'Personne', en: 'Person' },
+  addTesterHelp: {
+    fr: 'Les personnes actives dans {app}. Elles testeront avec le rôle et les restaurants indiqués.',
+    en: 'People active in {app}. They will test with the role and restaurants shown.',
+  },
+  addTesterNobody: { fr: 'Personne d’autre n’est actif dans {app}.', en: 'Nobody else is active in {app}.' },
+  removeTester: { fr: 'Retirer', en: 'Remove' },
+  confirmRemoveTester: {
+    fr: 'Retirer {who} des testeurs\u00a0? Son accès à la bêta s’arrête à son prochain clic. Ses accès habituels ne changent pas.',
+    en: 'Remove {who} from the testers? Their beta access stops on their next click. Their usual access does not change.',
+  },
+  testerLost: { fr: 'N’a plus accès à {app}\u00a0: ne peut pas tester', en: 'No longer has {app}: cannot test' },
+  testerSince: { fr: 'ajouté le {date}', en: 'added {date}' },
+  out_not_eligible: { fr: 'Cette personne doit être active dans l’application actuelle.', en: 'This person must be active in the current app.' },
+  notifTesting: { fr: 'Vous êtes invité à tester {app}', en: 'You are invited to test {app}' },
+  notifTestingHint: { fr: 'Elle se trouve sous Tests, avec vos accès habituels.', en: 'It is under Tests, with your usual access.' },
+  // The placeholder beta (app/beta/demo).
+  demoLine: {
+    fr: 'Cette page sert seulement à vérifier les tests\u00a0: voici ce qu’une application bêta sait de vous.',
+    en: 'This page only checks testing works: here is what a beta app knows about you.',
+  },
+  demoTestingAs: { fr: 'Vous testez avec votre accès à {app}', en: 'You are testing with your access to {app}' },
+  demoAdmin: { fr: 'Administrateur\u00a0: tous les restaurants', en: 'Administrator: every restaurant' },
+  demoCheck: { fr: 'Pourrait créer un décompte', en: 'Could file a count' },
+  demoYes: { fr: 'oui', en: 'yes' },
+  demoNo: { fr: 'non', en: 'no' },
   notificationsTitle: { fr: 'Notifications', en: 'Notifications' },
   notificationsLine: { fr: 'Ce que le bureau a décidé de vos demandes d’accès, et celles qui attendent encore.', en: 'What the office decided about your access requests, and the ones still waiting.' },
   pendingTitle: { fr: 'En attente', en: 'Waiting' },
@@ -411,6 +454,8 @@ export const dict = {
   ev_signed_in_no_grants: { fr: 'connexion sans accès', en: 'signed in with no grants' },
   ev_name_corrected: { fr: 'nom corrigé', en: 'name corrected' },
   ev_person_deleted: { fr: 'personne supprimée', en: 'person deleted' },
+  ev_tester_add: { fr: 'testeur ajouté', en: 'tester added' },
+  ev_tester_remove: { fr: 'testeur retiré', en: 'tester removed' },
   deletePerson: { fr: 'Supprimer', en: 'Delete' },
   deletePersonLong: { fr: 'Supprimer définitivement', en: 'Delete permanently' },
   confirmDelete: {
