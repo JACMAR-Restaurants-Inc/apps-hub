@@ -102,7 +102,7 @@ carried over: it is full of rehearsal counts and test accounts.
 - [ ] No `login` or `password` value exists anywhere in the database.
 - [ ] Only the admins are on the roster (nobody else is carried over, CLAUDE.md §5).
 - [ ] Bureau (office) holds every permission Gérant (manager) holds, in every app: the
-      import adds them over the sheet's `Perm_*` tabs (owner, 2026-09-30; CLAUDE.md §1),
+      import adds them over the sheet's `Perm_*` tabs (owner, 2026-09-30; CLAUDE.md §3, roles),
       and `--verify` fails if one is missing.
 - [ ] No beta tester rows (`rbac.beta_testers` is empty): testers are chosen again on
       the Tests page in production, for whatever beta exists then.

@@ -60,10 +60,10 @@ iad1 in Washington, would add a round trip to Montréal on every query.
   on purpose.
 - `DATABASE_URL` was first pasted as the session pooler. A burst of 20 visits used up
   its 15 clients and every page failed, the laptop too, until it was switched to 6543.
-- On 6543 the first page hung: the postgres.js pipelining hang (CLAUDE.md §1). Fixed by
+- On 6543 the first page hung: the postgres.js pipelining hang (CLAUDE.md §3, database connections). Fixed by
   moving to node-postgres.
 
-Measured after the fix: see CLAUDE.md §1 (warm pages 41 to 65 ms, a full directory
+Measured after the fix: see docs/STATUS.md (warm pages 41 to 65 ms, a full directory
 load 0.37 s, 135 parallel loads with none failed).
 
 ## Measuring again
@@ -72,7 +72,7 @@ Time what a person waits for, end to end, on the real address: the first visit a
 quiet spell (a cold start), a warm Home, the access directory, a star, a request. Once
 through the transaction pooler, once with `DATABASE_URL` switched to the session pooler
 (5432) and `DB_POOL_MAX=2`, each under a burst of parallel visits. Write the numbers in
-CLAUDE.md §1 and pick one.
+docs/STATUS.md and pick one.
 
 Preview deployments (every branch pushed gets its own address) cannot sign in: Google
 only knows the one address above. That is fine; they still show that a branch builds.
