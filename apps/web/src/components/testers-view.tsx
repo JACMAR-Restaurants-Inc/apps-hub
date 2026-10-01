@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { BetaCard } from './beta-card';
 import { SessionExpired } from './session-expired';
+import { restaurantLabel, roleLabel } from '@/lib/labels';
 
 type Tester = LivePerson & { addedAt: string; addedBy: string };
 
@@ -17,8 +18,6 @@ export interface BetaAdminData {
   testers: Tester[];
   candidates: LivePerson[];
 }
-
-const ROLE_KEY: Record<string, Key> = { office: 'role_office', manager: 'role_manager', viewer: 'role_viewer' };
 
 /**
  * The admin's half of Tests: each beta, its testers, Ajouter un testeur and Retirer.
@@ -37,8 +36,8 @@ export function TestersView({ lang, betas, storeNames }: { lang: Lang; betas: Be
   const [expired, setExpired] = useState(false);
 
   const access = (p: LivePerson) => {
-    const role = p.role ? (ROLE_KEY[p.role] ? t(lang, ROLE_KEY[p.role]!) : p.role) : '';
-    const where = p.stores.map((s) => `${s} - ${storeNames[s] ?? s}`).join(', ');
+    const role = roleLabel(lang, p.role);
+    const where = p.stores.map((s) => restaurantLabel(s, storeNames[s])).join(', ');
     return [role, where].filter(Boolean).join(' · ');
   };
 

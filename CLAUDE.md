@@ -593,7 +593,7 @@ the roster email is how sign-in recognises people.
 ## 6. Commands
 
     npm test              all tests (TZ=UTC): `unit` in parallel, then `postgres`, the
-                          *.db.test.ts files, one file at a time (see vitest.config.ts)
+                          *.db.test.ts files, one file at a time (see vitest.config.mts)
     npm run typecheck
     npm run db:generate   after any schema change; commit the migration
     npm run db:migrate    staging first, always
@@ -725,11 +725,14 @@ in rolled-back transactions, mutation-checked, pinned to UTC.
 3. **Split New Count** (`components/cash/count-form.tsx`, 710 lines, the largest file):
    its calculations into tested `lib` code, the screen into smaller parts. The access
    directory (`components/directory.tsx`, 516) is next.
-4. **Small consistency fixes:** the role names (Gérant, Bureau, Consultation) are mapped
-   in 3 places (`ROLE_KEY` in `app/notifications/page.tsx`, `components/top-bar.tsx`,
-   `components/testers-view.tsx`) and the "1647 - Hull" restaurant label is built in 6:
-   one of each. Two screens query tables directly (`app/admin/settings/page.tsx`,
-   `app/devops/layout.tsx`) where everything else goes through `lib`: move them.
+4. ~~**Small consistency fixes**~~ DONE (#56, 2026-09-30, started before the demo at the
+   owner's wish; display unchanged). Role names and the "1647 - Hull" label come from
+   ONE module, `lib/labels.ts` (`roleLabel`, `restaurantLabel`; they were mapped in 3
+   files and built in 7), and `labels.test.ts` fails if any other file maps role keys or
+   builds "id - name" by hand again. Administration's and the JM DevOps sidebar's reads
+   moved into `lib` (`settingsPageData`, `sidebarProjects`), tested on Postgres. Cash
+   Balancing keeps names alone, its own look. Notifications still shows "Hull" without
+   the number: left as it was, the owner's call whether to change it.
 5. **Move the status log out of this file** (§1 is a running log; the rules are what
    this file is for) into its own, e.g. `docs/STATUS.md`, keeping §1 short.
 6. **One styling approach, over time.** Tailwind is loaded beside the hand-written CSS

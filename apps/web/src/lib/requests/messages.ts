@@ -146,6 +146,3 @@ export function accessDeclinedMail(input: { email: string; appName: string; port
     '</div>';
   return { subject: `Votre demande d’accès à ${appName}`, text: lines.join('\n\n') + '\n', html };
 }
-
-/** A restaurant as the company writes it: "1647 - Hull". */
-export const storeLabel = (id: string, name: string) => `${id} - ${name}`;

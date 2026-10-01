@@ -8,7 +8,7 @@ import { existsSync } from 'node:fs';
 import { comments, createDb, events, issues, projects } from '@hub/db';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
-import { addComment, createIssue, createProject, deleteIssue, deleteProject, issueByNumber, listProjects, updateIssue, updateProject, type Conn } from './store';
+import { addComment, createIssue, createProject, deleteIssue, deleteProject, issueByNumber, listProjects, sidebarProjects, updateIssue, updateProject, type Conn } from './store';
 
 if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
 const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
@@ -47,6 +47,16 @@ const history = (tx: Conn, issueId: number) =>
   tx.select({ event: events.event, before: events.before, after: events.after, actor: events.actorEmail }).from(events).where(eq(events.issueId, issueId)).orderBy(asc(events.id));
 
 describe.skipIf(!db)('JM DevOps on Postgres (rolled back)', () => {
+  it('the sidebar lists every project by name, ignoring case', async () => {
+    await rolledBack(async (tx) => {
+      for (const name of ['zz sidebar test', 'AA Sidebar Test', 'mm sidebar test']) expect((await createProject(tx, 'sony@jacmar-restaurants.com', { name, repo: '' })).outcome).toBe('done');
+      const names = (await sidebarProjects(tx)).map((p) => p.name);
+      expect(names.filter((n) => /sidebar test/i.test(n))).toEqual(['AA Sidebar Test', 'mm sidebar test', 'zz sidebar test']);
+      expect(names).toEqual([...names].sort((a, b) => (a.toLowerCase() < b.toLowerCase() ? -1 : a.toLowerCase() > b.toLowerCase() ? 1 : 0)));
+      expect(names).toHaveLength((await tx.select().from(projects)).length);
+    });
+  });
+
   it('projects: a name, unique whatever its case; no prefix', async () => {
     await rolledBack(async (tx) => {
       const id = await project(tx);

@@ -4,14 +4,13 @@ import { betaApp } from '@/lib/beta/apps';
 import { appUrl, catalogueApp } from '@/lib/catalogue';
 import { db } from '@/lib/db';
 import { loadHome, loadMyRequests } from '@/lib/home-data';
-import { formatDay, t, type Key, type Lang } from '@/lib/i18n';
+import { formatDay, t, type Lang } from '@/lib/i18n';
 import { getLang } from '@/lib/lang';
 import { listNotifications, type NotificationRow } from '@/lib/notifications';
 import { listRestaurants } from '@/lib/restaurants';
 import { getViewer } from '@/lib/viewer';
 import { redirect } from 'next/navigation';
-
-const ROLE_KEY: Record<string, Key> = { office: 'role_office', manager: 'role_manager', viewer: 'role_viewer' };
+import { roleLabel } from '@/lib/labels';
 
 /**
  * Notifications (owner, 2026-09-29), in place of the Demandes page: first the person's
@@ -76,7 +75,7 @@ function Note({ lang, n, storeName }: { lang: Lang; n: NotificationRow; storeNam
   const named = app ?? beta;
   const appName = named ? (lang === 'fr' ? named.nameFr : named.name) : n.app;
   const title = t(lang, n.kind === 'granted' ? 'notifGranted' : n.kind === 'changed' ? 'notifChanged' : n.kind === 'testing' ? 'notifTesting' : 'notifDeclined').replace('{app}', appName);
-  const role = n.detail ? (ROLE_KEY[n.detail.role] ? t(lang, ROLE_KEY[n.detail.role]!) : n.detail.role) : null;
+  const role = n.detail ? roleLabel(lang, n.detail.role) : null;
   const where = n.detail ? n.detail.stores.map((s) => storeName.get(s) ?? s).join(', ') : '';
   // A beta that has since gone live, or been withdrawn, has no door here.
   const url = n.kind === 'testing' ? (beta ? beta.path : null) : app ? appUrl(app) : null;

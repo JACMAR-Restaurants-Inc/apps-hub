@@ -20,7 +20,8 @@ import type { SendResult } from '@hub/email';
 import type { MemberStatus, Role } from '@hub/rbac';
 import { BREAK_GLASS_ADMIN } from '@hub/rbac';
 import { appByKey } from './apps';
-import { accessDeclinedMail, accessGrantedMail, accessRequestMail, storeLabel, type Mail } from './messages';
+import { restaurantLabel } from '../labels';
+import { accessDeclinedMail, accessGrantedMail, accessRequestMail, type Mail } from './messages';
 
 export interface MemberRow {
   status: MemberStatus;
@@ -255,7 +256,7 @@ export async function grantAccess(
     email,
     appName: app.name.fr,
     url: deps.urls.app(app.path),
-    stores: chosen.map((id) => storeLabel(id, names.get(id) ?? id)),
+    stores: chosen.map((id) => restaurantLabel(id, names.get(id))),
   });
   const sent = await deps.send({ ...mail, to: [email] });
   if (sent.sent) await store.updateMember(appKey, email, { notifiedOn: new Date() });

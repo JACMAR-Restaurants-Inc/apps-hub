@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { SessionExpired } from './session-expired';
+import { restaurantLabel } from '@/lib/labels';
 
 export interface SettingsData {
   me: string;
@@ -243,7 +244,7 @@ export function SettingsView({ lang, data }: { lang: Lang; data: SettingsData })
             return (
               <div className="setrow" key={r.id}>
                 <div className="who">
-                  <b>{`${r.id} - ${r.name}`}</b>
+                  <b>{restaurantLabel(r.id, r.name)}</b>
                 </div>
                 <div className="acts">
                   <span className={`pill ${r.active ? 'on' : 'off'}`}>{t(lang, r.active ? 'isOpen' : 'isClosed')}</span>

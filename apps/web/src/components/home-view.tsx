@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { AppCard } from './app-card';
 import { InstallBanner } from './install';
+import { restaurantLabel } from '@/lib/labels';
 
 export interface HomeHead {
   none: boolean;
@@ -185,7 +186,7 @@ export function HomeView(props: {
                       className="stat green"
                       k={t(lang, 'statStores')}
                       v={String(head.stores.length)}
-                      s={head.stores.map((x) => `${x.id} - ${x.name}`).join(', ')}
+                      s={head.stores.map((x) => restaurantLabel(x.id, x.name)).join(', ')}
                     />
                   )}
                 </>
