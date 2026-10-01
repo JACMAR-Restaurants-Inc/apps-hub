@@ -101,6 +101,11 @@ export async function listProjects(db: Conn, today: string): Promise<(ProjectRow
   return rows.map((p) => ({ ...p, counts: counts.get(p.id)! }));
 }
 
+/** The sidebar: every project, id and name, by name ignoring case. */
+export async function sidebarProjects(db: Conn): Promise<{ id: number; name: string }[]> {
+  return db.select({ id: projects.id, name: projects.name }).from(projects).orderBy(sql`lower(${projects.name})`);
+}
+
 export async function projectById(db: Conn, id: number): Promise<ProjectRow | null> {
   if (!Number.isSafeInteger(id)) return null;
   return (await db.select(projectCols).from(projects).where(eq(projects.id, id)))[0] ?? null;

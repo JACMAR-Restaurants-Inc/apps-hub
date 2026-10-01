@@ -6,6 +6,7 @@ import type { Role } from '@hub/rbac';
 import { useEffect, useRef, useState } from 'react';
 import type { DirData } from './directory';
 import { SessionExpired } from './session-expired';
+import { restaurantLabel } from '@/lib/labels';
 
 export interface DrawerTarget {
   email: string;
@@ -70,10 +71,7 @@ export function GrantDrawer(props: {
   if (!person || !app || !info) return null;
   const who = person.fullName ?? person.email;
   const appName = lang === 'fr' ? info.nameFr : info.name;
-  const storeLabel = (id: string) => {
-    const n = data.restaurants.find((r) => r.id === id)?.name;
-    return n ? `${id} - ${n}` : id;
-  };
+  const storeLabel = (id: string) => restaurantLabel(id, data.restaurants.find((r) => r.id === id)?.name);
 
   // grantCheck, from the old panel.
   let check: { ok: boolean; key: Key };

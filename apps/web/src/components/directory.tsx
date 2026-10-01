@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { GrantDrawer, type DrawerTarget } from './grant-drawer';
 import { SessionExpired } from './session-expired';
+import { restaurantLabel } from '@/lib/labels';
 
 export interface DirApp {
   key: string;
@@ -84,7 +85,7 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
   const lastTry = useRef(0);
 
   const names = new Map(data.restaurants.map((r) => [r.id, r.name]));
-  const storeLabel = (id: string) => (names.get(id) ? `${id} - ${names.get(id)}` : id);
+  const storeLabel = (id: string) => restaurantLabel(id, names.get(id));
   const roleName = (r: Role) => t(lang, `role_${r}`);
   const appName = (a: { name: string; nameFr: string }) => (lang === 'fr' ? a.nameFr : a.name);
 
@@ -264,7 +265,7 @@ export function Directory({ lang, data, me }: { lang: Lang; data: DirData; me: s
                 .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
                 .map((r) => (
                   <option key={r.id} value={r.id}>
-                    {`${r.id} - ${r.name}`}
+                    {restaurantLabel(r.id, r.name)}
                   </option>
                 ))}
             </select>

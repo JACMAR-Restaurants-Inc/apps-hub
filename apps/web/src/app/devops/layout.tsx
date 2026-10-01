@@ -2,12 +2,11 @@ import { DevopsChrome } from '@/components/devops/chrome';
 import { Footer } from '@/components/top-bar';
 import { devopsDb } from '@/lib/devops/db';
 import { dt } from '@/lib/devops/i18n';
+import { sidebarProjects } from '@/lib/devops/store';
 import { getDevopsTheme, getDevopsViewer } from '@/lib/devops/viewer';
-import { projects } from '@hub/db';
 import { loadBar } from '@/lib/home-data';
 import { getLang } from '@/lib/lang';
 import { getViewer } from '@/lib/viewer';
-import { sql } from 'drizzle-orm';
 import type { Metadata } from 'next';
 import { DM_Sans } from 'next/font/google';
 import { redirect } from 'next/navigation';
@@ -31,12 +30,7 @@ export default async function DevopsLayout({ children }: LayoutProps<'/devops'>)
   const [viewer, lang] = await Promise.all([getViewer(), getLang()]);
   if (!viewer) redirect('/');
   const [bar, devops, theme] = await Promise.all([loadBar(viewer), getDevopsViewer(), getDevopsTheme()]);
-  const list = devops
-    ? await devopsDb()
-        .select({ id: projects.id, name: projects.name })
-        .from(projects)
-        .orderBy(sql`lower(${projects.name})`)
-    : [];
+  const list = devops ? await sidebarProjects(devopsDb()) : [];
 
   return (
     <div className={`dv-app ${dmSans.variable}`} data-theme={theme ?? undefined}>

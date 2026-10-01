@@ -17,7 +17,7 @@
 
 import { normalizeEmail } from '@hub/core';
 import { admins, appMembers, audit, authAccounts, authSessions, authUsers, betaTesters, favourites, memberStores, restaurants, users, type Db } from '@hub/db';
-import { and, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 type Conn = Db | Tx;
@@ -26,6 +26,22 @@ export type SettingsOutcome = 'done' | 'unchanged' | 'not_found' | 'self' | 'las
 
 async function inTx<T>(db: Conn, fn: (tx: Tx) => Promise<T>): Promise<T> {
   return (db as Db).transaction(fn);
+}
+
+/** What the Administration page shows: the admins by name, and the restaurants by number. */
+export async function settingsPageData(db: Conn) {
+  const [adminRows, storeRows] = await Promise.all([
+    db
+      .select({ email: admins.email, notify: admins.notify, fullName: users.fullName })
+      .from(admins)
+      .innerJoin(users, eq(users.email, admins.email))
+      .orderBy(asc(users.fullName)),
+    db.select({ id: restaurants.restaurantId, name: restaurants.name, active: restaurants.active }).from(restaurants),
+  ]);
+  return {
+    admins: adminRows,
+    restaurants: storeRows.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })),
+  };
 }
 
 /** The kill switch (RBAC §30/§31): one person, every app, at once. */

@@ -7,7 +7,7 @@ import { existsSync } from 'node:fs';
 import { admins, audit, createDb, restaurants, users } from '@hub/db';
 import { desc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
-import { addAdmin, addRestaurant, readAudit, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive } from './settings';
+import { addAdmin, addRestaurant, readAudit, removeAdmin, setAdminNotify, setPersonActive, setRestaurantActive, settingsPageData } from './settings';
 
 if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
 // The session pooler: the transaction pooler hangs in long runs (CLAUDE.md §1).
@@ -33,6 +33,21 @@ const lastEvent = async (tx: Parameters<Parameters<NonNullable<typeof db>['trans
   (await tx.select().from(audit).orderBy(desc(audit.id)).limit(1))[0];
 
 describe.skipIf(!db)('settings on Postgres (rolled back)', () => {
+  it('the Administration page: admins with their name and notify, restaurants by number', async () => {
+    await rolledBack(async (tx) => {
+      await addRestaurant(tx, ME, '99999', 'Test Last');
+      await addRestaurant(tx, ME, '999', 'Test First');
+      const data = await settingsPageData(tx);
+      expect(data.admins.map((a) => a.email)).toContain(ME);
+      expect(data.admins.every((a) => typeof a.notify === 'boolean')).toBe(true);
+      const ids = data.restaurants.map((r) => r.id);
+      // Numeric order: 999 before 1647 before 99999, not as text.
+      expect(ids.indexOf('999')).toBe(0);
+      expect(ids.at(-1)).toBe('99999');
+      expect(ids).toEqual([...ids].sort((a, b) => Number(a) - Number(b)));
+    });
+  });
+
   it('admins: add a new person, notify, cannot remove yourself or the last one', async () => {
     await rolledBack(async (tx) => {
       expect(await addAdmin(tx, ME, ' Settings-Test@Example.invalid ', 'Test Person')).toBe('done');

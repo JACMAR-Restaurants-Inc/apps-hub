@@ -7,6 +7,7 @@ import { InstallMenuItem, InstallSheet } from './install';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
+import { roleLabel } from '@/lib/labels';
 
 export interface BarViewer {
   email: string;
@@ -21,8 +22,6 @@ export interface BarViewer {
   /** Shows Tests: a system admin while any beta exists, anyone else while they test one they can open. */
   testing: boolean;
 }
-
-const ROLE_KEY = { admin: 'roleAdmin', office: 'role_office', manager: 'role_manager', viewer: 'role_viewer' } as const;
 
 /**
  * The top bar, the Apps Script portal's markup (Ui.html, "the bar"; §44/§56/§59).
@@ -154,7 +153,7 @@ export function AccountMenu({ lang, viewer, extra, links }: { lang: Lang; viewer
         aria-label="Compte / Account"
       >
         <span className="av">{viewer.initials}</span>
-        {viewer.role && <span className="role">{t(lang, ROLE_KEY[viewer.role])}</span>}
+        {viewer.role && <span className="role">{roleLabel(lang, viewer.role)}</span>}
         <svg className="car" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M6 9l6 6 6-6" />
         </svg>
