@@ -20,7 +20,7 @@ vi.mock('./apps', async (importOriginal) => {
 });
 
 if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
-// The session pooler: the transaction pooler hangs in long runs (CLAUDE.md §1).
+// The session pooler: the transaction pooler hangs in long runs (CLAUDE.md §3, database connections).
 const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 const db = url ? createDb(url) : null;
 afterAll(async () => {

@@ -6,7 +6,7 @@ import { db } from '../db';
 /**
  * JM DevOps' own database getter (CLAUDE.md §3, "each app stays separable"), as
  * Cash Balancing's: `DEVOPS_DATABASE_URL`, falling back to `DATABASE_URL`. Until that
- * setting differs, it IS the portal's pool, not a second one (15 clients, §1).
+ * setting differs, it IS the portal's pool, not a second one (15 clients, CLAUDE.md §3, database connections).
  */
 const g = globalThis as { devopsDb?: Db };
 

@@ -11,231 +11,41 @@ Most of the rules below were learned the hard way in `safe-count-tracker/CLAUDE.
 ## 0. Keep this file current
 
 When something significant changes, update this file in the same commit. Write the WHY;
-`git log` has the what. When a statement here stops being true, correct it in place and
+`git log` has the what. A new rule, or a rule that changed, goes here; what was built, when, and what is
+open goes in `docs/STATUS.md` (split out 2026-10-01: this file was half log). When a statement here stops being true, correct it in place and
 say what it used to say. A file that disagrees with reality is worse than none.
 
-## 1. Where things are, 2026-09-29
+## 1. Where things are (short; the log is `docs/STATUS.md`)
 
 **Staging only. Nothing here touches production.** The demo to leadership is
-2026-10-08; the switch happens after approval, by `docs/CUTOVER.md`.
+2026-10-08, code freeze 2026-10-07; the switch happens after approval, by
+`docs/CUTOVER.md`. What was built when, with which PR, what was measured, and the full
+open list are in **`docs/STATUS.md`**; this section used to hold all of that (moved
+2026-10-01). Keep this section short.
 
-- Staging reads a SNAPSHOT of the production spreadsheets. It never writes to them and
-  never runs `clasp`. It DOES email real people, with `EMAIL_MODE=live` (§4): the owner's
-  call, 2026-09-25. This used to say staging "never emails a real person".
-- Built: `@hub/core`, `@hub/rbac` (`can()`), `@hub/email` (routing), `@hub/db` (schema
-  and migrations), the Next.js shell, CI, and Google sign-in with Better Auth (a
-  placeholder home page shows who you are and your roster standing), the roster
-  loader, `authorize()` for server actions, the spreadsheet import, and request access:
-  the portal catalogue, the request form (employee number checked in Clearview), the
-  Grant panel for admins, and the two French emails sent through Gmail. The whole
-  portal at parity with the Apps Script one
-  (`docs/PORTAL_PARITY.md`): its stylesheet, door, bar, all 18 apps, search and
-  categories, the access directory and Grant drawer, and an Administration page for
-  what the spreadsheet did (kill switch, admins and notify, restaurants, the log). Then
-  the owner's redesign (2026-09-26): Favoris (a star on each card, stored in
-  `portal.favourites`), one Applications list and page (favourites first, then
-  alphabetical, each part in the reader's language; owner, 2026-09-29; Home keeps its
-  own order), a menu for everybody, and a
-  Demandes page of the person's pending requests, since replaced by NOTIFICATIONS (owner,
-  2026-09-29; `/requests` redirects): a bell in the bar for everyone but admins (the word
-  only in the phone menu, and for screen readers), its badge the unread count;
-  the page lists the requests still pending, then what the office decided (granted,
-  changed, declined; never a removal), written by `lib/requests/service.ts` in the
-  decision's own transaction into `portal.notifications` (migration 0012), so the person
-  learns of a grant even while Gmail is not authorised. Admins get none (not now, owner).
-  Add to home screen (owner's call,
-  2026-09-28; the port had "no install button"): a Home banner until installed or
-  dismissed, then an item in the avatar menu. Android installs in one tap through the
-  browser's own offer; a web page cannot install itself on an iPhone, from any browser,
-  so it gets the steps (`components/install.tsx`, rules in `lib/install.ts`). Code is at
-  github.com/JACMAR-Restaurants-Inc/apps-hub (private).
-- Supabase staging exists: project `apps-hub-staging`, Canada (Central), Free plan,
-  Data API off. Migrations 0000–0013 are applied (this said 0000–0005). It holds the 2026-09-25 snapshot:
-  552 counts and their lines, the 7 restaurants, 40 tills, and 2 admins (no one else is
-  on the roster; see §5).
-  Connection strings live only in `.env.local` (see §6).
-- Google Cloud project `apps-hub`: consent screen External, one web client
-  `apps-hub-staging` (redirect `http://localhost:3000/api/auth/callback/google`),
-  but left in "Testing", so on staging only listed test users can sign in. That
-  is fine for the demo. Publishing needs a home page and privacy policy on our domain,
-  so it is a cutover step (`docs/CUTOVER.md`), not a staging one. The 7-day token
-  limit in Testing does not matter: we use Google only at sign-in, never its refresh tokens.
-- **MUST DO, week of 2026-09-28: Gmail domain-wide delegation.** Clearview works
-  (credentials in `.env.local`, checked 2026-09-25). Gmail does not: the key is in
-  `.env.local`, but Google answers `unauthorized_client` until a Workspace super admin
-  (the owner's boss; the owner is asking Monday) adds, in admin.google.com → Security →
-  API controls → Domain-wide Delegation: Client ID `117203550704415068036`, scope
-  `https://www.googleapis.com/auth/gmail.send`. Then send one test email to confirm.
-  Until then every email is skipped and audited as not sent; requests and approvals work
-  without it (admins see requests in the portal). Someone approved meanwhile never gets
-  the grant email.
-- **The transaction pooler hang: found and fixed, 2026-09-26 (it used to be OPEN).**
-  2026-09-25, in `next dev`, queries through Supabase's TRANSACTION pooler (6543) began
-  to hang: Postgres showed them `active`, waiting on the client (`ClientRead`), and every
-  page queued behind them. 2026-09-26 on Vercel the same happened on the first page load.
-  The cause was the driver: postgres.js pipelines queries (sends several down one
-  connection without waiting), and through the transaction pooler that left queries
-  stuck. The database client is now node-postgres (`pg`, `packages/db/src/client.ts`),
-  one query at a time per connection. Proved locally with a production build on 6543:
-  267 signed-in page loads, bursts of up to 40 at once, none failed or hung (with
-  postgres.js the same pooler froze every page). Watch for: `pg` returns `{ rows }`
-  from `db.execute`, not the array; a cast hid that in the import verifier, whose
-  credential check would have passed without looking, so read `.rows`, typed, never
-  cast. Locally `.env.local` still sets `DATABASE_URL` to the session pooler (same as
-  `DIRECT_URL`), so a plain `npm run dev` works; the 6543 value is kept there, commented.
-  **Staging is online on Vercel** (owner's call, 2026-09-26, before Cash Balancing):
-  `https://apps-hub-web-eta.vercel.app`, set up by `docs/DEPLOY_STAGING.md`. On a Pro
-  TRIAL since 2026-09-28 (the owner's word: it ends about 2026-10-11; the 5-minute cron
-  needs Pro, and Hobby is for non-commercial use; this used to say "Hobby plan for
-  now"), region yul1
-  Montréal (`apps/web/vercel.json`), the same AWS region as the database, on the
-  TRANSACTION pooler. It must never use the session pooler: on 2026-09-26 it briefly
-  did (the wrong line was pasted), a burst of 20 visits spread over a few instances,
-  each holding up to 5 connections while frozen between requests, and the 15-client
-  limit below was used up: every page failed, and so did the laptop. `lib/db.ts` now
-  calls Vercel's `attachDatabasePool`, which closes idle connections before an
-  instance is frozen (it understands `pg` pools, not postgres.js).
-  **Measured on Vercel, 2026-09-26, after the switch** (signed in as an admin, from
-  Toronto, in the browser): warm pages answer in 41 to 65 ms (median; Home 51,
-  Applications 47, Demandes 44, directory 48, Administration 41, journal 65); a full load
-  of the directory, as a person sees it, 0.37 s. Bursts of 5, 10, 20, 40 and 40 parallel
-  loads: 135 in all, none failed, medians 0.2 s. Afterwards the database held no stuck
-  queries, only Supavisor's own 20 idle connections, and the session pooler was free.
-  The Apps Script portal's sign-in took 7.8 s (RBAC §78). So production uses the
-  transaction pooler with `pg`; re-measure there with real users before the demo.
-  **The session pooler allows 15 clients for the whole project** (Free plan), across
-  every process: dev, imports, migrations, and each Vercel instance. Exceeding it fails
-  every query with `EMAXCONNSESSION max clients reached in session mode`, which is how
-  the access directory broke on 2026-09-25 when each module copy briefly had its own
-  pool. So: ONE pool per process on `globalThis` (`apps/web/src/lib/db.ts`), capped by
-  `DB_POOL_MAX` (default 5). On Vercel, instances x `max` must stay under 15, which is
-  the strongest argument for testing the transaction pooler properly.
-- **Cash Balancing is built** (2026-09-28, at parity with the Apps Script app;
-  `apps/web/src/app/cash`, `lib/cash`): dashboard, New Count, daily view, count detail,
-  restaurant page, attachments, the report PDF and emails, Rapports, Admin. In the old
-  app's OWN dark/light theme, not the portal's (owner: "i dont like it having the same
-  theme as the portal"); Clair / Sombre in the avatar menu, a `cb_theme` cookie.
-  Its own bar too (owner, 2026-09-29: "I want it to feel like its own app";
-  `components/cash/cash-bar.tsx`): its name, its tabs (behind ≡ below 1024px), and the
-  shared avatar menu (`AccountMenu`), "Retour au portail" first, then Langue and Thème
-  (segments the same width), then sign out. The browser tab says
-  Cash Balancing. This used to be the portal's bar with the app's tabs under it. Only
-  the look is separate: the sign-in is the portal's, so nobody signs in twice.
-  Files (attachments, PDFs) are in a PRIVATE Supabase Storage bucket `cash`, standing in
-  for Drive until the Workspace grants Drive access (§4); `CASH_FILE_STORE` switches.
-  Checked end to end on 2026-09-28 with test count 611 at Hull (its report job 603 is set
-  to 8 attempts so the sweep never sends it).
-  A day's counts are listed NEWEST first, on the Daily view and a restaurant's page
-  (owner, 2026-09-29; the old app, and this one until then, listed oldest first).
-  On a touch screen New Count's totals bar keeps clear of an iPhone's rounded corners,
-  its three totals in equal centred columns (#41, #42).
-  SYSTEM admins may do whatever a manager can (owner, 2026-09-29, chosen over a "view as
-  manager" toggle): file counts at any restaurant and send to the accountant
-  (`cashAbilities` in `lib/cash/viewer.ts`, tested). This used to say admins never file
-  counts (safe-count §4). OFFICE staff (Bureau) may too (owner, 2026-09-30): "office can
-  do whatever managers can do on top of whatever we say office roles can do". The import
-  gives office every permission a manager holds (`officeAsManager` in
-  `packages/import/src/transform.ts`, over the sheet's `Perm_*` tabs, so production gets
-  it on the day and the verifier agrees); staging got the same 5 rows by hand, audited
-  as `permission_add`. This used to say office staff never file counts and the server
-  refuses them. Viewers (Consultation) still only look. On the portal, roles change
-  nothing: Development (JM DevOps, GitHub, Twilio, Intuit) is admins only for everyone.
-- **JM DevOps is built** (2026-09-29, PRs #29 to #36, merged; `apps/web/src/app/devops`,
-  `lib/devops`): Project Management rebuilt, under the old app's own name (owner's call).
-  System admins ONLY (the owner and Pierre), no emails, no "my issues" (both see
-  everything). Its own app like Cash Balancing: the old app's look (DM Sans, navy
-  sidebar of projects), light by default with Clair / Sombre (`dv_theme` cookie), the
-  same avatar menu. Overview, each project's Dashboard / Board / List (Dashboard
-  first and by default, owner 2026-09-29; the old app opened on the Board), an issue at
-  its own address (`/devops/<project id>/66`). No prefixes (owner, 2026-09-29: the sheet
-  needed CHK-066 to tell projects apart; a database does not): issues show as #066
-  inside their project, projects are found by id, colours come from the id (migration
-  0011; it used to be CHK-066 at /devops/CHK/66). Staging's ids are large (Check-In
-  System is 164): rolled-back tests still use up sequence values; production starts at
-  1. Beyond the old app, agreed with the owner:
-  Annulée with a required reason, comments (they replace the one-line Notes),
-  history per issue, a "Déplacer vers" menu on every card besides drag and drop, real
-  admins as assignees. The old "Requested by" field is gone (owner, 2026-09-29:
-  "useless"; migration 0009 dropped the column, the import no longer reads it). An issue
-  is deleted by typing its key; a project is deleted COMPLETELY by typing its exact name,
-  as the old app did (archiving was built, then removed the same day; migration 0010).
-  The portal card now opens `/devops` and says JM DevOps. Staging holds the 2026-09-29
-  snapshot: 8 projects, 92 issues, 11 notes as comments, every one of the 88 assignees
-  matched to an admin; run twice, the second changed nothing. The owner has since added
-  a project named "test" there. Seen on the laptop only: NOT yet opened on the Vercel
-  staging site.
-- **Tests: beta apps for chosen people** (owner, 2026-09-30; `lib/beta`, `app/tests`).
-  A beta is a new version of a live app (`BETA_APPS` in `lib/beta/apps.ts`, kept OUT of
-  the catalogue so Home, Applications, favourites and Request access never show one),
-  built here with its own schema like Cash Balancing. An admin picks testers on the
-  Tests page from the people active in the live app; a tester keeps the role and
-  restaurants they hold THERE (owner: "a manager who works for Hull keeps the same on
-  testing"), so the only thing stored is `rbac.beta_testers` (migration 0013). The
-  Tests menu item shows for admins, and for a tester only while they can open a beta.
-  The tester is told in Notifications ("testing"), not by email. Going live: take it
-  out of `BETA_APPS`, clear its schema with a deliberate script (never a button),
-  delete its tester rows; the emptied schema is the live one. There is NO beta today:
-  the placeholder (`BetaDemo`, `/beta/demo`) was removed on 2026-09-30 once the owner had
-  tried Tests with it and two fakes, and its one tester row and invitation were deleted
-  from staging. With no beta, nobody sees the Tests menu, admins included. The owner will
-  say when the real one (their version 2) is ready; it goes in `BETA_APPS`, its actions
-  call `authorizeBeta()`. The tests bring their own beta (`vi.mock` of `lib/beta/apps`).
-- Not built yet: the Drive file store (`CASH_FILE_STORE=drive`), moving the 256 imported
-  attachments from Drive (they keep their Drive file id and open by their old link).
-  Accounts not created yet: production Supabase, domain, production
-  OAuth client. Staging on Vercel needs, besides the database: `SUPABASE_URL`,
-  `SUPABASE_SERVICE_ROLE_KEY` (the secret key, server only), `CRON_SECRET`,
-  `ACCOUNTANT_EMAIL`, `REPORT_EMAIL_OVERRIDE`. This used to say "every screen", then
-  listed Project Management.
-- **Pick up here (2026-09-30, night).** `main` = 2b90e34 (and this docs PR after it),
-  CI green, every branch merged. Late on 2026-09-30, a security pass after the owner
-  asked "is our application protected from web app attacks?": browser security headers
-  (#50), rate limits in Postgres (#51), tool packages with `npm audit` at 0 (#52), a
-  nonce-based Content-Security-Policy (#53); each is described in §3 and §6, and the
-  owner checked the signed-in pages for #50 and #53, #53 on staging too. Two items left,
-  both deferred by the owner until the boss pays for Vercel Pro (no longer the trial):
-  Vercel Firewall rate rules by IP (dashboard, no code), and an independent security
-  review or penetration test before real users; both are in `docs/CUTOVER.md`. Earlier
-  on 2026-09-30: Tests, beta apps for chosen testers
-  (#46; its placeholder removed in #47, so no beta exists until the owner's version 2);
-  a Gérant holds one restaurant (#47); Bureau does whatever Gérant does (#48). A
-  nightly export of Cash Balancing to a Drive sheet was discussed and PARKED (purpose
-  not decided: backup, or a sheet people work in). Since 2026-09-29: JM DevOps' overview (counts that line up,
-  "en retard" badge, no prefix; #34 to #36); the portal's Notifications, a bell in place
-  of Demandes (#38); Applications sorted favourites first then alphabetical (#40); Cash
-  Balancing's New Count totals bar clear of an iPhone's corners and evenly spaced (#41,
-  #42, owner confirmed on an iPhone), a day's counts newest first (#43), and system
-  admins may file counts and send to the accountant like managers (#44, owner tested on
-  staging). Roles, for the record: three (manager / Gérant, office / Bureau, viewer /
-  Consultation), per app with restaurants; system admin is not a role but passes every
-  check. Bureau does whatever Gérant does plus the consolidated view and Admin (#48); a
-  Gérant holds one restaurant (#47). Open, in order:
-  1. Gmail domain-wide delegation, from the owner's boss (the MUST DO above): no email
-     is sent until then. Drive's scope too, only if files are to move to Drive. The
-     owner met the boss about it on 2026-09-29; the outcome is not recorded here yet.
-     Every email goes out from `GMAIL_SENDER`, today the OWNER's own address, whoever
-     granted: access emails even show no display name (the Cash reports say "Cash
-     balancing - Jacmar"). For production, a shared Workspace mailbox is better (see
-     `docs/CUTOVER.md`); a display name on the access emails is a small code change, not
-     made yet.
-  2. Open JM DevOps on the Vercel staging site, signed in (it has only been seen on the
-     laptop), and let the owner walk through it on real data. Also see the bell as a
-     NON-admin (the owner's Gmail tester, Gérant at Hull): grant it something and check
-     the badge says 1; neither the real non-admin bar nor "En attente" has been seen.
-  3. Where each restaurant's report goes: 5 of 7 point at Pierre's mailbox
-     (`docs/CUTOVER.md`, "Before the day"). The owner decides.
-  4. Before the Pro trial ends (about 2026-10-11): stay on Pro or not. The owner's boss
-     decides; the Firewall and the independent review wait for that (above).
-  5. Watch the JM DevOps race test (`store.db.test.ts`, "two people creating at the
-     same moment"): it failed ONCE on 2026-09-29, in a full run while the dev server
-     was restarting, in 0.18 s, error not captured; then 3 full runs and 15 alone
-     passed. Probably a refused connection (§1's 15 clients), unproven. If it fails
-     again, keep the output.
-  6. Tests (beta apps, PR #46, migration 0013 applied to staging): the owner tried it
-     on localhost, 2026-09-30 ("looks great"). No beta exists now (placeholder removed),
-     so the menu is hidden until the owner's version 2 arrives.
-  Demo 2026-10-08, freeze 2026-10-07. Everything built is in the demo: the portal, Cash
-  Balancing, JM DevOps, and Tests.
+- **Staging:** `https://apps-hub-web-eta.vercel.app` (Vercel, region yul1, a Pro TRIAL
+  that ends about 2026-10-11; set up by `docs/DEPLOY_STAGING.md`) on Supabase project
+  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0014). It
+  reads a SNAPSHOT of the production spreadsheets, never writes to them, never runs
+  `clasp`, and DOES email real people (`EMAIL_MODE=live`, §4). Google sign-in is in
+  "Testing": only listed test users can sign in (publishing is a cutover step).
+- **Built, all in the demo:** the portal at parity with the Apps Script one plus the
+  owner's redesign (favourites, Notifications, add to home screen), Cash Balancing, JM
+  DevOps (admins only), Tests (beta apps; none exists until the owner's version 2), and
+  the security pass (headers, a nonce-based policy, rate limits, `npm audit` at 0).
+- **Open, in order** (details in `docs/STATUS.md`):
+  1. **Gmail domain-wide delegation** from the owner's boss (Workspace super admin):
+     until then NO email is sent; each is audited as not sent. Client ID
+     `117203550704415068036`, scope `https://www.googleapis.com/auth/gmail.send`.
+  2. Open JM DevOps on the staging site, signed in, with the owner; see the bell as a
+     non-admin.
+  3. Where each restaurant's report goes (5 of 7 point at Pierre's mailbox): the owner.
+  4. Stay on Vercel Pro or not, before the trial ends: the owner's boss. The Firewall
+     rules and an independent security review wait for that (`docs/CUTOVER.md`).
+  5. Watch the JM DevOps race test (failed once, 2026-09-29; keep the output if again).
+  6. After the demo: §7.
+- Not built: the Drive file store, moving the 256 imported attachments off Drive.
+  Not created: production Supabase, the domain, the production OAuth client.
 
 ## 2. Layout
 
@@ -252,6 +62,7 @@ say what it used to say. A file that disagrees with reality is worse than none.
     apps/web/src/lib/beta      beta apps and their testers; the page is app/tests
     packages/email    where an email actually goes (test vs live)
     docs/CUTOVER.md   the approval-day checklist
+    docs/STATUS.md    what was built when, with which PR, and what is open (the log)
 
 One repo on purpose: shared code written once, one sign-in, one deploy. Separate repos
 would need versioned shared packages, which is the RBAC library's pinning problem again.
@@ -261,6 +72,29 @@ Split an app out only for a concrete reason (a separate team, selling one app).
 `node_modules/next/dist/docs/` before writing Next.js code rather than trusting memory.
 
 ## 3. Rules that are load-bearing
+
+**Database connections: `pg`, one pool per process, never the session pooler on Vercel.**
+The client is node-postgres (`packages/db/src/client.ts`), one query at a time per
+connection. postgres.js PIPELINED queries, and through Supabase's transaction pooler
+(6543) that left them stuck: in `next dev` (2026-09-25) and on Vercel's first page load
+(2026-09-26) every page hung. `pg` returns `{ rows }` from `db.execute`, not the array:
+read `.rows`, typed, never cast (a cast hid it once in the import verifier). Vercel uses
+the TRANSACTION pooler and must never use the session pooler: on 2026-09-26 it briefly
+did, a burst of visits held connections across frozen instances, and every page failed,
+the laptop's too. **The session pooler allows 15 clients for the whole project** (Free
+plan), across every process (dev, imports, migrations, each Vercel instance); beyond it
+every query fails with `EMAXCONNSESSION`. So ONE pool per process on `globalThis`
+(`apps/web/src/lib/db.ts`), capped by `DB_POOL_MAX` (default 5), and Vercel's
+`attachDatabasePool` closes idle connections before an instance is frozen. Locally
+`DATABASE_URL` is the session pooler (a long-running dev server hangs on 6543). Measured
+on Vercel after the switch: warm pages 41 to 65 ms (`docs/STATUS.md`).
+
+**Roles, for the record.** Three per app, each with restaurants: Gérant (manager),
+Bureau (office), Consultation (viewer). A Gérant holds ONE restaurant (#47). Bureau does
+whatever a Gérant does, plus the all-restaurants view and Admin (#48; the import's
+`officeAsManager`). Consultation only looks. A system admin is not a role but passes
+every check, and may do whatever a manager can (#44). On the portal, roles change
+nothing: Development (JM DevOps, GitHub, Twilio, Intuit) is admins only for everyone.
 
 **Money is integer cents, everywhere.** Columns end in `_cents`. Convert only at the
 edges with `parseCents` / `formatCents`. `sumCents` throws on a non-integer.
@@ -615,7 +449,7 @@ the cached result. drizzle-kit does not read it at all. Load it first:
 `set -a && . ./.env.local && set +a && npm run db:migrate`. In Supabase, go to
 Connect → Direct → URI. Locally, both `DATABASE_URL` and `DIRECT_URL` are the
 **Session pooler** (5432): the transaction pooler (6543) hangs in a long-running dev
-server (§1). `DATABASE_URL` used to be the transaction pooler; which one production uses
+server (§3, database connections). `DATABASE_URL` used to be the transaction pooler; which one production uses
 is decided on Vercel. Not "Direct connection" either: that one is
 IPv6-only without a paid add-on and fails from most office and home networks. Write
 lines as `KEY=value`, with no spaces around `=` and no brackets left around the
@@ -628,7 +462,7 @@ cleanup hands to new rows, so disk order stops being insertion order (seen 2026-
 and failed now and then for exactly this; it was first blamed on parallel database
 tests, wrongly. Separately, tests that touch the database are named `*.db.test.ts`:
 that puts them in the `postgres` group, one file at a time (`maxWorkers: 1`), so they
-never add up against the session pooler's 15 clients (§1) beside a dev server. Vitest 4
+never add up against the session pooler's 15 clients (§3, database connections) beside a dev server. Vitest 4
 REMOVED the old way (`poolOptions.forks.singleFork`) and would have run them in
 parallel without a word but a deprecation line; checked 2026-09-30 with two sleeping
 test files, sequential with the setting and overlapping without it. The same run prints
@@ -642,7 +476,7 @@ convert undefined or null to object" from inside Drizzle (2026-09-29, the JM Dev
 layout). When that error appears, check the column names in the select.
 
 **Restart `next dev` after a schema change.** The database client lives on `globalThis`
-across hot reloads (§1), and drizzle keeps a column-name cache inside it: a column added
+across hot reloads (§3, database connections), and drizzle keeps a column-name cache inside it: a column added
 while the server runs has no name, and every query touching it fails with
 "Cannot read properties of undefined (reading 'replace')" in drizzle's `escapeName`
 (2026-09-28, the Admin page). A deploy starts fresh, so only a long dev server hits it.
@@ -732,9 +566,12 @@ in rolled-back transactions, mutation-checked, pinned to UTC.
    builds "id - name" by hand again. Administration's and the JM DevOps sidebar's reads
    moved into `lib` (`settingsPageData`, `sidebarProjects`), tested on Postgres. Cash
    Balancing keeps names alone, its own look. Notifications still shows "Hull" without
-   the number: left as it was, the owner's call whether to change it.
-5. **Move the status log out of this file** (§1 is a running log; the rules are what
-   this file is for) into its own, e.g. `docs/STATUS.md`, keeping §1 short.
+   the number, and Cash Balancing keeps its own styles, the accountant's PDF and emails
+   included: the owner's decision, 2026-09-30, "leave it as is" since the app differs
+   throughout.
+5. ~~**Move the status log out of this file**~~ DONE (#57, 2026-10-01): the log is
+   `docs/STATUS.md`, word for word; §1 is short; the rules that lived in the log
+   (database connections, roles) moved into §3.
 6. **One styling approach, over time.** Tailwind is loaded beside the hand-written CSS
    and has already bitten (§3: a class named like a utility is one; the "Corrigé"
    badges vanished).

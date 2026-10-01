@@ -8,7 +8,7 @@ import { attachDatabasePool } from '@vercel/functions';
 // ONE pool for the whole server process, kept on globalThis, so dev's hot reload and
 // Turbopack's per-route copies of this module all share it. On 2026-09-25 this was
 // briefly one pool PER module copy, to cure a hang that turned out to be the
-// transaction pooler (CLAUDE.md §1), and the extra pools then ran into the session
+// transaction pooler (CLAUDE.md §3, database connections), and the extra pools then ran into the session
 // pooler's hard limit of 15 clients ("EMAXCONNSESSION max clients reached"): the
 // access directory failed to load. createDb caps each pool (DB_POOL_MAX, default 5).
 const g = globalThis as { hubDb?: Db };

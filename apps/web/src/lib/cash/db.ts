@@ -7,7 +7,7 @@ import { db } from '../db';
  * Cash Balancing's own database getter (CLAUDE.md §3, "each app stays separable").
  * `CASH_DATABASE_URL`, falling back to `DATABASE_URL`: moving the app to its own
  * database is then a setting. Until that setting differs, it IS the portal's pool, not
- * a second one: the session pooler allows 15 clients for the whole project (§1).
+ * a second one: the session pooler allows 15 clients for the whole project (CLAUDE.md §3, database connections).
  */
 const g = globalThis as { cashDb?: Db };
 
