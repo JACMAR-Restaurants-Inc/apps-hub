@@ -34,7 +34,8 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
   DevOps (admins only), Tests (beta apps; none exists until the owner's version 2), and
   the security pass (headers, a nonce-based policy, rate limits, `npm audit` at 0).
 - **Open, in order** (details in `docs/STATUS.md`):
-  1. **Gmail domain-wide delegation** from the owner's boss (Workspace super admin):
+  1. **Gmail domain-wide delegation** from the owner's boss (Workspace super admin;
+     the steps for them are in `docs/GMAIL_DELEGATION.md`):
      until then NO email is sent; each is audited as not sent. Client ID
      `117203550704415068036`, scope `https://www.googleapis.com/auth/gmail.send`.
   2. Open JM DevOps on the staging site, signed in, with the owner; see the bell as a
@@ -63,6 +64,7 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
     packages/email    where an email actually goes (test vs live)
     docs/CUTOVER.md   the approval-day checklist
     docs/STATUS.md    what was built when, with which PR, and what is open (the log)
+    docs/GMAIL_DELEGATION.md  what the Workspace admin does so the portal can send email
 
 One repo on purpose: shared code written once, one sign-in, one deploy. Separate repos
 would need versioned shared packages, which is the RBAC library's pinning problem again.
