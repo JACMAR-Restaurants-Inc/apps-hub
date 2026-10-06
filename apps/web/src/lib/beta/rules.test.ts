@@ -14,6 +14,8 @@ vi.mock('./apps', async (importOriginal) => {
     { key: 'TestBeta', base: 'SafeCount', name: 'Test beta', nameFr: 'Bêta de test', blurb: 'A test.', blurbFr: 'Un test.', path: '/beta/test', mark: 'TB', tint: '#0369A1' },
     // A brand-new app: no live version (owner, 2026-10-06).
     { key: 'NewBeta', base: null, name: 'New beta', nameFr: 'Nouvelle bêta', blurb: 'New.', blurbFr: 'Nouveau.', path: '/beta/new', mark: 'NB', tint: '#0369A1' },
+    // An Apps Script test console: a link out, no permissions here (owner, 2026-10-06).
+    { key: 'ConsoleBeta', base: null, name: 'Console', nameFr: 'Console', blurb: 'A console.', blurbFr: 'Une console.', path: 'https://script.google.com/macros/s/TEST/exec', mark: 'CO', tint: '#0369A1' },
   ];
   return { ...real, BETA_APPS: TEST, betaApp: (key: string) => TEST.find((a) => a.key === key) };
 });
@@ -104,6 +106,27 @@ describe('a brand-new app (no live version): the person\'s own role and restaura
   });
 });
 
+describe('an Apps Script test console: the portal decides only who sees its card', () => {
+  const sees = (email: string, tester: boolean) => betaDecision(roster, email, tester, 'ConsoleBeta', 'app', 'access');
+
+  it('a tester switched on who holds an app sees it, with no permission rows for it', () => {
+    expect([...roster.permissions.keys()].some((k) => k.startsWith('ConsoleBeta|'))).toBe(false);
+    expect(sees(HULL, true)).toEqual({ allowed: true, reason: 'tester' });
+    expect(testingApps(roster, HULL, new Set(['ConsoleBeta'])).map((b) => b.key)).toEqual(['ConsoleBeta']);
+  });
+
+  it('not a tester, switched off, holding no app, or a stranger: no card', () => {
+    expect(sees(HULL, false).reason).toBe('not_tester');
+    expect(sees(OFF, true).reason).toBe('user_inactive');
+    expect(sees(GONE, true).reason).toBe('no_app_access');
+    expect(sees('stranger@gmail.com', true).reason).toBe('not_on_roster');
+  });
+
+  it('an admin sees it without being a tester', () => {
+    expect(sees(ADMIN, false)).toEqual({ allowed: true, reason: 'system_admin' });
+  });
+});
+
 describe('the Tests menu and page', () => {
   it('an admin sees every beta; a tester, the ones they can open; anyone else, none', () => {
     expect(testingApps(roster, ADMIN, new Set()).map((b) => b.key)).toEqual(BETA_APPS.map((b) => b.key));
@@ -122,6 +145,8 @@ describe('beta apps stay out of every ordinary list', () => {
       if (b.base !== null) expect(CATALOGUE.find((a) => a.key === b.base)?.governed).toBe(true);
     }
     expect(new Set(real.BETA_APPS.map((b) => b.key)).size).toBe(real.BETA_APPS.length);
+    // Open goes to a page here or to a console over https, never anything else.
+    for (const b of real.BETA_APPS) expect(b.path).toMatch(/^(\/[^/]|https:\/\/)/);
   });
 
   it('each has its own key, and is a new version of a live, roster-governed app, or of none', () => {

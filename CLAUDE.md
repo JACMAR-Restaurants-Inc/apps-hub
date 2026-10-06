@@ -150,6 +150,14 @@ and active in the live app (for a brand-new app: in any app; the owner's "every 
 the access directory after we grant them access becomes eligible"), checked under row
 locks in `lib/beta/testers.ts`, not only by the page's list. Denials are audited under
 the beta's key. This used to require a live app for every beta.
+A beta can also be a TEST CONSOLE that stays in Apps Script (owner, 2026-10-06: the
+owner's automations are easier kept there until they move here): its `path` is the
+console's `https://` address, Open goes there in a new tab, and the card shows only to
+admins and testers switched on who hold an app. The portal decides who SEES the card,
+nothing more: the console is public to anyone with its address, as it was before. That is
+the owner's choice; a signed short-lived ticket the console would check (an HMAC with a
+shared secret) was offered and declined. So never assume a console is protected by the
+portal, and remember these consoles can send real texts and emails.
 
 **A request grants nothing.** Asking adds the person with `active = false` and a
 `pending` row with no role; `can()` refuses both. Only a system admin can grant,
@@ -565,7 +573,9 @@ people offered as candidates, a deleted person keeping tester rows), one role pe
 person (8, all caught, 2026-10-06: a grant ignoring the role they hold, counting removed
 apps as held, a change skipping another app's roles or telling only one app, the roster
 keeping a collided person's restaurants or not giving memberships the person's, a
-brand-new app's beta open without any app, or a tester added without one), and RLS on
+brand-new app's beta open without any app, or a tester added without one), Apps Script
+consoles (2, caught: a card for someone holding no app, a console treated as an app built
+here), and RLS on
 every table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`
