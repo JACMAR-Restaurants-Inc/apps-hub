@@ -95,6 +95,17 @@ whatever a Gérant does, plus the all-restaurants view and Admin (#48; the impor
 `officeAsManager`). Consultation only looks. A system admin is not a role but passes
 every check, and may do whatever a manager can (#44). On the portal, roles change
 nothing: Development (JM DevOps, GitHub, Twilio, Intuit) is admins only for everyone.
+**A person has ONE role and ONE set of restaurants, the same in every app they are
+given** (owner's call, 2026-10-06: "a manager will always be a manager", "same
+restaurants everywhere"). Apps differ only in WHETHER someone has access. This is why a
+brand-new app's beta can take a tester's role and restaurants from the access directory
+with no second grant (the appreciation-messages app was the case). The code does NOT
+enforce it yet: `app_members` and `member_stores` still store role and restaurants per
+app, and the Grant panel lets an admin pick any role. Until that changes, anything that
+reads "the person's role" from another app's grants must refuse when those grants
+disagree or are missing, never guess (fail closed). Open: whether a person in the
+directory who holds no app can be a tester (their role would have nowhere to come from).
+This used to say only "Three per app".
 
 **Money is integer cents, everywhere.** Columns end in `_cents`. Convert only at the
 edges with `parseCents` / `formatCents`. `sumCents` throws on a non-integer.
