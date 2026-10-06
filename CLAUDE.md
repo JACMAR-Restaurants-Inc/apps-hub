@@ -25,7 +25,7 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
 
 - **Staging:** `https://apps-hub-web-eta.vercel.app` (Vercel, region yul1, a Pro TRIAL
   that ends about 2026-10-11; set up by `docs/DEPLOY_STAGING.md`) on Supabase project
-  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0014). It
+  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0016). It
   reads a SNAPSHOT of the production spreadsheets, never writes to them, never runs
   `clasp`, and DOES email real people (`EMAIL_MODE=live`, §4). Google sign-in is in
   "Testing": only listed test users can sign in (publishing is a cutover step).

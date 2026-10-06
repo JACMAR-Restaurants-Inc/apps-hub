@@ -11,20 +11,20 @@ about database connections and roles is now in §3.
 ## Latest, 2026-10-06
 
 One role and one set of restaurants per person, in every app (owner's rule, 2026-10-06;
-CLAUDE.md §3 Roles). Built on branch `one-role-per-person`, to MERGE AFTER THE DEMO
-(owner's choice: the demo runs on what was clicked through). Migrations 0015 (add, move
+CLAUDE.md §3 Roles). PR #58, merged 2026-10-06, the day before the code freeze, at the
+owner's wish (it was first planned for after the demo). Migrations 0015 (add, move
 the data, refuse a conflict) and 0016 (drop `app_members.role` and `member_stores`).
 Betas may now have no live app (`base: null`), for brand-new apps such as the
 appreciation-messages console. Checked: 391 tests including 54 on Postgres, all on a
-local PGlite copy of staging migrated to 0016 (staging itself is still at 0014); 8
-mutations all caught; lint, drizzle check and `next build` pass. Checked by hand by the owner
+local PGlite copy of staging migrated to 0016; 9 mutations all caught; lint, drizzle check and `next build` pass. Checked by hand by the owner
 (2026-10-06, a local dev server on the copy, a temporary second app never committed): a
 Gérant granted two restaurants, a second app's role and restaurants shown fixed, a change
 applying to both apps; all three right. A Gérant may hold several restaurants (owner and
-their boss, 2026-10-06, reversing #47), on the same branch. After the demo, in order:
-merge; `db:migrate` on staging (0015 refuses if anyone's
-apps disagree; staging had 2 memberships, both Cash Balancing, and its copy migrated
-cleanly); deploy. Production gets 0015/0016 with all the others when it is created.
+their boss, 2026-10-06, reversing #47), on the same branch. Staging was moved with no
+moment where the deployed code and the database disagree: 0015 alone first (it only
+adds, so the old code kept working), then the merge and Vercel's deploy (the new code
+needs only what 0015 added), then 0016 once nobody had been granted through the old code
+in between. Production gets 0015/0016 with all the others when it is created.
 
 ## Earlier, 2026-10-01
 
