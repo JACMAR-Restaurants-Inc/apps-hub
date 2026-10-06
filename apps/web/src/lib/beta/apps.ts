@@ -36,10 +36,27 @@ export interface BetaApp {
   tint: string;
 }
 
-// None yet: the owner's version 2 goes here when it reaches beta. The placeholder
-// (BetaDemo, /beta/demo) was removed on 2026-09-30 once the owner had tried Tests.
-// The tests use their own beta (vi.mock of this module).
-export const BETA_APPS: readonly BetaApp[] = [];
+// The owner's version 2 goes here when it reaches beta. The placeholder (BetaDemo,
+// /beta/demo) was removed on 2026-09-30 once the owner had tried Tests. The tests use
+// their own betas (vi.mock of this module).
+export const BETA_APPS: readonly BetaApp[] = [
+  {
+    // Apps Script test console (2026-10-06). The /exec address of the versioned
+    // deployment "Test console": it stays the same, as each push updates that deployment.
+    // It sends REAL texts and emails, so the blurb says so: the card is all testers read.
+    key: 'AppreciationConsole',
+    base: null,
+    name: 'Appreciation Messages',
+    nameFr: 'Messages de reconnaissance',
+    blurb:
+      'Generate and receive the real appreciation message (birthday, hire day, service milestone) for an employee, by text or email. It sends real texts and emails: enter your own phone or email.',
+    blurbFr:
+      'Générez et recevez le vrai message de reconnaissance (anniversaire, embauche, ancienneté) pour un employé, par texto ou courriel. Envoie de vrais textos et courriels\u00a0: entrez votre propre numéro ou courriel.',
+    path: 'https://script.google.com/macros/s/AKfycbwR7uC2pCHcVRGeSl6iRB88XsLO-cB8_57O60osHoLofk12SWsXUaq7GlUfLSjUfm44/exec',
+    mark: 'MR',
+    tint: '#B45309',
+  },
+];
 
 export const betaApp = (key: string) => BETA_APPS.find((a) => a.key === key);
 
