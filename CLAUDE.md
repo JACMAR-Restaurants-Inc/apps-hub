@@ -25,7 +25,7 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
 
 - **Staging:** `https://apps-hub-web-eta.vercel.app` (Vercel, region yul1, a Pro TRIAL
   that ends about 2026-10-11; set up by `docs/DEPLOY_STAGING.md`) on Supabase project
-  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0014). It
+  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0016). It
   reads a SNAPSHOT of the production spreadsheets, never writes to them, never runs
   `clasp`, and DOES email real people (`EMAIL_MODE=live`, §4). Google sign-in is in
   "Testing": only listed test users can sign in (publishing is a cutover step).
@@ -90,11 +90,30 @@ every query fails with `EMAXCONNSESSION`. So ONE pool per process on `globalThis
 on Vercel after the switch: warm pages 41 to 65 ms (`docs/STATUS.md`).
 
 **Roles, for the record.** Three per app, each with restaurants: Gérant (manager),
-Bureau (office), Consultation (viewer). A Gérant holds ONE restaurant (#47). Bureau does
+Bureau (office), Consultation (viewer). Any role may hold several restaurants, a Gérant
+too (owner and their boss, 2026-10-06: two managers run two stores; this used to say "A
+Gérant holds ONE restaurant (#47)"). Bureau does
 whatever a Gérant does, plus the all-restaurants view and Admin (#48; the import's
 `officeAsManager`). Consultation only looks. A system admin is not a role but passes
 every check, and may do whatever a manager can (#44). On the portal, roles change
 nothing: Development (JM DevOps, GitHub, Twilio, Intuit) is admins only for everyone.
+**A person has ONE role and ONE set of restaurants, the same in every app they are
+given** (owner's call, 2026-10-06: "a manager will always be a manager", "same
+restaurants everywhere"). Apps differ only in WHETHER someone has access. This is why a
+brand-new app's beta can take a tester's role and restaurants from the access directory
+with no second grant (the appreciation-messages app was the case). The database holds it
+by construction (migrations 0015/0016): `rbac.users.role` and `rbac.person_stores` are
+the person's, and `app_members` says only WHETHER they hold an app (its `role` column
+and `member_stores` are gone), so two roles cannot be written. `loadRoster` hands each
+membership the person's role and restaurants, so `can()` did not change. The first grant
+sets them; granting another app while the person holds one only switches it on with what
+they have (the Grant panel shows them fixed, and the server answers `changed` to
+anything else); a change applies in every app they hold, is refused if one of those apps
+lacks the role, and tells them once per app. Their role stays on the person when an app
+is removed, as the record. 0015 REFUSES to run if anybody's active apps disagree: settle
+it by hand, never by picking one. An app row shows the role only once that app was
+granted (`grantedAt`), which is what tells a removal from a decline now. This used to
+say only "Three per app", then (the same day) that the code did not enforce it yet.
 
 **Money is integer cents, everywhere.** Columns end in `_cents`. Convert only at the
 edges with `parseCents` / `formatCents`. `sumCents` throws on a non-integer.
@@ -121,21 +140,25 @@ caller names. A perfect UI proves nothing.
 **A beta app checks `authorizeBeta()`, never `authorize()`** (`lib/access.ts`, rules in
 `lib/beta/rules.ts`). In order: an unknown beta denies; a system admin passes; anyone
 else must be on the beta's tester list; then `can()` decides on the LIVE app, with the
-person's role and restaurants there, read fresh on every click. So there is no second
-grant to keep in step: removing a tester, switching someone off, or changing their
-restaurants in the live app takes effect in the beta on the next click. A tester can
-only be added while switched on, not an admin, and active in the live app (checked
-under row locks in `lib/beta/testers.ts`, not only by the page's list). Denials are
-audited under the beta's key.
+person's role and restaurants there, read fresh on every click. A BRAND-NEW app's beta
+has `base: null` (owner, 2026-10-06): `can()` then decides on the beta's own
+permissions, as if the tester held it with their own role and restaurants, for as long
+as they hold ANY live app. So there is no second grant to keep in step: removing a
+tester, switching someone off, or changing their restaurants takes effect in the beta on
+the next click. A tester can only be added while switched on, not an admin, with a role,
+and active in the live app (for a brand-new app: in any app; the owner's "every user in
+the access directory after we grant them access becomes eligible"), checked under row
+locks in `lib/beta/testers.ts`, not only by the page's list. Denials are audited under
+the beta's key. This used to require a live app for every beta.
 
 **A request grants nothing.** Asking adds the person with `active = false` and a
 `pending` row with no role; `can()` refuses both. Only a system admin can grant,
 change, decline or remove (`requireSystemAdmin`, RBAC §48), and every admin write
 checks under a row lock that the row is still what the page showed, or answers
-`changed`. A declined or removed person may ask again (RBAC §45). A Gérant holds ONE
-restaurant (owner, 2026-09-30: only office staff and admins span several): the Grant
-panel shows radio buttons for a Gérant, and `validChoice` refuses a manager with more
-than one, since the action is callable with anything. Staging had none with more. The rules live in
+`changed`. A declined or removed person may ask again (RBAC §45). A Gérant may hold
+several restaurants (owner and their boss, 2026-10-06), like every role: the Grant panel
+shows boxes for all. From 2026-09-30 (#47) to then, a Gérant held ONE: radio buttons, and
+`validChoice` refused more. The rules live in
 `lib/requests/service.ts`, tested on an in-memory roster AND against Postgres
 (`store.db.test.ts`, inside a transaction that is always rolled back; it runs when
 `.env.local` has a `DATABASE_URL` and is skipped in CI). The employee number is required
@@ -231,8 +254,8 @@ a person from the directory, so their next sign-in is a first visit. It is guard
 (`deletePerson` in `lib/admin/settings.ts`): the admin must type the person's address,
 it is never allowed on an admin or on yourself, their Better Auth sign-in goes too (so
 they are signed out at once), and the audit row `person_deleted` keeps a full copy of
-what they held (name, HR email, employee number, switch, every app row with role and
-restaurants) and the apps they had starred. Their stars (`portal.favourites`) are deleted
+what they held (name, HR email, employee number, switch, their role and restaurants,
+every app row) and the apps they had starred. Their stars (`portal.favourites`) are deleted
 too. So the record of what they could do moves into the journal rather than being lost.
 Unstarring an app also deletes its row: a star is a preference, not history. Removing a
 beta tester deletes their `rbac.beta_testers` row, like an admins row (a permission, not
@@ -470,6 +493,18 @@ a `pg` warning, "client.query() when the client is already executing a query": `
 printed it before the upgrade too; some test sends two queries at once on one
 transaction. Harmless in pg 8, an error in pg 9: find it before upgrading `pg`.
 
+**A migration staging cannot take yet is tested on a local copy** (2026-10-06, one role
+per person, built while staging served the demo). No Postgres or Docker on this machine,
+so PGlite (Postgres in WebAssembly) behind `@electric-sql/pglite-socket`, installed in a
+scratch folder, NOT in the repo: apply the migrations up to the last one staging has,
+copy rbac, cash, portal and devops from staging with SELECTs only (never `identity`,
+which holds sign-in sessions), apply the new ones, then run `npm test` with
+`DATABASE_URL` and `DIRECT_URL` pointing at it. The data move was also tried on seeded
+old-shape rows, including the conflict it must refuse. drizzle-kit cannot answer its own
+"rename or create?" prompt here, so a change that drops a table and adds one is
+generated in two steps: an add-only migration with the data move written in by hand,
+then a drop-only one.
+
 **A Drizzle table has its own `.name`, so a wrong column name can typecheck.**
 `users.name` compiled (the column is `fullName`) and failed at run time with "Cannot
 convert undefined or null to object" from inside Drizzle (2026-09-29, the JM DevOps
@@ -526,8 +561,12 @@ marking everyone's read), beta testing (13, all caught: no tester check, decidin
 the beta's key instead of the live app, no admin bypass, an unknown beta allowed, the
 tab showing every beta, a denial audited under the live app, adding someone switched
 off, without live access or an admin, no invitation, a removal not audited, switched-off
-people offered as candidates, a deleted person keeping tester rows), and RLS on every
-table. The import VERIFIER was checked the other way: staging was damaged inside a
+people offered as candidates, a deleted person keeping tester rows), one role per
+person (8, all caught, 2026-10-06: a grant ignoring the role they hold, counting removed
+apps as held, a change skipping another app's roles or telling only one app, the roster
+keeping a collided person's restaurants or not giving memberships the person's, a
+brand-new app's beta open without any app, or a tester added without one), and RLS on
+every table. The import VERIFIER was checked the other way: staging was damaged inside a
 transaction (a total, a coin line changed and one deleted, tills relabelled, a
 restaurant deactivated), and it caught every one, then rolled back. One `authorize()`
 mutation survives on purpose: letting a no-session caller through is still refused by

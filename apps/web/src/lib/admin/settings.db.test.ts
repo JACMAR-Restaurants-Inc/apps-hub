@@ -129,11 +129,11 @@ describe('what the portal may do', () => {
 describe.skipIf(!db)('deleting a person (rolled back)', () => {
   it('removes them, their access and their sign-in, and keeps a copy in the journal', async () => {
     const { deletePerson } = await import('./settings');
-    const { appMembers, memberStores, authUsers, authSessions, authAccounts } = await import('@hub/db');
+    const { appMembers, personStores, authUsers, authSessions, authAccounts } = await import('@hub/db');
     await rolledBack(async (tx) => {
-      await tx.insert(users).values({ email: NEW, active: true, fullName: 'Test Person', employeeNumber: '0014' });
-      await tx.insert(appMembers).values({ app: 'SafeCount', email: NEW, status: 'active', role: 'manager' });
-      await tx.insert(memberStores).values({ app: 'SafeCount', email: NEW, restaurantId: '1647' });
+      await tx.insert(users).values({ email: NEW, active: true, fullName: 'Test Person', employeeNumber: '0014', role: 'manager' });
+      await tx.insert(appMembers).values({ app: 'SafeCount', email: NEW, status: 'active', grantedAt: new Date() });
+      await tx.insert(personStores).values({ email: NEW, restaurantId: '1647' });
       await tx.insert(authUsers).values({ id: 'del-test', name: 'Test', email: 'Settings-Test@Example.invalid', emailVerified: true });
       await tx.insert(authSessions).values({ id: 'del-s', token: 'del-token', userId: 'del-test', expiresAt: new Date(Date.now() + 60_000) });
       await tx.insert(authAccounts).values({ id: 'del-a', accountId: 'g-del', providerId: 'google', userId: 'del-test' });
@@ -144,7 +144,7 @@ describe.skipIf(!db)('deleting a person (rolled back)', () => {
       expect(await deletePerson(tx, ME, NEW, ' Settings-Test@Example.invalid ')).toBe('done');
       expect(await tx.select().from(users).where(eq(users.email, NEW))).toEqual([]);
       expect(await tx.select().from(appMembers).where(eq(appMembers.email, NEW))).toEqual([]);
-      expect(await tx.select().from(memberStores).where(eq(memberStores.email, NEW))).toEqual([]);
+      expect(await tx.select().from(personStores).where(eq(personStores.email, NEW))).toEqual([]);
       expect(await tx.select().from(authUsers).where(eq(authUsers.id, 'del-test'))).toEqual([]);
       expect(await tx.select().from(authSessions).where(eq(authSessions.id, 'del-s'))).toEqual([]);
 
@@ -152,7 +152,9 @@ describe.skipIf(!db)('deleting a person (rolled back)', () => {
       expect(entry).toMatchObject({ event: 'person_deleted', actorEmail: ME, targetEmail: NEW });
       expect(entry!.detail).toMatchObject({
         person: { fullName: 'Test Person', employeeNumber: '0014', active: true },
-        apps: [{ app: 'SafeCount', status: 'active', role: 'manager', stores: ['1647'] }],
+        role: 'manager',
+        stores: ['1647'],
+        apps: [{ app: 'SafeCount', status: 'active' }],
         signedOut: true,
       });
       expect(await deletePerson(tx, ME, NEW, NEW)).toBe('not_found');

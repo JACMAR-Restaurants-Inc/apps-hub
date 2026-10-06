@@ -12,6 +12,8 @@ vi.mock('./apps', async (importOriginal) => {
   const real = await importOriginal<typeof import('./apps')>();
   const TEST = [
     { key: 'TestBeta', base: 'SafeCount', name: 'Test beta', nameFr: 'Bêta de test', blurb: 'A test.', blurbFr: 'Un test.', path: '/beta/test', mark: 'TB', tint: '#0369A1' },
+    // A brand-new app: no live version (owner, 2026-10-06).
+    { key: 'NewBeta', base: null, name: 'New beta', nameFr: 'Nouvelle bêta', blurb: 'New.', blurbFr: 'Nouveau.', path: '/beta/new', mark: 'NB', tint: '#0369A1' },
   ];
   return { ...real, BETA_APPS: TEST, betaApp: (key: string) => TEST.find((a) => a.key === key) };
 });
@@ -25,9 +27,9 @@ const GONE = 'lostcash@gmail.com';
 const roster: RosterSnapshot = {
   admins: new Set([ADMIN]),
   users: new Map([
-    [HULL, { active: true }],
-    [OFF, { active: false }],
-    [GONE, { active: true }],
+    [HULL, { active: true, role: 'manager', stores: new Set(['1647']) }],
+    [OFF, { active: false, role: 'manager', stores: new Set(['1647']) }],
+    [GONE, { active: true, role: 'manager', stores: new Set(['1647']) }],
   ]),
   restaurants: new Map([
     ['1647', { active: true }],
@@ -41,6 +43,9 @@ const roster: RosterSnapshot = {
   permissions: new Map([
     [permissionKey('SafeCount', 'app', 'access'), { scope: 'global', roles: new Set(['manager', 'office', 'viewer']) }],
     [permissionKey('SafeCount', 'count', 'create'), { scope: 'store', roles: new Set(['manager']) }],
+    [permissionKey('NewBeta', 'app', 'access'), { scope: 'global', roles: new Set(['manager', 'office', 'viewer']) }],
+    [permissionKey('NewBeta', 'count', 'create'), { scope: 'store', roles: new Set(['manager']) }],
+    [permissionKey('NewBeta', 'admin_panel', 'access'), { scope: 'global', roles: new Set(['office']) }],
   ]),
 };
 
@@ -74,6 +79,31 @@ describe('who may do what in a beta', () => {
   });
 });
 
+describe('a brand-new app (no live version): the person\'s own role and restaurants', () => {
+  it('a tester who holds any app tests with their role and restaurants', () => {
+    expect(decide(HULL, true, 'app', 'access', undefined, 'NewBeta')).toBe('granted');
+    expect(decide(HULL, true, 'count', 'create', '1647', 'NewBeta')).toBe('granted');
+    expect(decide(HULL, true, 'count', 'create', '2000', 'NewBeta')).toBe('store_not_held');
+    expect(decide(HULL, true, 'admin_panel', 'access', undefined, 'NewBeta')).toBe('role_not_granted');
+  });
+
+  it('not a tester, switched off, or holding no app any more: refused', () => {
+    expect(decide(HULL, false, 'app', 'access', undefined, 'NewBeta')).toBe('not_tester');
+    expect(decide(OFF, true, 'app', 'access', undefined, 'NewBeta')).toBe('user_inactive');
+    expect(decide(GONE, true, 'app', 'access', undefined, 'NewBeta')).toBe('app_status_revoked');
+  });
+
+  it('a person with no role is refused even while holding an app', () => {
+    const r: RosterSnapshot = { ...roster, users: new Map([...roster.users, [HULL, { active: true, role: null, stores: new Set(['1647']) }]]) };
+    expect(betaDecision(r, HULL, true, 'NewBeta', 'app', 'access').reason).toBe('role_not_granted');
+  });
+
+  it('deciding never changes the roster it was given', () => {
+    decide(HULL, true, 'app', 'access', undefined, 'NewBeta');
+    expect(roster.members.has(memberKey('NewBeta', HULL))).toBe(false);
+  });
+});
+
 describe('the Tests menu and page', () => {
   it('an admin sees every beta; a tester, the ones they can open; anyone else, none', () => {
     expect(testingApps(roster, ADMIN, new Set()).map((b) => b.key)).toEqual(BETA_APPS.map((b) => b.key));
@@ -89,15 +119,15 @@ describe('beta apps stay out of every ordinary list', () => {
     const real = await vi.importActual<typeof import('./apps')>('./apps');
     for (const b of real.BETA_APPS) {
       expect(CATALOGUE.map((a) => a.key)).not.toContain(b.key);
-      expect(CATALOGUE.find((a) => a.key === b.base)?.governed).toBe(true);
+      if (b.base !== null) expect(CATALOGUE.find((a) => a.key === b.base)?.governed).toBe(true);
     }
     expect(new Set(real.BETA_APPS.map((b) => b.key)).size).toBe(real.BETA_APPS.length);
   });
 
-  it('each has its own key, and is a new version of a live, roster-governed app', () => {
+  it('each has its own key, and is a new version of a live, roster-governed app, or of none', () => {
     for (const b of BETA_APPS) {
       expect(CATALOGUE.map((a) => a.key)).not.toContain(b.key);
-      expect(CATALOGUE.find((a) => a.key === b.base)?.governed).toBe(true);
+      if (b.base !== null) expect(CATALOGUE.find((a) => a.key === b.base)?.governed).toBe(true);
       expect(betaApp(b.key)).toBe(b);
     }
     expect(new Set(BETA_APPS.map((b) => b.key)).size).toBe(BETA_APPS.length);

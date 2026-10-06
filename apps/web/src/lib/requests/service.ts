@@ -7,8 +7,13 @@
  * established WHO is acting: a signed-in person for a request, a system admin for
  * everything else.
  *
- * A REQUEST GRANTS NOTHING. It adds the person INACTIVE and a 'pending' membership with
- * no role; can() refuses both (steps 2 and 3). An admin has to act.
+ * A REQUEST GRANTS NOTHING. It adds the person INACTIVE and a 'pending' membership;
+ * can() refuses both (steps 2 and 3). An admin has to act.
+ *
+ * ONE ROLE AND ONE SET OF RESTAURANTS PER PERSON, in every app they hold (owner,
+ * 2026-10-06). They live on the person, not the app row. The first grant sets them; a
+ * grant while the person holds another app only switches this one on, with what they
+ * already have; a change changes every app they hold.
  *
  * Every write is one transaction. Emails go AFTER it commits and never change the
  * outcome: a request that was saved is not reported as a failure because the mail leg
@@ -25,8 +30,14 @@ import { accessDeclinedMail, accessGrantedMail, accessRequestMail, type Mail } f
 
 export interface MemberRow {
   status: MemberStatus;
-  role: Role | null;
   notifiedOn: Date | null;
+  /** When this app was last granted: set means a revoked row was a removal, not a decline. */
+  grantedAt: Date | null;
+}
+
+/** The person's role and restaurants, the same in every app they hold. Stores sorted. */
+export interface PersonAccess {
+  role: Role | null;
   stores: string[];
 }
 
@@ -51,6 +62,12 @@ export interface AccessStore {
   transaction<T>(fn: (tx: AccessStore) => Promise<T>): Promise<T>;
   /** Locks the row for the rest of the transaction. */
   findMember(app: string, email: string): Promise<MemberRow | null>;
+  /** Locks the person for the rest of the transaction. No person: no role, no stores. */
+  findAccess(email: string): Promise<PersonAccess>;
+  /** The apps the person holds right now (status active). */
+  heldApps(email: string): Promise<string[]>;
+  /** Makes the person's role and restaurants exactly these, in every app. */
+  setAccess(email: string, role: Role, stores: string[]): Promise<void>;
   findUser(email: string): Promise<UserRow | null>;
   insertUser(email: string, row: Omit<UserRow, 'active'> & { active: false; addedBy: string }): Promise<void>;
   /** Sets only the fields that are null on the row: a filled cell may be an admin's correction. */
@@ -60,10 +77,8 @@ export interface AccessStore {
   updateMember(
     app: string,
     email: string,
-    patch: { status?: MemberStatus; role?: Role | null; grantedBy?: string; notifiedOn?: Date | null },
+    patch: { status?: MemberStatus; grantedBy?: string; grantedAt?: Date; notifiedOn?: Date | null },
   ): Promise<void>;
-  /** Makes the member's stores exactly this list. */
-  setMemberStores(app: string, email: string, stores: string[]): Promise<void>;
   restaurants(): Promise<{ id: string; name: string; active: boolean }[]>;
   /** The roles an app's permissions mention: the only ones that can be granted there. */
   rolesFor(app: string): Promise<Role[]>;
@@ -152,8 +167,8 @@ export async function requestAccess(deps: AccessDeps, email: string, appKey: str
     }
 
     if (member) {
-      // Asking again: the same row, back to pending. Role and stores stay as the
-      // record of what they held; pending grants nothing whatever they say.
+      // Asking again: the same row, back to pending. The person keeps their role and
+      // restaurants; pending grants nothing whatever they say.
       // notifiedOn is cleared, or a re-grant would never tell them (RBAC §45).
       await tx.updateMember(appKey, email, { status: 'pending', notifiedOn: null });
     } else {
@@ -209,16 +224,20 @@ export type AdminOutcome = 'done' | 'done_unsent' | 'changed' | 'invalid';
 async function validChoice(store: AccessStore, appKey: string, role: Role, stores: string[]) {
   if (!appByKey(appKey)) return false;
   if (!(await store.rolesFor(appKey)).includes(role)) return false;
+  // Any role may hold several restaurants, a Gérant too (owner and their boss,
+  // 2026-10-06; two managers run two stores). This used to refuse a Gérant with more than one.
   if (!stores.length) return false;
-  // A manager runs ONE restaurant (owner, 2026-09-30); only office staff and viewers
-  // span several. The Grant panel offers one choice for a Gérant; this refuses the rest.
-  if (role === 'manager' && stores.length !== 1) return false;
   const open = new Set((await store.restaurants()).filter((r) => r.active).map((r) => r.id));
   // Only open restaurants: a closed one denies whatever a row says (can() step 5).
   return stores.every((s) => open.has(s));
 }
 
-/** Pending -> active, with a role and restaurants. Switches the person on, and emails them once. */
+/**
+ * Pending -> active. Switches the person on, and emails them once. The role and
+ * restaurants are set here only when the person holds no other app; while they do, the
+ * grant must carry exactly what they already have (the Grant panel shows it and offers
+ * nothing else), and anything else means the page is out of date: 'changed'.
+ */
 export async function grantAccess(
   deps: AccessDeps,
   admin: string,
@@ -234,16 +253,22 @@ export async function grantAccess(
   const result = await store.transaction(async (tx) => {
     const member = await tx.findMember(appKey, email);
     if (!member || member.status !== 'pending') return { outcome: 'changed' as const };
+    const before = await tx.findAccess(email);
+    const others = (await tx.heldApps(email)).filter((a) => a !== appKey);
+    if (others.length && before.role !== null) {
+      if (before.role !== role || before.stores.join() !== chosen.join()) return { outcome: 'changed' as const };
+    } else {
+      await tx.setAccess(email, role, chosen);
+    }
     // Granting switches the person on (RBAC §30): a request added them inactive.
     await tx.setUserActive(email);
-    await tx.updateMember(appKey, email, { status: 'active', role, grantedBy: admin });
-    await tx.setMemberStores(appKey, email, chosen);
+    await tx.updateMember(appKey, email, { status: 'active', grantedBy: admin, grantedAt: new Date() });
     await tx.audit({
       actorEmail: admin,
       app: appKey,
       event: 'grant',
       targetEmail: email,
-      detail: { before: { status: member.status, role: member.role, stores: member.stores }, after: { role, stores: chosen } },
+      detail: { before: { status: member.status, role: before.role, stores: before.stores }, after: { role, stores: chosen } },
     });
     await tx.notify({ email, app: appKey, kind: 'granted', detail: { role, stores: chosen } });
     return { outcome: 'done' as const, alreadyTold: member.notifiedOn !== null };
@@ -265,8 +290,10 @@ export async function grantAccess(
 }
 
 /**
- * Change the role or restaurants of somebody who has access. Emails nobody; the
- * person's switch is untouched. It does tell them in Notifications (owner, 2026-09-29).
+ * Change the role or restaurants of somebody who has access. They are the person's, so
+ * the change applies in EVERY app they hold, and is refused if any of those apps does
+ * not have the role. Emails nobody; the person's switch is untouched. It does tell them
+ * in Notifications, once per app (owner, 2026-09-29).
  */
 export async function updateAccess(
   deps: AccessDeps,
@@ -282,23 +309,27 @@ export async function updateAccess(
   return store.transaction(async (tx) => {
     const member = await tx.findMember(appKey, email);
     if (!member || member.status !== 'active') return 'changed';
-    await tx.updateMember(appKey, email, { role, grantedBy: admin });
-    await tx.setMemberStores(appKey, email, chosen);
+    // The person first: locked, so no grant can add an app between the check and the write.
+    const before = await tx.findAccess(email);
+    const held = await tx.heldApps(email);
+    for (const app of held) if (!(await tx.rolesFor(app)).includes(role)) return 'invalid';
+    await tx.setAccess(email, role, chosen);
+    await tx.updateMember(appKey, email, { grantedBy: admin });
     await tx.audit({
       actorEmail: admin,
       app: appKey,
       event: 'update',
       targetEmail: email,
-      detail: { before: { role: member.role, stores: member.stores }, after: { role, stores: chosen } },
+      detail: { before, after: { role, stores: chosen }, apps: held },
     });
-    await tx.notify({ email, app: appKey, kind: 'changed', detail: { role, stores: chosen } });
+    for (const app of held) await tx.notify({ email, app, kind: 'changed', detail: { role, stores: chosen } });
     return 'done';
   });
 }
 
 /**
  * Decline a request, or remove access. Both leave the row 'revoked' (deactivate, never
- * delete), keep its role and stores as the record, and leave the person's global switch
+ * delete), keep the person's role and restaurants, and leave the person's global switch
  * alone: they may hold another app (RBAC §48). They can ask again.
  *
  * A DECLINE emails the person (owner's call, 2026-09-25, reversing §48's silence) and
@@ -316,13 +347,14 @@ export async function endAccess(
   const outcome = await deps.store.transaction(async (tx) => {
     const member = await tx.findMember(appKey, email);
     if (!member || member.status !== expected) return 'changed' as const;
+    const held = await tx.findAccess(email);
     await tx.updateMember(appKey, email, { status: 'revoked', grantedBy: admin });
     await tx.audit({
       actorEmail: admin,
       app: appKey,
       event: expected === 'pending' ? 'decline' : 'revoke',
       targetEmail: email,
-      detail: { before: { status: member.status, role: member.role, stores: member.stores } },
+      detail: { before: { status: member.status, role: held.role, stores: held.stores } },
     });
     if (expected === 'pending') await tx.notify({ email, app: appKey, kind: 'declined', detail: null });
     return 'done' as const;

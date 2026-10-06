@@ -4,7 +4,7 @@
  */
 
 import { existsSync } from 'node:fs';
-import { appMembers, audit, betaTesters, createDb, memberStores, notifications, restaurants, users } from '@hub/db';
+import { appMembers, audit, betaTesters, createDb, notifications, personStores, restaurants, users } from '@hub/db';
 import { and, desc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { deletePerson } from '../admin/settings';
@@ -15,6 +15,8 @@ vi.mock('./apps', async (importOriginal) => {
   const real = await importOriginal<typeof import('./apps')>();
   const TEST = [
     { key: 'TestBeta', base: 'SafeCount', name: 'Test beta', nameFr: 'Bêta de test', blurb: 'A test.', blurbFr: 'Un test.', path: '/beta/test', mark: 'TB', tint: '#0369A1' },
+    // A brand-new app: no live version (owner, 2026-10-06).
+    { key: 'NewBeta', base: null, name: 'New beta', nameFr: 'Nouvelle bêta', blurb: 'New.', blurbFr: 'Nouveau.', path: '/beta/new', mark: 'NB', tint: '#0369A1' },
   ];
   return { ...real, BETA_APPS: TEST, betaApp: (key: string) => TEST.find((a) => a.key === key) };
 });
@@ -49,17 +51,17 @@ const lastEvent = async (tx: Tx) => (await tx.select().from(audit).orderBy(desc(
 async function people(tx: Tx) {
   const [store] = await tx.select({ id: restaurants.restaurantId }).from(restaurants).where(eq(restaurants.active, true)).limit(1);
   await tx.insert(users).values([
-    { email: TESTER, fullName: 'Beta Tester', active: true },
-    { email: OFF, active: false },
-    { email: LOST, active: true },
+    { email: TESTER, fullName: 'Beta Tester', active: true, role: 'manager' },
+    { email: OFF, active: false, role: 'manager' },
+    { email: LOST, active: true, role: 'manager' },
     { email: NONE, active: true },
   ]);
   await tx.insert(appMembers).values([
-    { app: 'SafeCount', email: TESTER, role: 'manager', status: 'active' },
-    { app: 'SafeCount', email: OFF, role: 'manager', status: 'active' },
-    { app: 'SafeCount', email: LOST, role: 'manager', status: 'revoked' },
+    { app: 'SafeCount', email: TESTER, status: 'active', grantedAt: new Date() },
+    { app: 'SafeCount', email: OFF, status: 'active', grantedAt: new Date() },
+    { app: 'SafeCount', email: LOST, status: 'revoked', grantedAt: new Date() },
   ]);
-  await tx.insert(memberStores).values({ app: 'SafeCount', email: TESTER, restaurantId: store!.id });
+  await tx.insert(personStores).values({ email: TESTER, restaurantId: store!.id });
   return store!.id;
 }
 
@@ -132,6 +134,21 @@ describe.skipIf(!db)('beta testers on Postgres (rolled back)', () => {
       await tx.update(appMembers).set({ status: 'revoked' }).where(and(eq(appMembers.app, 'SafeCount'), eq(appMembers.email, TESTER)));
       const lost = (await testersPage(tx)).find((b) => b.key === 'TestBeta')!;
       expect(lost.testers.find((x) => x.email === TESTER)?.status).toBe('revoked');
+    });
+  });
+
+  it('a brand-new app: anyone switched on who holds ANY app, with a role, can test it', async () => {
+    await rolledBack(async (tx) => {
+      const store = await people(tx);
+      const page = (await testersPage(tx)).find((b) => b.key === 'NewBeta')!;
+      expect(page.candidates.map((c) => c.email)).toContain(TESTER);
+      for (const e of [OFF, LOST, NONE, ME]) expect(page.candidates.map((c) => c.email)).not.toContain(e);
+
+      for (const e of [OFF, LOST, NONE]) expect(await addTester(tx, ME, 'NewBeta', e)).toBe('not_eligible');
+      expect(await addTester(tx, ME, 'NewBeta', TESTER)).toBe('done');
+      expect(await lastEvent(tx)).toMatchObject({ event: 'tester_add', app: 'NewBeta', detail: { base: null, role: 'manager', stores: [store] } });
+      const after = (await testersPage(tx)).find((b) => b.key === 'NewBeta')!;
+      expect(after.testers.find((x) => x.email === TESTER)).toMatchObject({ status: 'active', role: 'manager', stores: [store] });
     });
   });
 

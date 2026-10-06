@@ -1,5 +1,5 @@
 import 'server-only';
-import { appMembers, memberStores, permissionRoles, restaurants, users } from '@hub/db';
+import { appMembers, permissionRoles, personStores, restaurants, users } from '@hub/db';
 import type { MemberStatus, Role } from '@hub/rbac';
 import { asc, desc, eq } from 'drizzle-orm';
 import { db } from '../db';
@@ -8,7 +8,22 @@ import { APPS } from './apps';
 /**
  * Reads for drawing the portal and the admin screen. NOT decisions: what a person may
  * do is can()'s answer, and every action asks it again (authorize / requireSystemAdmin).
+ *
+ * A role and restaurants are the person's, the same in every app (owner, 2026-10-06).
+ * An app row shows them only once that app was granted: on a request or a decline they
+ * would read as something the person has there, which they never had.
  */
+
+/** Sorted restaurant ids per person. */
+async function storesByPerson(): Promise<Map<string, string[]>> {
+  const rows = await db().select().from(personStores);
+  const out = new Map<string, string[]>();
+  for (const s of rows) out.set(s.email, [...(out.get(s.email) ?? []), s.restaurantId]);
+  for (const v of out.values()) v.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  return out;
+}
+
+const wasGranted = (m: { status: MemberStatus; grantedAt: Date | null }) => m.status === 'active' || m.grantedAt !== null;
 
 export interface MyApp {
   key: string;
@@ -53,14 +68,15 @@ export interface Directory {
 }
 
 export async function directory(): Promise<Directory> {
-  const [rows, storeRows, restaurantRows, roleRows] = await Promise.all([
+  const [rows, stores, restaurantRows, roleRows] = await Promise.all([
     db()
       .select({
         app: appMembers.app,
         email: appMembers.email,
         status: appMembers.status,
-        role: appMembers.role,
+        role: users.role,
         grantedBy: appMembers.grantedBy,
+        grantedAt: appMembers.grantedAt,
         since: appMembers.lastModified,
         fullName: users.fullName,
         hrEmail: users.hrEmail,
@@ -71,17 +87,14 @@ export async function directory(): Promise<Directory> {
       .from(appMembers)
       .innerJoin(users, eq(users.email, appMembers.email))
       .orderBy(desc(appMembers.lastModified)),
-    db().select().from(memberStores),
+    storesByPerson(),
     db().select({ id: restaurants.restaurantId, name: restaurants.name, active: restaurants.active }).from(restaurants).orderBy(asc(restaurants.restaurantId)),
     db().selectDistinct({ app: permissionRoles.app, role: permissionRoles.role }).from(permissionRoles),
   ]);
 
-  const stores = new Map<string, string[]>();
-  for (const s of storeRows) {
-    const k = `${s.app}|${s.email}`;
-    stores.set(k, [...(stores.get(k) ?? []), s.restaurantId].sort());
-  }
-  const entries: DirectoryEntry[] = rows.map((r) => ({ ...r, stores: stores.get(`${r.app}|${r.email}`) ?? [] }));
+  const entries: DirectoryEntry[] = rows.map(({ grantedAt, ...r }) =>
+    wasGranted({ status: r.status, grantedAt }) ? { ...r, stores: stores.get(r.email) ?? [] } : { ...r, role: null, stores: [] },
+  );
 
   // Accents and case ignored; the address stands in for somebody with no name.
   const byName = (a: DirectoryEntry, b: DirectoryEntry) =>
@@ -120,6 +133,9 @@ export interface Person {
   isAdmin: boolean;
   addedAt: Date;
   addedBy: string | null;
+  /** Their role and restaurants, the same in every app they hold. Null before any grant. */
+  role: Role | null;
+  stores: string[];
   /** One entry per governed app, row or not. */
   apps: PersonApp[];
 }
@@ -131,16 +147,11 @@ export interface Person {
  * standing in for a missing name. Decided here, on the server, so every render agrees.
  */
 export async function people(isAdmin: (email: string) => boolean): Promise<Person[]> {
-  const [userRows, memberRows, storeRows] = await Promise.all([
+  const [userRows, memberRows, stores] = await Promise.all([
     db().select().from(users),
     db().select().from(appMembers),
-    db().select().from(memberStores),
+    storesByPerson(),
   ]);
-  const stores = new Map<string, string[]>();
-  for (const s of storeRows) {
-    const k = `${s.app}|${s.email}`;
-    stores.set(k, [...(stores.get(k) ?? []), s.restaurantId].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })));
-  }
   const rows = new Map(memberRows.map((m) => [`${m.app}|${m.email}`, m]));
 
   const list: Person[] = userRows.map((u) => ({
@@ -153,15 +164,18 @@ export async function people(isAdmin: (email: string) => boolean): Promise<Perso
     isAdmin: isAdmin(u.email),
     addedAt: u.addedAt,
     addedBy: u.addedBy,
+    role: u.role,
+    stores: stores.get(u.email) ?? [],
     apps: APPS.map((a) => {
       const m = rows.get(`${a.key}|${u.email}`);
+      const shown = m && wasGranted(m);
       return {
         key: a.key,
         name: a.name.en,
         nameFr: a.name.fr,
         status: m?.status ?? null,
-        role: m?.role ?? null,
-        stores: stores.get(`${a.key}|${u.email}`) ?? [],
+        role: shown ? u.role : null,
+        stores: shown ? (stores.get(u.email) ?? []) : [],
         since: m?.lastModified ?? null,
       };
     }),

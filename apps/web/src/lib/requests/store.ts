@@ -1,5 +1,5 @@
 import 'server-only';
-import { admins, appMembers, audit, memberStores, notifications, permissionRoles, restaurants, users, type Db } from '@hub/db';
+import { admins, appMembers, audit, notifications, permissionRoles, personStores, restaurants, users, type Db } from '@hub/db';
 import type { Role } from '@hub/rbac';
 import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import type { AccessStore } from './service';
@@ -9,7 +9,7 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 /**
  * AccessStore on Postgres. Everything the rules in service.ts need, and nothing else.
  *
- * member_stores is the one table rows are deleted from: a store grant IS a row (a
+ * person_stores is the one table rows are deleted from: a store grant IS a row (a
  * blank never grants), so taking a store away removes it. The before and after are in
  * the audit. Memberships and people are never deleted.
  */
@@ -23,16 +23,37 @@ export function pgAccessStore(db: Db | Tx, inTransaction = false): AccessStore {
 
     async findMember(app, email) {
       const [row] = await db
-        .select({ status: appMembers.status, role: appMembers.role, notifiedOn: appMembers.notifiedOn })
+        .select({ status: appMembers.status, notifiedOn: appMembers.notifiedOn, grantedAt: appMembers.grantedAt })
         .from(appMembers)
         .where(member(app, email))
         .for('update');
-      if (!row) return null;
-      const stores = await db
-        .select({ id: memberStores.restaurantId })
-        .from(memberStores)
-        .where(and(eq(memberStores.app, app), eq(memberStores.email, email)));
-      return { ...row, stores: stores.map((s) => s.id).sort() };
+      return row ?? null;
+    },
+
+    async findAccess(email) {
+      const [row] = await db.select({ role: users.role }).from(users).where(eq(users.email, email)).for('update');
+      const stores = await db.select({ id: personStores.restaurantId }).from(personStores).where(eq(personStores.email, email));
+      return { role: row?.role ?? null, stores: stores.map((s) => s.id).sort() };
+    },
+
+    async heldApps(email) {
+      const rows = await db
+        .select({ app: appMembers.app })
+        .from(appMembers)
+        .where(and(eq(appMembers.email, email), eq(appMembers.status, 'active')));
+      return rows.map((r) => r.app).sort();
+    },
+
+    async setAccess(email, role, stores) {
+      await db.update(users).set({ role }).where(eq(users.email, email));
+      const where = eq(personStores.email, email);
+      await db.delete(personStores).where(stores.length ? and(where, notInArray(personStores.restaurantId, stores)) : where);
+      if (stores.length) {
+        await db
+          .insert(personStores)
+          .values(stores.map((restaurantId) => ({ email, restaurantId })))
+          .onConflictDoNothing();
+      }
     },
 
     async findUser(email) {
@@ -67,7 +88,7 @@ export function pgAccessStore(db: Db | Tx, inTransaction = false): AccessStore {
     },
 
     async insertMember(app, email, row) {
-      await db.insert(appMembers).values({ app, email, status: row.status, role: null });
+      await db.insert(appMembers).values({ app, email, status: row.status });
     },
 
     async updateMember(app, email, patch) {
@@ -75,17 +96,6 @@ export function pgAccessStore(db: Db | Tx, inTransaction = false): AccessStore {
         .update(appMembers)
         .set({ ...patch, lastModified: sql`now()` })
         .where(member(app, email));
-    },
-
-    async setMemberStores(app, email, stores) {
-      const where = and(eq(memberStores.app, app), eq(memberStores.email, email));
-      await db.delete(memberStores).where(stores.length ? and(where, notInArray(memberStores.restaurantId, stores)) : where);
-      if (stores.length) {
-        await db
-          .insert(memberStores)
-          .values(stores.map((restaurantId) => ({ app, email, restaurantId })))
-          .onConflictDoNothing();
-      }
     },
 
     async restaurants() {

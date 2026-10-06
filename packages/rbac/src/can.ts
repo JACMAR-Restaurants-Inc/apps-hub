@@ -34,8 +34,12 @@ export const BREAK_GLASS_ADMIN = 'sony@jacmar-restaurants.com';
 export interface RosterSnapshot {
   /** Normalised emails of system admins. */
   admins: ReadonlySet<string>;
-  /** Keyed by normalised email. */
-  users: ReadonlyMap<string, { active: boolean }>;
+  /**
+   * Keyed by normalised email. `role` and `stores` are the person's, the same in every
+   * app they hold (owner, 2026-10-06); can() reads them through `members`, which the
+   * loader fills from here. Kept on the person too for a beta with no live app.
+   */
+  users: ReadonlyMap<string, { active: boolean; role?: Role | null; stores?: ReadonlySet<string> }>;
   /** Keyed by restaurant id. */
   restaurants: ReadonlyMap<string, { active: boolean }>;
   /** Keyed by memberKey(app, email). */
