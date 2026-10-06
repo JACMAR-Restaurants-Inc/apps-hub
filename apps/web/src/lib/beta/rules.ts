@@ -1,4 +1,5 @@
-import { explain, isSystemAdmin, type Decision, type RosterSnapshot } from '@hub/rbac';
+import { normalizeEmail } from '@hub/core';
+import { explain, isSystemAdmin, memberKey, type Decision, type RosterSnapshot } from '@hub/rbac';
 import { BETA_APPS, betaApp, type BetaApp } from './apps';
 
 /**
@@ -9,9 +10,11 @@ import { BETA_APPS, betaApp, type BetaApp } from './apps';
  * 1. an unknown beta denies;
  * 2. a system admin tests everything, with no tester row (they pass every can());
  * 3. anyone else must be on the beta's tester list;
- * 4. then can() decides, on the LIVE app, with their role and restaurants there.
- * So a tester who loses the live app, is switched off, or is asked about a restaurant
- * they do not hold, is refused in the beta too, on their next click.
+ * 4. then can() decides, on the LIVE app, with their role and restaurants there; for a
+ *    brand-new app (no base), on the beta's own permissions, as if they held it with
+ *    their role and restaurants, for as long as they hold ANY live app (ownApp).
+ * So a tester who loses the live app (or every app), is switched off, or is asked about
+ * a restaurant they do not hold, is refused in the beta too, on their next click.
  */
 export function betaDecision(
   roster: RosterSnapshot,
@@ -25,7 +28,22 @@ export function betaDecision(
   const beta = betaApp(betaKey);
   if (!beta) return { allowed: false, reason: 'no_such_beta' };
   if (!isSystemAdmin(roster, email) && !isTester) return { allowed: false, reason: 'not_tester' };
-  return explain(roster, email, beta.base, resource, action, storeId);
+  if (beta.base) return explain(roster, email, beta.base, resource, action, storeId);
+  return explain(ownApp(roster, email, beta.key), email, beta.key, resource, action, storeId);
+}
+
+/**
+ * The roster as if the person held this brand-new app, with their own role and
+ * restaurants (the same in every app, owner 2026-10-06), active only while they hold
+ * some live app. A copy: the roster itself is never changed.
+ */
+function ownApp(roster: RosterSnapshot, email: string, key: string): RosterSnapshot {
+  const e = normalizeEmail(email);
+  const person = roster.users.get(e);
+  const holds = [...roster.members].some(([k, m]) => k.endsWith(`|${e}`) && m.status === 'active');
+  const members = new Map(roster.members);
+  members.set(memberKey(key, e), { role: person?.role ?? null, status: holds ? 'active' : 'revoked', stores: new Set(person?.stores) });
+  return { ...roster, members };
 }
 
 /**

@@ -16,7 +16,7 @@
  */
 
 import { normalizeEmail } from '@hub/core';
-import { admins, appMembers, audit, authAccounts, authSessions, authUsers, betaTesters, favourites, memberStores, restaurants, users, type Db } from '@hub/db';
+import { admins, appMembers, audit, authAccounts, authSessions, authUsers, betaTesters, favourites, personStores, restaurants, users, type Db } from '@hub/db';
 import { and, asc, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -184,7 +184,7 @@ export async function readAudit(db: Conn, opts: { q?: string; event?: string; li
  * - the admin must type the person's address (`confirm`), not just click;
  * - never an admin (remove the admin role first), never yourself;
  * - the journal keeps a full copy of what they held at that moment (name, HR email,
- *   employee number, switch, every app row with role and restaurants, the betas they
+ *   employee number, switch, role and restaurants, every app row, the betas they
  *   tested), so the record of
  *   what they could do moves into the audit instead of being lost;
  * - their sign-in (Better Auth's rows) goes too, which signs them out at once.
@@ -203,23 +203,20 @@ export async function deletePerson(db: Conn, admin: string, rawEmail: string, co
     if (isAdmin) return 'is_admin';
 
     const memberships = await tx.select().from(appMembers).where(eq(appMembers.email, email));
-    const stores = await tx.select().from(memberStores).where(eq(memberStores.email, email));
+    const stores = await tx.select().from(personStores).where(eq(personStores.email, email));
     const snapshot = {
       person: { fullName: person.fullName, hrEmail: person.hrEmail, employeeNumber: person.employeeNumber, clearviewStore: person.clearviewStore, active: person.active, addedAt: person.addedAt, addedBy: person.addedBy },
-      apps: memberships.map((m) => ({
-        app: m.app,
-        status: m.status,
-        role: m.role,
-        grantedBy: m.grantedBy,
-        stores: stores.filter((x) => x.app === m.app).map((x) => x.restaurantId).sort(),
-      })),
+      // One role and one set of restaurants, in every app they held (owner, 2026-10-06).
+      role: person.role,
+      stores: stores.map((x) => x.restaurantId).sort(),
+      apps: memberships.map((m) => ({ app: m.app, status: m.status, grantedBy: m.grantedBy, grantedAt: m.grantedAt })),
     };
 
     // Children first: there are no cascades, on purpose. Their stars go too, so the
     // next visit really is a first visit.
     const stars = await tx.delete(favourites).where(eq(favourites.email, email)).returning({ app: favourites.app });
     const testing = await tx.delete(betaTesters).where(eq(betaTesters.email, email)).returning({ app: betaTesters.app });
-    await tx.delete(memberStores).where(eq(memberStores.email, email));
+    await tx.delete(personStores).where(eq(personStores.email, email));
     await tx.delete(appMembers).where(eq(appMembers.email, email));
     await tx.delete(users).where(eq(users.email, email));
 

@@ -29,6 +29,9 @@ export interface DirPerson {
   isAdmin: boolean;
   addedAt: string;
   addedBy: string | null;
+  /** Their role and restaurants, the same in every app they hold (owner, 2026-10-06). */
+  role: Role | null;
+  stores: string[];
   apps: DirApp[];
 }
 export interface DirData {

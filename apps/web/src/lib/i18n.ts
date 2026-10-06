@@ -151,6 +151,7 @@ export const dict = {
   testsNone: { fr: 'Aucune application en bêta pour l’instant.', en: 'No beta apps right now.' },
   betaBadge: { fr: 'Bêta', en: 'Beta' },
   betaOf: { fr: 'Nouvelle version de {app}', en: 'New version of {app}' },
+  betaNew: { fr: 'Nouvelle application', en: 'New app' },
   testersTitle: { fr: 'Testeurs', en: 'Testers' },
   testersNone: { fr: 'Aucun testeur. Les administrateurs peuvent toujours la tester.', en: 'No testers. Admins can always test it.' },
   addTester: { fr: 'Ajouter un testeur', en: 'Add a tester' },
@@ -301,8 +302,8 @@ export const dict = {
   gpClose: { fr: 'Fermer', en: 'Close' },
   gpClearview: { fr: 'Restaurant Clearview', en: 'Clearview restaurant' },
   gpNone: { fr: 'non fourni', en: 'not given' },
-  gpRoleHelp: { fr: 'ce que la personne peut faire dans {app}', en: 'what they can do in {app}' },
-  gpStoresHelp: { fr: 'où la personne a accès', en: 'where they have access' },
+  gpRoleHelp: { fr: 'ce que la personne peut faire, le même dans toutes ses applications', en: 'what they can do, the same in every app they hold' },
+  gpStoresHelp: { fr: 'où la personne a accès, les mêmes dans toutes ses applications', en: 'where they have access, the same in every app they hold' },
   gpAll: { fr: 'Tout sélectionner', en: 'Select all' },
   gpClear: { fr: 'Effacer', en: 'Clear' },
   needRole: { fr: 'Choisissez un rôle et au moins un restaurant.', en: 'Choose a role and at least one restaurant.' },
@@ -317,6 +318,14 @@ export const dict = {
   readyChange: {
     fr: 'L’accès change à l’enregistrement. Aucun courriel n’est envoyé. Enregistré dans le journal d’audit à votre nom.',
     en: 'Their access changes when you save. No email is sent. Recorded in the audit log under your name.',
+  },
+  readyGrantSame: {
+    fr: 'Même rôle et mêmes restaurants que dans ses autres applications. L’accès sera activé et {who} recevra le lien de {app} par courriel, en français. Enregistré dans le journal d’audit à votre nom.',
+    en: 'Same role and restaurants as in their other apps. {who} will be switched on and emailed the {app} link, in French. Recorded in the audit log under your name.',
+  },
+  readyChangeAll: {
+    fr: 'Le changement s’applique à toutes ses applications. Aucun courriel n’est envoyé. Enregistré dans le journal d’audit à votre nom.',
+    en: 'The change applies in every app they hold. No email is sent. Recorded in the audit log under your name.',
   },
   sameAsBefore: { fr: 'Rien n’a encore changé.', en: 'Nothing has changed yet.' },
   gpSaving: { fr: 'Enregistrement…', en: 'Saving…' },

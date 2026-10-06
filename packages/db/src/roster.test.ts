@@ -9,9 +9,9 @@ const APP = 'cash';
 function rows(overrides: Partial<RosterRows> = {}): RosterRows {
   return {
     users: [
-      { email: 'jane.doe@gmail.com', active: true },
-      { email: 'office@jacmar-restaurants.com', active: true },
-      { email: 'pending@gmail.com', active: true },
+      { email: 'jane.doe@gmail.com', active: true, role: 'manager' },
+      { email: 'office@jacmar-restaurants.com', active: true, role: 'office' },
+      { email: 'pending@gmail.com', active: true, role: null },
     ],
     admins: [],
     restaurants: [
@@ -19,14 +19,14 @@ function rows(overrides: Partial<RosterRows> = {}): RosterRows {
       { restaurantId: '3472', active: true },
     ],
     members: [
-      { app: APP, email: 'jane.doe@gmail.com', role: 'manager', status: 'active' },
-      { app: APP, email: 'office@jacmar-restaurants.com', role: 'office', status: 'active' },
-      { app: APP, email: 'pending@gmail.com', role: null, status: 'pending' },
+      { app: APP, email: 'jane.doe@gmail.com', status: 'active' },
+      { app: APP, email: 'office@jacmar-restaurants.com', status: 'active' },
+      { app: APP, email: 'pending@gmail.com', status: 'pending' },
     ],
-    memberStores: [
-      { app: APP, email: 'jane.doe@gmail.com', restaurantId: '1647' },
-      { app: APP, email: 'office@jacmar-restaurants.com', restaurantId: '1647' },
-      { app: APP, email: 'office@jacmar-restaurants.com', restaurantId: '3472' },
+    personStores: [
+      { email: 'jane.doe@gmail.com', restaurantId: '1647' },
+      { email: 'office@jacmar-restaurants.com', restaurantId: '1647' },
+      { email: 'office@jacmar-restaurants.com', restaurantId: '3472' },
     ],
     permissions: [
       { app: APP, resource: 'count', action: 'create', scope: 'store' },
@@ -66,9 +66,9 @@ describe('buildRoster', () => {
     // Stored with capitals and dots by a hand edit: still the same person.
     const edited = buildRoster(
       rows({
-        users: [{ email: ' Jane.Doe@GoogleMail.com ', active: true }],
-        members: [{ app: APP, email: ' Jane.Doe@GoogleMail.com ', role: 'manager', status: 'active' }],
-        memberStores: [{ app: APP, email: ' Jane.Doe@GoogleMail.com ', restaurantId: '1647' }],
+        users: [{ email: ' Jane.Doe@GoogleMail.com ', active: true, role: 'manager' }],
+        members: [{ app: APP, email: ' Jane.Doe@GoogleMail.com ', status: 'active' }],
+        personStores: [{ email: ' Jane.Doe@GoogleMail.com ', restaurantId: '1647' }],
       }),
     );
     expect(why(edited, 'janedoe@gmail.com', 'count', 'create', '1647')).toBe('granted');
@@ -83,8 +83,8 @@ describe('buildRoster', () => {
       const r = buildRoster(
         rows({
           users: [
-            { email: 'jane.doe@gmail.com', active: first! },
-            { email: 'janedoe@gmail.com', active: second! },
+            { email: 'jane.doe@gmail.com', active: first!, role: 'manager' },
+            { email: 'janedoe@gmail.com', active: second!, role: 'manager' },
           ],
         }),
       );
@@ -105,5 +105,65 @@ describe('buildRoster', () => {
   it('an inactive restaurant grants nothing even to someone who holds it', () => {
     const r = buildRoster(rows({ restaurants: [{ restaurantId: '1647', active: false }] }));
     expect(why(r, 'jane.doe@gmail.com', 'count', 'create', '1647')).toBe('store_inactive');
+  });
+
+  // One role and one set of restaurants per person, in every app (owner, 2026-10-06).
+  describe('the person\'s role and restaurants, in every app', () => {
+    const OTHER = 'other';
+    const two = (o: Partial<RosterRows> = {}) =>
+      buildRoster(
+        rows({
+          members: [
+            { app: APP, email: 'jane.doe@gmail.com', status: 'active' },
+            { app: OTHER, email: 'jane.doe@gmail.com', status: 'active' },
+          ],
+          permissions: [
+            { app: APP, resource: 'count', action: 'create', scope: 'store' },
+            { app: OTHER, resource: 'count', action: 'create', scope: 'store' },
+          ],
+          permissionRoles: [
+            { app: APP, resource: 'count', action: 'create', role: 'manager' },
+            { app: OTHER, resource: 'count', action: 'create', role: 'manager' },
+          ],
+          ...o,
+        }),
+      );
+
+    it('gives every app they hold the same role and restaurants', () => {
+      const r = two();
+      for (const app of [APP, OTHER]) {
+        expect(explain(r, 'jane.doe@gmail.com', app, 'count', 'create', '1647').reason).toBe('granted');
+        expect(explain(r, 'jane.doe@gmail.com', app, 'count', 'create', '3472').reason).toBe('store_not_held');
+      }
+    });
+
+    it('changing the person changes every app at once', () => {
+      const r = two({ personStores: [{ email: 'jane.doe@gmail.com', restaurantId: '3472' }] });
+      for (const app of [APP, OTHER]) {
+        expect(explain(r, 'jane.doe@gmail.com', app, 'count', 'create', '3472').reason).toBe('granted');
+        expect(explain(r, 'jane.doe@gmail.com', app, 'count', 'create', '1647').reason).toBe('store_not_held');
+      }
+    });
+
+    it('a role on the person grants nothing in an app they do not hold, or only asked for', () => {
+      const r = two({ members: [{ app: OTHER, email: 'jane.doe@gmail.com', status: 'pending' }] });
+      expect(explain(r, 'jane.doe@gmail.com', APP, 'count', 'create', '1647').reason).toBe('no_app_access');
+      expect(explain(r, 'jane.doe@gmail.com', OTHER, 'count', 'create', '1647').reason).toBe('app_status_pending');
+    });
+
+    it('a person with no role yet is refused even with an active row', () => {
+      const r = two({ users: [{ email: 'jane.doe@gmail.com', active: true, role: null }] });
+      expect(explain(r, 'jane.doe@gmail.com', APP, 'count', 'create', '1647').reason).toBe('role_not_granted');
+    });
+
+    it('two rows for one person hold no role and no restaurants', () => {
+      const r = two({
+        users: [
+          { email: 'jane.doe@gmail.com', active: true, role: 'manager' },
+          { email: 'janedoe@gmail.com', active: true, role: 'manager' },
+        ],
+      });
+      expect(r.users.get('janedoe@gmail.com')).toEqual({ active: false, role: null, stores: new Set() });
+    });
   });
 });

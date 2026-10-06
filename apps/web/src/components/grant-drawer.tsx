@@ -22,6 +22,9 @@ type Busy = '' | 'grant' | 'update' | 'decline' | 'revoke';
  * at most 480px, full screen on a phone.
  * - Opens with the Clearview restaurant ticked on a request, or what they hold now.
  * - Only the roles the app's permissions name, each with its help; only open restaurants.
+ * - One role and one set of restaurants per person, in every app (owner, 2026-10-06):
+ *   granting an app to someone who holds another shows theirs, fixed (the server takes
+ *   nothing else), and a change says it applies in every app they hold.
  * - A Gérant gets ONE restaurant (owner, 2026-09-30): radio buttons instead of boxes, so
  *   a second cannot be ticked by mistake. Choosing Gérant keeps one of those ticked (the
  *   Clearview one if it is there) only when it is the only one; otherwise the admin picks.
@@ -42,14 +45,17 @@ export function GrantDrawer(props: {
   const app = person?.apps.find((a) => a.key === target.app);
   const info = data.appInfo.find((a) => a.key === target.app);
   const openIds = new Set(data.restaurants.filter((r) => r.active).map((r) => r.id));
+  // The other apps they hold: while there is one, a grant only switches this app on.
+  const heldElsewhere = person?.apps.filter((a) => a.key !== target.app && a.status === 'active').length ?? 0;
+  const fixed = target.mode === 'grant' && heldElsewhere > 0 && Boolean(person?.role);
 
-  const [role, setRole] = useState<Role | ''>(target.mode === 'grant' ? '' : (app?.role ?? ''));
+  const [role, setRole] = useState<Role | ''>(target.mode === 'grant' && !fixed ? '' : (person?.role ?? ''));
   const [stores, setStores] = useState<string[]>(() =>
-    target.mode === 'grant'
+    target.mode === 'grant' && !fixed
       ? person?.clearviewStore && openIds.has(person.clearviewStore)
         ? [person.clearviewStore]
         : []
-      : (app?.stores ?? []).filter((id) => openIds.has(id)),
+      : (person?.stores ?? []).filter((id) => openIds.has(id)),
   );
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState<Busy>('');
@@ -82,10 +88,10 @@ export function GrantDrawer(props: {
   else if (single && stores.length > 1) check = { ok: false, key: 'needOneStoreMgr' };
   else if (!stores.length) check = { ok: false, key: role === 'manager' ? 'needStoreMgr' : 'needStore' };
   else if (target.mode === 'manage') {
-    const was = app.stores.filter((id) => openIds.has(id)).sort().join();
-    const same = role === app.role && [...stores].sort().join() === was;
-    check = { ok: !same, key: same ? 'sameAsBefore' : 'readyChange' };
-  } else check = { ok: true, key: 'readyGrant' };
+    const was = (person.stores ?? []).filter((id) => openIds.has(id)).sort().join();
+    const same = role === person.role && [...stores].sort().join() === was;
+    check = { ok: !same, key: same ? 'sameAsBefore' : heldElsewhere ? 'readyChangeAll' : 'readyChange' };
+  } else check = { ok: true, key: fixed ? 'readyGrantSame' : 'readyGrant' };
 
   const submit = async (kind: Exclude<Busy, ''>) => {
     if (busy) return;
@@ -187,7 +193,7 @@ export function GrantDrawer(props: {
                       name="gprole"
                       value={r}
                       checked={role === r}
-                      disabled={Boolean(busy)}
+                      disabled={Boolean(busy) || fixed}
                       onChange={() => {
                         setRole(r);
                         // To Gérant with several ticked: keep none, so the admin chooses.
@@ -219,7 +225,7 @@ export function GrantDrawer(props: {
                         name="gpstore"
                         value={r.id}
                         checked={stores.length === 1 && stores[0] === r.id}
-                        disabled={Boolean(busy)}
+                        disabled={Boolean(busy) || fixed}
                         onChange={() => setStores([r.id])}
                       />
                     ) : (
@@ -227,7 +233,7 @@ export function GrantDrawer(props: {
                         type="checkbox"
                         value={r.id}
                         checked={stores.includes(r.id)}
-                        disabled={Boolean(busy)}
+                        disabled={Boolean(busy) || fixed}
                         onChange={(e) => setStores((s) => (e.target.checked ? [...s, r.id] : s.filter((x) => x !== r.id)))}
                       />
                     )}
@@ -238,7 +244,7 @@ export function GrantDrawer(props: {
                   </label>
                 ))}
             </div>
-            {!single && (
+            {!single && !fixed && (
               <div className="gp-quick">
                 <button type="button" className="textlink" disabled={Boolean(busy)} onClick={() => setStores([...openIds])}>
                   {t(lang, 'gpAll')}

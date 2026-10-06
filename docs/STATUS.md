@@ -8,7 +8,23 @@ a statement stops being true, correct it in place and say what it used to say (t
 rule as `CLAUDE.md` §0). A § number in the log below refers to `CLAUDE.md` as it was then: what §1 said
 about database connections and roles is now in §3.
 
-## Latest, 2026-10-01
+## Latest, 2026-10-06
+
+One role and one set of restaurants per person, in every app (owner's rule, 2026-10-06;
+CLAUDE.md §3 Roles). Built on branch `one-role-per-person`, to MERGE AFTER THE DEMO
+(owner's choice: the demo runs on what was clicked through). Migrations 0015 (add, move
+the data, refuse a conflict) and 0016 (drop `app_members.role` and `member_stores`).
+Betas may now have no live app (`base: null`), for brand-new apps such as the
+appreciation-messages console. Checked: 391 tests including 54 on Postgres, all on a
+local PGlite copy of staging migrated to 0016 (staging itself is still at 0014); 8
+mutations all caught; lint, drizzle check and `next build` pass. NOT checked: the Grant
+panel by hand (its fixed role for a second app, and the "applies to all their apps"
+note). After the demo, in order: the owner clicks the Grant panel on a local build
+against the copy or staging; merge; `db:migrate` on staging (0015 refuses if anyone's
+apps disagree; staging had 2 memberships, both Cash Balancing, and its copy migrated
+cleanly); deploy. Production gets 0015/0016 with all the others when it is created.
+
+## Earlier, 2026-10-01
 
 `main` = 9917d8e (and the docs PR that moved this file, #57), CI green, every branch
 merged. Since the log below: §7 item 4 done (#56: role names and "1647 - Hull" from one

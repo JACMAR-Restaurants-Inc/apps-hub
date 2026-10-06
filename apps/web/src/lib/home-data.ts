@@ -1,5 +1,5 @@
 import 'server-only';
-import { appMembers, memberStores, restaurants, users } from '@hub/db';
+import { appMembers, personStores, restaurants, users } from '@hub/db';
 import { and, count, eq } from 'drizzle-orm';
 import type { BarViewer } from '@/components/top-bar';
 import type { HomeHead } from '@/components/home-view';
@@ -23,10 +23,10 @@ export async function loadHome(viewer: Viewer, lang: Lang) {
   const [roster, mine, person, adminDir, stars, unread, betas] = await Promise.all([
     getRoster(),
     db()
-      .select({ app: appMembers.app, status: appMembers.status, since: appMembers.lastModified, role: appMembers.role })
+      .select({ app: appMembers.app, status: appMembers.status, since: appMembers.lastModified })
       .from(appMembers)
       .where(eq(appMembers.email, viewer.email)),
-    db().select({ fullName: users.fullName }).from(users).where(eq(users.email, viewer.email)).limit(1),
+    db().select({ fullName: users.fullName, role: users.role }).from(users).where(eq(users.email, viewer.email)).limit(1),
     isAdmin ? directory() : Promise.resolve(null),
     listFavourites(db(), viewer.email),
     isAdmin ? Promise.resolve(0) : unreadCount(db(), viewer.email),
@@ -42,15 +42,15 @@ export async function loadHome(viewer: Viewer, lang: Lang) {
     favourites: stars,
   });
 
-  // The restaurants a manager holds in Cash Balancing, for "Votre restaurant".
-  const cash = mine.find((m) => m.app === 'SafeCount' && m.status === 'active');
+  // Their restaurants, the same in every app they hold, for "Votre restaurant".
+  const holds = mine.some((m) => m.status === 'active');
   const stores =
-    !isAdmin && cash && personActive
+    !isAdmin && holds && personActive
       ? await db()
           .select({ id: restaurants.restaurantId, name: restaurants.name })
-          .from(memberStores)
-          .innerJoin(restaurants, eq(restaurants.restaurantId, memberStores.restaurantId))
-          .where(and(eq(memberStores.app, 'SafeCount'), eq(memberStores.email, viewer.email)))
+          .from(personStores)
+          .innerJoin(restaurants, eq(restaurants.restaurantId, personStores.restaurantId))
+          .where(eq(personStores.email, viewer.email))
       : [];
 
   const waiting = adminDir?.requests.length ?? 0;
@@ -71,8 +71,8 @@ export async function loadHome(viewer: Viewer, lang: Lang) {
       : null,
   };
 
-  // The label beside the initials: Admin, or their role in Cash Balancing.
-  const role = isAdmin ? 'admin' : cash && personActive ? cash.role : null;
+  // The label beside the initials: Admin, or their role (the same in every app they hold).
+  const role = isAdmin ? 'admin' : holds && personActive ? person[0]?.role : null;
   const bar: BarViewer = {
     email: viewer.email,
     initials: initials(person[0]?.fullName ?? viewer.name, viewer.email),
@@ -114,15 +114,15 @@ export async function loadBar(viewer: Viewer): Promise<BarViewer> {
   const isAdmin = viewer.standing === 'admin';
   const [roster, mine, person, pending, unread, betas] = await Promise.all([
     getRoster(),
-    db().select({ app: appMembers.app, status: appMembers.status, role: appMembers.role }).from(appMembers).where(eq(appMembers.email, viewer.email)),
-    db().select({ fullName: users.fullName }).from(users).where(eq(users.email, viewer.email)).limit(1),
+    db().select({ app: appMembers.app, status: appMembers.status }).from(appMembers).where(eq(appMembers.email, viewer.email)),
+    db().select({ fullName: users.fullName, role: users.role }).from(users).where(eq(users.email, viewer.email)).limit(1),
     isAdmin ? db().select({ n: count() }).from(appMembers).where(eq(appMembers.status, 'pending')) : Promise.resolve([{ n: 0 }]),
     isAdmin ? Promise.resolve(0) : unreadCount(db(), viewer.email),
     testerOf(db(), viewer.email),
   ]);
   const personActive = roster.users.get(viewer.email)?.active === true;
-  const cash = mine.find((m) => m.app === 'SafeCount' && m.status === 'active');
-  const role = isAdmin ? 'admin' : cash && personActive ? cash.role : null;
+  const holds = mine.some((m) => m.status === 'active');
+  const role = isAdmin ? 'admin' : holds && personActive ? person[0]?.role : null;
   return {
     email: viewer.email,
     initials: initials(person[0]?.fullName ?? viewer.name, viewer.email),

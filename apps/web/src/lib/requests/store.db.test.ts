@@ -8,7 +8,7 @@
  */
 
 import { existsSync } from 'node:fs';
-import { appMembers, audit, createDb, memberStores, notifications, users } from '@hub/db';
+import { appMembers, audit, createDb, notifications, permissionRoles, permissions, personStores, users } from '@hub/db';
 import { and, asc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import { endAccess, grantAccess, requestAccess, updateAccess, type AccessDeps } from './service';
@@ -45,16 +45,19 @@ describe.skipIf(!db)('access rules on Postgres (rolled back)', () => {
         const person = async () => (await tx.select().from(users).where(eq(users.email, EMAIL)))[0];
         const membership = async () => (await tx.select().from(appMembers).where(and(eq(appMembers.app, APP), eq(appMembers.email, EMAIL))))[0];
         const stores = async () =>
-          (await tx.select({ id: memberStores.restaurantId }).from(memberStores).where(eq(memberStores.email, EMAIL))).map((r) => r.id).sort();
+          (await tx.select({ id: personStores.restaurantId }).from(personStores).where(eq(personStores.email, EMAIL))).map((r) => r.id).sort();
 
         expect(await requestAccess(deps, EMAIL, APP, '0014')).toBe('pending');
         expect(await person()).toMatchObject({ active: false, fullName: 'Test Person', employeeNumber: '0014', clearviewStore: '1647', addedBy: 'self-service request' });
-        expect(await membership()).toMatchObject({ status: 'pending', role: null, notifiedOn: null });
+        expect(await membership()).toMatchObject({ status: 'pending', notifiedOn: null, grantedAt: null });
+        expect((await person())!.role).toBeNull();
         expect(await requestAccess(deps, EMAIL, APP, '0014')).toBe('duplicate');
 
         expect(await grantAccess(deps, 'sony@jacmar-restaurants.com', APP, EMAIL, 'office', ['1647', '3472'])).toBe('done');
         expect((await person())!.active).toBe(true);
-        expect(await membership()).toMatchObject({ status: 'active', role: 'office', grantedBy: 'sony@jacmar-restaurants.com' });
+        expect(await membership()).toMatchObject({ status: 'active', grantedBy: 'sony@jacmar-restaurants.com' });
+        expect((await membership())!.grantedAt).toBeInstanceOf(Date);
+        expect((await person())!.role).toBe('office');
         expect(await stores()).toEqual(['1647', '3472']);
         expect(mails).toEqual(['Demande d’accès à Cash Balancing : store-test@example.invalid', 'Vous avez maintenant accès à Cash Balancing']);
 
@@ -62,7 +65,8 @@ describe.skipIf(!db)('access rules on Postgres (rolled back)', () => {
         expect(await stores()).toEqual(['3472']);
 
         expect(await endAccess(deps, 'sony@jacmar-restaurants.com', APP, EMAIL, 'active')).toBe('done');
-        expect(await membership()).toMatchObject({ status: 'revoked', role: 'viewer' });
+        expect(await membership()).toMatchObject({ status: 'revoked' });
+        expect((await person())!.role).toBe('viewer');
         expect(await stores()).toEqual(['3472']); // kept as the record; revoked grants nothing
         expect(await grantAccess(deps, 'sony@jacmar-restaurants.com', APP, EMAIL, 'manager', ['1647'])).toBe('changed');
 
@@ -86,5 +90,50 @@ describe.skipIf(!db)('access rules on Postgres (rolled back)', () => {
 
     // Nothing survived.
     expect(await db!.select().from(users).where(eq(users.email, EMAIL))).toEqual([]);
+  });
+
+  // One role and one set of restaurants per person, in every app (owner, 2026-10-06).
+  it('a second app takes the role and restaurants they already have; a change reaches both', async () => {
+    await expect(
+      db!.transaction(async (tx) => {
+        const deps: AccessDeps = {
+          store: pgAccessStore(tx, true),
+          clearview: { lookupEmployee: async () => ({ status: 'unavailable', reason: 'not_used' }) },
+          send: async () => ({ sent: true, id: 'x', redirected: true }),
+          urls: { admin: 'https://hub.test/admin', app: (p) => `https://hub.test${p}` },
+        };
+        const ADMIN = 'sony@jacmar-restaurants.com';
+        // They hold another app as a Gérant at 1647, and ask for Cash Balancing.
+        await tx.insert(users).values({ email: EMAIL, active: true, role: 'manager' });
+        await tx.insert(personStores).values({ email: EMAIL, restaurantId: '1647' });
+        await tx.insert(appMembers).values([
+          { app: 'OtherApp', email: EMAIL, status: 'active', grantedAt: new Date() },
+          { app: APP, email: EMAIL, status: 'pending' },
+        ]);
+        const person = async () => (await tx.select({ role: users.role }).from(users).where(eq(users.email, EMAIL)))[0]!.role;
+        const stores = async () => (await tx.select({ id: personStores.restaurantId }).from(personStores).where(eq(personStores.email, EMAIL))).map((r) => r.id).sort();
+
+        expect(await grantAccess(deps, ADMIN, APP, EMAIL, 'office', ['1647', '3472'])).toBe('changed');
+        expect(await person()).toBe('manager');
+        expect(await stores()).toEqual(['1647']);
+
+        expect(await grantAccess(deps, ADMIN, APP, EMAIL, 'manager', ['1647'])).toBe('done');
+        const held = await tx.select({ app: appMembers.app }).from(appMembers).where(and(eq(appMembers.email, EMAIL), eq(appMembers.status, 'active'))).orderBy(asc(appMembers.app));
+        expect(held.map((r) => r.app)).toEqual(['OtherApp', APP]);
+
+        // OtherApp has no permissions on this database, so it knows no role: a change is refused.
+        expect(await updateAccess(deps, ADMIN, APP, EMAIL, 'manager', ['3472'])).toBe('invalid');
+        expect(await stores()).toEqual(['1647']);
+
+        // Once it knows the role, the change is the person's: one write, both apps, both told.
+        await tx.insert(permissions).values({ app: 'OtherApp', resource: 'app', action: 'access', scope: 'global' });
+        await tx.insert(permissionRoles).values({ app: 'OtherApp', resource: 'app', action: 'access', role: 'manager' });
+        expect(await updateAccess(deps, ADMIN, APP, EMAIL, 'manager', ['3472'])).toBe('done');
+        expect(await stores()).toEqual(['3472']);
+        const told = await tx.select({ app: notifications.app }).from(notifications).where(and(eq(notifications.email, EMAIL), eq(notifications.kind, 'changed'))).orderBy(asc(notifications.app));
+        expect(told.map((n) => n.app)).toEqual(['OtherApp', APP]);
+        throw new Rollback();
+      }),
+    ).rejects.toBeInstanceOf(Rollback);
   });
 });

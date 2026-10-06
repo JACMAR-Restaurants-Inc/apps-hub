@@ -6,6 +6,7 @@ import { t, type Lang } from '@/lib/i18n';
 /** A beta app's card on the Tests page: the app cards' own markup, with a Bêta badge. */
 export function BetaCard({ lang, app }: { lang: Lang; app: BetaApp }) {
   const name = lang === 'fr' ? app.nameFr : app.name;
+  const live = baseName(app, lang);
   return (
     <article className="app" id={`beta-${app.key}`}>
       <div className="apptop">
@@ -18,7 +19,7 @@ export function BetaCard({ lang, app }: { lang: Lang; app: BetaApp }) {
         </h3>
       </div>
       <p className="bl">{lang === 'fr' ? app.blurbFr : app.blurb}</p>
-      <p className="bl betaof">{t(lang, 'betaOf').replace('{app}', baseName(app, lang))}</p>
+      <p className="bl betaof">{live ? t(lang, 'betaOf').replace('{app}', live) : t(lang, 'betaNew')}</p>
       <div className="appfoot">
         <a className="btn-go" href={app.path}>
           <span>{t(lang, 'openApp')}</span>

@@ -5,8 +5,12 @@
  * - "A blank cell never grants anything" is now NOT NULL. A row cannot be written
  *   without asserting active / status explicitly, so the fail-safe is enforced by the
  *   database instead of remembered by every write path.
- * - Restaurant-per-column becomes one row per (app, person, restaurant) in
- *   member_stores. Presence is the grant; there is no "denied" value to mistype.
+ * - Restaurant-per-column becomes one row per (person, restaurant) in person_stores.
+ *   Presence is the grant; there is no "denied" value to mistype.
+ * - A person has ONE role and ONE set of restaurants, the same in every app they hold
+ *   (owner, 2026-10-06), so both live on the person, and an app membership is only
+ *   whether they have that app. Two different roles cannot be written. Until migration
+ *   0015 they were stored per app, in app_members.role and member_stores.
  * - Nothing is deleted: people are deactivated and memberships revoked. There are no
  *   ON DELETE CASCADE rules, so a careless delete fails loudly instead of taking
  *   history with it.
@@ -38,6 +42,11 @@ export const users = rbac.table('users', {
    * nothing else: can() never reads it.
    */
   clearviewStore: text(),
+  /**
+   * Their role, the same in every app they hold (owner, 2026-10-06). Null until their
+   * first grant. It grants nothing on its own: can() also needs an active membership.
+   */
+  role: roleEnum(),
   active: boolean().notNull(),
   addedAt: stamp(),
   addedBy: text(),
@@ -65,7 +74,11 @@ export const admins = rbac.table('admins', {
   addedBy: text(),
 }).enableRLS();
 
-/** One row per person WITH access to an app. No row = no access. A request is a 'pending' row. */
+/**
+ * One row per person WITH access to an app. No row = no access. A request is a 'pending'
+ * row. The role and restaurants are the person's (users.role, person_stores), not the
+ * row's: a membership says only whether they hold the app.
+ */
 export const appMembers = rbac.table(
   'app_members',
   {
@@ -73,9 +86,13 @@ export const appMembers = rbac.table(
     email: text()
       .notNull()
       .references(() => users.email),
-    role: roleEnum(),
     status: memberStatusEnum().notNull(),
     grantedBy: text(),
+    /**
+     * When this app was last granted. Tells a removal (granted once) from a decline
+     * (never granted) on a revoked row, which the role on the row used to tell.
+     */
+    grantedAt: timestamp({ withTimezone: true }),
     lastModified: stamp(),
     /**
      * When the "you now have access" email went. Stamped so it goes once (RBAC §31),
@@ -86,20 +103,18 @@ export const appMembers = rbac.table(
   (t) => [primaryKey({ columns: [t.app, t.email] })],
 ).enableRLS();
 
-/** Which restaurants a member holds in an app. A row is a grant. */
-export const memberStores = rbac.table(
-  'member_stores',
+/** Which restaurants a person holds, in every app they hold. A row is a grant. */
+export const personStores = rbac.table(
+  'person_stores',
   {
-    app: text().notNull(),
-    email: text().notNull(),
+    email: text()
+      .notNull()
+      .references(() => users.email),
     restaurantId: text()
       .notNull()
       .references(() => restaurants.restaurantId),
   },
-  (t) => [
-    primaryKey({ columns: [t.app, t.email, t.restaurantId] }),
-    foreignKey({ columns: [t.app, t.email], foreignColumns: [appMembers.app, appMembers.email] }),
-  ],
+  (t) => [primaryKey({ columns: [t.email, t.restaurantId] })],
 ).enableRLS();
 
 /** What exists to be permitted, per app. resource+action is the key; scope is an attribute. */
