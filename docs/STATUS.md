@@ -10,6 +10,12 @@ about database connections and roles is now in §3.
 
 ## Latest, 2026-10-06
 
+Later the same day: the Tests page can list the owner's Apps Script test consoles (a
+beta whose `path` is an `https://` address; Open in a new tab). Link only, the owner's
+choice: the console stays public to anyone with its address (CLAUDE.md §3, beta). No
+console is listed yet: each needs its name, address and a line about it from the owner.
+
+
 One role and one set of restaurants per person, in every app (owner's rule, 2026-10-06;
 CLAUDE.md §3 Roles). PR #58, merged 2026-10-06, the day before the code freeze, at the
 owner's wish (it was first planned for after the demo). Migrations 0015 (add, move

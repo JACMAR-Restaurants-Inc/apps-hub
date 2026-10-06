@@ -24,7 +24,13 @@ export interface BetaApp {
   nameFr: string;
   blurb: string;
   blurbFr: string;
-  /** Where it lives in this Next.js app. */
+  /**
+   * Where Open goes: a path in this Next.js app, or the https:// address of a test
+   * console that stays in Apps Script (owner, 2026-10-06: automations are easier kept
+   * there until they move here), opened in a new tab. For a console the portal decides
+   * only who SEES the card: the console is public to anyone with its address, as it was
+   * before (owner's choice: a plain link, not a signed ticket the console would check).
+   */
   path: string;
   mark: string;
   tint: string;
@@ -36,6 +42,9 @@ export interface BetaApp {
 export const BETA_APPS: readonly BetaApp[] = [];
 
 export const betaApp = (key: string) => BETA_APPS.find((a) => a.key === key);
+
+/** A test console outside the portal (Apps Script), not a beta built here. */
+export const isConsole = (b: BetaApp) => b.path.startsWith('https://');
 
 /** The live app's name, for "tests with their Cash Balancing access". Null for a brand-new app. */
 export const baseName = (b: BetaApp, lang: 'fr' | 'en') => {

@@ -152,6 +152,7 @@ export const dict = {
   betaBadge: { fr: 'Bêta', en: 'Beta' },
   betaOf: { fr: 'Nouvelle version de {app}', en: 'New version of {app}' },
   betaNew: { fr: 'Nouvelle application', en: 'New app' },
+  betaConsole: { fr: 'Console de test, dans Apps Script', en: 'Test console, in Apps Script' },
   testersTitle: { fr: 'Testeurs', en: 'Testers' },
   testersNone: { fr: 'Aucun testeur. Les administrateurs peuvent toujours la tester.', en: 'No testers. Admins can always test it.' },
   addTester: { fr: 'Ajouter un testeur', en: 'Add a tester' },
