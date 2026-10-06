@@ -224,10 +224,9 @@ export type AdminOutcome = 'done' | 'done_unsent' | 'changed' | 'invalid';
 async function validChoice(store: AccessStore, appKey: string, role: Role, stores: string[]) {
   if (!appByKey(appKey)) return false;
   if (!(await store.rolesFor(appKey)).includes(role)) return false;
+  // Any role may hold several restaurants, a Gérant too (owner and their boss,
+  // 2026-10-06; two managers run two stores). This used to refuse a Gérant with more than one.
   if (!stores.length) return false;
-  // A manager runs ONE restaurant (owner, 2026-09-30); only office staff and viewers
-  // span several. The Grant panel offers one choice for a Gérant; this refuses the rest.
-  if (role === 'manager' && stores.length !== 1) return false;
   const open = new Set((await store.restaurants()).filter((r) => r.active).map((r) => r.id));
   // Only open restaurants: a closed one denies whatever a row says (can() step 5).
   return stores.every((s) => open.has(s));

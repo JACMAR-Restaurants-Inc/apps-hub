@@ -234,11 +234,10 @@ describe('grantAccess', () => {
     expect(mails[0]!.text).toContain('1647 - Hull, 3472 - Aylmer');
   });
 
-  it('refuses a role the app does not have, no restaurant, a closed restaurant, or a manager at two', async () => {
+  it('refuses a role the app does not have, no restaurant, or a closed or unknown restaurant', async () => {
     for (const [role, stores] of [
       ['boss', ['1647']],
       ['manager', []],
-      ['manager', ['1647', '3472']],
       ['manager', ['99999']],
       ['manager', ['12345']],
     ] as const) {
@@ -246,6 +245,16 @@ describe('grantAccess', () => {
       expect(await grantAccess(deps(m.store).d, ADMIN, APP, ME, role as Role, [...stores])).toBe('invalid');
       expect(m.member()!.status).toBe('pending');
     }
+  });
+
+  it('a Gérant may hold several restaurants (owner, 2026-10-06), on a grant and on a change', async () => {
+    const m = pending();
+    const { d } = deps(m.store);
+    expect(await grantAccess(d, ADMIN, APP, ME, 'manager', ['3472', '1647'])).toBe('done');
+    expect(m.access()).toEqual({ role: 'manager', stores: ['1647', '3472'] });
+    expect(await updateAccess(d, ADMIN, APP, ME, 'manager', ['1647'])).toBe('done');
+    expect(await updateAccess(d, ADMIN, APP, ME, 'manager', ['1647', '3472'])).toBe('done');
+    expect(m.access()).toEqual({ role: 'manager', stores: ['1647', '3472'] });
   });
 
   it('answers changed if the request is no longer pending (declined meanwhile, or already granted)', async () => {
@@ -365,7 +374,7 @@ describe('updateAccess and endAccess', () => {
     expect(await grantAccess(d, ADMIN, APP, ME, 'manager', ['1647'])).toBe('changed');
     expect(await endAccess(d, ADMIN, APP, ME, 'pending')).toBe('changed');
     expect(await updateAccess(d, ADMIN, APP, ME, 'manager', ['99999'])).toBe('invalid');
-    expect(await updateAccess(d, ADMIN, APP, ME, 'manager', ['1647', '3472'])).toBe('invalid');
+    expect(await updateAccess(d, ADMIN, APP, ME, 'boss' as Role, ['1647'])).toBe('invalid');
     expect(m.state.notes).toEqual([]);
   });
 

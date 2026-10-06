@@ -308,9 +308,6 @@ export const dict = {
   gpClear: { fr: 'Effacer', en: 'Clear' },
   needRole: { fr: 'Choisissez un rôle et au moins un restaurant.', en: 'Choose a role and at least one restaurant.' },
   needStore: { fr: 'Choisissez au moins un restaurant.', en: 'Choose at least one restaurant.' },
-  needStoreMgr: { fr: 'Choisissez le restaurant du gérant.', en: 'Choose the manager’s restaurant.' },
-  needOneStoreMgr: { fr: 'Un gérant a un seul restaurant\u00a0: choisissez-en un.', en: 'A manager has one restaurant: choose one.' },
-  gpStoreHelpMgr: { fr: 'un seul pour un gérant', en: 'only one for a manager' },
   readyGrant: {
     fr: 'L’accès sera activé et {who} recevra le lien de {app} par courriel, en français. Enregistré dans le journal d’audit à votre nom.',
     en: '{who} will be switched on and emailed the {app} link, in French. Recorded in the audit log under your name.',

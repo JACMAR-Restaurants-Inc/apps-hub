@@ -90,7 +90,9 @@ every query fails with `EMAXCONNSESSION`. So ONE pool per process on `globalThis
 on Vercel after the switch: warm pages 41 to 65 ms (`docs/STATUS.md`).
 
 **Roles, for the record.** Three per app, each with restaurants: Gérant (manager),
-Bureau (office), Consultation (viewer). A Gérant holds ONE restaurant (#47). Bureau does
+Bureau (office), Consultation (viewer). Any role may hold several restaurants, a Gérant
+too (owner and their boss, 2026-10-06: two managers run two stores; this used to say "A
+Gérant holds ONE restaurant (#47)"). Bureau does
 whatever a Gérant does, plus the all-restaurants view and Admin (#48; the import's
 `officeAsManager`). Consultation only looks. A system admin is not a role but passes
 every check, and may do whatever a manager can (#44). On the portal, roles change
@@ -153,10 +155,10 @@ the beta's key. This used to require a live app for every beta.
 `pending` row with no role; `can()` refuses both. Only a system admin can grant,
 change, decline or remove (`requireSystemAdmin`, RBAC §48), and every admin write
 checks under a row lock that the row is still what the page showed, or answers
-`changed`. A declined or removed person may ask again (RBAC §45). A Gérant holds ONE
-restaurant (owner, 2026-09-30: only office staff and admins span several): the Grant
-panel shows radio buttons for a Gérant, and `validChoice` refuses a manager with more
-than one, since the action is callable with anything. Staging had none with more. The rules live in
+`changed`. A declined or removed person may ask again (RBAC §45). A Gérant may hold
+several restaurants (owner and their boss, 2026-10-06), like every role: the Grant panel
+shows boxes for all. From 2026-09-30 (#47) to then, a Gérant held ONE: radio buttons, and
+`validChoice` refused more. The rules live in
 `lib/requests/service.ts`, tested on an in-memory roster AND against Postgres
 (`store.db.test.ts`, inside a transaction that is always rolled back; it runs when
 `.env.local` has a `DATABASE_URL` and is skipped in CI). The employee number is required

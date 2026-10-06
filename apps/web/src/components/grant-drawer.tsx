@@ -25,9 +25,8 @@ type Busy = '' | 'grant' | 'update' | 'decline' | 'revoke';
  * - One role and one set of restaurants per person, in every app (owner, 2026-10-06):
  *   granting an app to someone who holds another shows theirs, fixed (the server takes
  *   nothing else), and a change says it applies in every app they hold.
- * - A Gérant gets ONE restaurant (owner, 2026-09-30): radio buttons instead of boxes, so
- *   a second cannot be ticked by mistake. Choosing Gérant keeps one of those ticked (the
- *   Clearview one if it is there) only when it is the only one; otherwise the admin picks.
+ * - Every role, a Gérant too, may hold several restaurants (owner, 2026-10-06): boxes
+ *   for all. A Gérant used to get radio buttons and only one (2026-09-30).
  * - The note says why the main button is disabled, or what pressing it will do.
  * - While saving: the pressed button spins, a line says what is happening and after 6 s
  *   that it is still going, and the panel cannot be closed, so a failure has somewhere
@@ -81,12 +80,8 @@ export function GrantDrawer(props: {
 
   // grantCheck, from the old panel.
   let check: { ok: boolean; key: Key };
-  // A Gérant runs one restaurant. Only an existing manager saved with several (before
-  // the rule) can arrive here with more; they must be brought down to one to save.
-  const single = role === 'manager';
   if (!role) check = { ok: false, key: 'needRole' };
-  else if (single && stores.length > 1) check = { ok: false, key: 'needOneStoreMgr' };
-  else if (!stores.length) check = { ok: false, key: role === 'manager' ? 'needStoreMgr' : 'needStore' };
+  else if (!stores.length) check = { ok: false, key: 'needStore' };
   else if (target.mode === 'manage') {
     const was = (person.stores ?? []).filter((id) => openIds.has(id)).sort().join();
     const same = role === person.role && [...stores].sort().join() === was;
@@ -194,11 +189,7 @@ export function GrantDrawer(props: {
                       value={r}
                       checked={role === r}
                       disabled={Boolean(busy) || fixed}
-                      onChange={() => {
-                        setRole(r);
-                        // To Gérant with several ticked: keep none, so the admin chooses.
-                        if (r === 'manager') setStores((s) => (s.length > 1 ? [] : s));
-                      }}
+                      onChange={() => setRole(r)}
                     />
                     <span>
                       <b>{t(lang, `role_${r}`)}</b>
@@ -212,31 +203,20 @@ export function GrantDrawer(props: {
 
           <fieldset className="gp-fld">
             <legend>
-              {t(lang, 'restaurants')} <span>{t(lang, single ? 'gpStoreHelpMgr' : 'gpStoresHelp')}</span>
+              {t(lang, 'restaurants')} <span>{t(lang, 'gpStoresHelp')}</span>
             </legend>
             <div className="gp-stores">
               {data.restaurants
                 .filter((r) => r.active)
                 .map((r) => (
                   <label className="gp-store" key={r.id}>
-                    {single ? (
-                      <input
-                        type="radio"
-                        name="gpstore"
-                        value={r.id}
-                        checked={stores.length === 1 && stores[0] === r.id}
-                        disabled={Boolean(busy) || fixed}
-                        onChange={() => setStores([r.id])}
-                      />
-                    ) : (
-                      <input
-                        type="checkbox"
-                        value={r.id}
-                        checked={stores.includes(r.id)}
-                        disabled={Boolean(busy) || fixed}
-                        onChange={(e) => setStores((s) => (e.target.checked ? [...s, r.id] : s.filter((x) => x !== r.id)))}
-                      />
-                    )}
+                    <input
+                      type="checkbox"
+                      value={r.id}
+                      checked={stores.includes(r.id)}
+                      disabled={Boolean(busy) || fixed}
+                      onChange={(e) => setStores((s) => (e.target.checked ? [...s, r.id] : s.filter((x) => x !== r.id)))}
+                    />
                     <span>
                       {storeLabel(r.id)}
                       {person.clearviewStore === r.id && <em>{t(lang, 'fromClearview')}</em>}
@@ -244,7 +224,7 @@ export function GrantDrawer(props: {
                   </label>
                 ))}
             </div>
-            {!single && !fixed && (
+            {!fixed && (
               <div className="gp-quick">
                 <button type="button" className="textlink" disabled={Boolean(busy)} onClick={() => setStores([...openIds])}>
                   {t(lang, 'gpAll')}
