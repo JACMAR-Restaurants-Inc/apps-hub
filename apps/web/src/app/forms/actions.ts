@@ -12,8 +12,9 @@
 import { AccessDenied, authorize } from '@/lib/access';
 import { db } from '@/lib/db';
 import { formsDb } from '@/lib/forms/db';
-import { FORMS_APP, fillDecision, pickStore } from '@/lib/forms/rules';
-import { createForm, publish, saveDraft, setStatus, share, submit, type Outcome, type SubmitResult } from '@/lib/forms/store';
+import { tellReached } from '@/lib/forms/notify';
+import { FORMS_APP, NOBODY, fillDecision, newlyReached, pickStore } from '@/lib/forms/rules';
+import { createForm, duplicateForm, getForm, publish, saveDraft, setStatus, share, submit, updateSettings, type Outcome, type SubmitResult } from '@/lib/forms/store';
 import { directoryPerson } from '@/lib/people';
 import { allow, journalUnderLimit } from '@/lib/rate-limit';
 import { getRoster, getSignedInEmail } from '@/lib/viewer';
@@ -49,13 +50,21 @@ export async function submitFormAction(formId: unknown, version: unknown, answer
   }
 }
 
-export type EditResult = { outcome: Outcome | Refusal; id?: number; version?: number; errors?: string[] };
+export type EditResult = { outcome: Outcome | Refusal; id?: number; version?: number; errors?: string[]; updatedAt?: string };
 
-async function asHr(action: string, fn: (actor: string) => Promise<EditResult>): Promise<EditResult> {
+/**
+ * HR's actions: authorize first, then the store. On success the answer carries the form's
+ * new updatedAt, which the editor sends with its next save (the stale-page check).
+ */
+async function asHr(action: string, id: unknown, fn: (actor: string) => Promise<EditResult>): Promise<EditResult> {
   try {
     const { email } = await authorize(FORMS_APP, 'form', 'edit');
     const out = await fn(email);
-    if (out.outcome === 'done') revalidatePath('/forms', 'layout');
+    if (out.outcome === 'done') {
+      revalidatePath('/forms', 'layout');
+      const form = await getForm(formsDb(), out.id ?? id);
+      if (form) out.updatedAt = form.updatedAt.toISOString();
+    }
     return out;
   } catch (e) {
     if (e instanceof AccessDenied) return { outcome: e.reason === 'not_signed_in' ? 'expired' : 'denied' };
@@ -65,21 +74,45 @@ async function asHr(action: string, fn: (actor: string) => Promise<EditResult>):
 }
 
 export async function createFormAction(title: unknown): Promise<EditResult> {
-  return asHr('create', (actor) => createForm(formsDb(), actor, title));
+  return asHr('create', null, (actor) => createForm(formsDb(), actor, title));
+}
+
+export async function duplicateFormAction(id: unknown, title: unknown): Promise<EditResult> {
+  return asHr('duplicate', null, (actor) => duplicateForm(formsDb(), actor, id, title));
 }
 
 export async function saveDraftAction(id: unknown, shownAt: unknown, definition: unknown): Promise<EditResult> {
-  return asHr('draft', (actor) => saveDraft(formsDb(), actor, id, shownAt, definition));
+  return asHr('draft', id, (actor) => saveDraft(formsDb(), actor, id, shownAt, definition));
 }
 
+/** Publishing the FIRST version opens the form: everyone it is shared with is told. */
 export async function publishAction(id: unknown, shownAt: unknown): Promise<EditResult> {
-  return asHr('publish', (actor) => publish(formsDb(), actor, id, shownAt));
+  return asHr('publish', id, async (actor) => {
+    const out = await publish(formsDb(), actor, id, shownAt);
+    if (out.outcome === 'done' && out.version === 1) {
+      const form = await getForm(formsDb(), id);
+      if (form) await tellReached(newlyReached(await getRoster(), NOBODY, form.audience), form.id, form.title);
+    }
+    return out;
+  });
 }
 
+/** Sharing an open form tells the people it newly reaches; a draft's audience is told when it opens. */
 export async function shareAction(id: unknown, shown: unknown, next: unknown): Promise<EditResult> {
-  return asHr('share', async (actor) => ({ outcome: (await share(formsDb(), actor, id, shown, next)).outcome }));
+  return asHr('share', id, async (actor) => {
+    const out = await share(formsDb(), actor, id, shown, next);
+    if (out.outcome === 'done') {
+      const form = await getForm(formsDb(), id);
+      if (form?.status === 'open') await tellReached(newlyReached(await getRoster(), out.before!, out.after!), form.id, form.title);
+    }
+    return { outcome: out.outcome };
+  });
 }
 
 export async function setStatusAction(id: unknown, status: unknown, shownAt: unknown): Promise<EditResult> {
-  return asHr('status', async (actor) => ({ outcome: await setStatus(formsDb(), actor, id, status, shownAt) }));
+  return asHr('status', id, async (actor) => ({ outcome: await setStatus(formsDb(), actor, id, status, shownAt) }));
+}
+
+export async function updateSettingsAction(id: unknown, shown: unknown, next: unknown): Promise<EditResult> {
+  return asHr('settings', id, async (actor) => ({ outcome: await updateSettings(formsDb(), actor, id, shown, next) }));
 }

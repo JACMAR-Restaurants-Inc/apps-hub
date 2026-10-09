@@ -1,6 +1,6 @@
 import { memberKey, permissionKey, type Role, type RosterSnapshot, type Scope } from '@hub/rbac';
 import { describe, expect, it } from 'vitest';
-import { FORMS_APP, canEditForms, fillDecision, mayRead, parseAudience, pickStore, responsesScope, type Audience } from './rules';
+import { FORMS_APP, NOBODY, canEditForms, fillDecision, mayRead, newlyReached, parseAudience, pickStore, responsesScope, type Audience } from './rules';
 
 type P = { role: Role | null; stores: string[]; active?: boolean; apps?: Record<string, 'active' | 'pending' | 'revoked'> };
 
@@ -17,7 +17,7 @@ function roster(people: Record<string, P>, admins: string[] = ['admin@jacmar-res
   const members = new Map<string, { role: Role | null; status: 'active' | 'pending' | 'revoked'; stores: Set<string> }>();
   for (const [email, p] of Object.entries(people)) {
     users.set(email, { active: p.active ?? true, role: p.role, stores: new Set(p.stores) });
-    for (const [app, status] of Object.entries(p.apps ?? { SafeCount: 'active' })) members.set(memberKey(app, email), { role: p.role, status, stores: new Set(p.stores) });
+    for (const [app, status] of Object.entries(p.apps ?? { SafeCount: 'active' as const })) members.set(memberKey(app, email), { role: p.role, status, stores: new Set(p.stores) });
   }
   return {
     admins: new Set(admins),
@@ -141,5 +141,16 @@ describe('parseAudience', () => {
       people: ['bob@gmail.com'],
     });
     expect(parseAudience('everyone')).toEqual({ roles: [], stores: [], people: [] });
+  });
+});
+
+describe('newlyReached: who is told when a form is shared', () => {
+  it('those it now reaches and did not before; never an admin, someone switched off or holding no app', () => {
+    expect(newlyReached(R, NOBODY, share({ roles: ['manager'] }))).toEqual(['formsmgr@gmail.com', 'hull@gmail.com', 'two@gmail.com']);
+    expect(newlyReached(R, share({ roles: ['manager'] }), share({ roles: ['manager'], people: ['viewer@gmail.com', 'off@gmail.com', 'admin@jacmar-restaurants.com'] }))).toEqual(['viewer@gmail.com']);
+  });
+  it('narrowing or keeping a share tells nobody', () => {
+    expect(newlyReached(R, share({ roles: ['manager'] }), share({ roles: ['manager'], stores: ['1647'] }))).toEqual([]);
+    expect(newlyReached(R, share({ roles: ['manager'] }), share({ roles: ['manager'] }))).toEqual([]);
   });
 });

@@ -14,6 +14,8 @@ interface Props {
   already: boolean;
   person: { name: string; number: string | null; email: string };
   stores: { id: string; label: string }[];
+  /** HR's preview of a draft: drawn exactly as it will be filled, never sent. */
+  preview?: boolean;
 }
 
 /**
@@ -21,7 +23,7 @@ interface Props {
  * checks every answer again against the version (lib/forms/definition.ts) and says which
  * fields to fix.
  */
-export function FillForm({ lang, formId, version, definition, already, person, stores }: Props) {
+export function FillForm({ lang, formId, version, definition, already, person, stores, preview = false }: Props) {
   const [answers, setAnswers] = useState<Record<string, Value>>({});
   const [signedName, setSignedName] = useState('');
   const [store, setStore] = useState(stores.length === 1 ? stores[0].id : '');
@@ -40,6 +42,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
 
   function send(e: React.FormEvent) {
     e.preventDefault();
+    if (preview) return;
     start(async () => {
       const out = await submitFormAction(formId, version, answers, signedName, store);
       if (out.outcome === 'done' || out.outcome === 'already') {
@@ -140,8 +143,9 @@ export function FillForm({ lang, formId, version, definition, already, person, s
           {ft(lang, message)}
         </p>
       )}
+      {preview && <p className="fo-dim">{ft(lang, 'preview_note')}</p>}
       <div className="fo-actions">
-        <button className="pbtn" type="submit" disabled={pending}>
+        <button className="pbtn" type="submit" disabled={pending || preview}>
           {ft(lang, pending ? 'sending' : 'send')}
         </button>
       </div>

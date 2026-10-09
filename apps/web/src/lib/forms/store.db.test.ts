@@ -7,7 +7,7 @@ import { existsSync } from 'node:fs';
 import { createDb, formEvents, forms, submissions } from '@hub/db';
 import { asc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
-import { type Conn, createForm, getForm, listForms, listSubmissions, mySubmissions, openForms, publish, saveDraft, setStatus, share, submit, type Person } from './store';
+import { type Conn, createForm, duplicateForm, getForm, parseSettings, updateSettings, listForms, listSubmissions, mySubmissions, openForms, publish, saveDraft, setStatus, share, submit, type Person } from './store';
 
 if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
 const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
@@ -177,6 +177,34 @@ describe.skipIf(!db)('Forms on Postgres (rolled back)', () => {
       expect(JSON.stringify(ev)).not.toContain('8195550101');
       expect((await tx.select().from(submissions).where(eq(submissions.formId, id))).length).toBe(1);
       expect((await tx.select().from(forms).where(eq(forms.id, id)))[0].createdBy).toBe(HR);
+    });
+  });
+
+  it('settings: checked, stale-checked, journaled', async () => {
+    await rolledBack(async (tx) => {
+      const id = await openForm(tx);
+      const shown = { notifyEmail: null, oncePerPerson: true, sensitiveDays: 30, keepDays: 365 };
+      const next = { notifyEmail: ' RH@Jacmar-Restaurants.com ', oncePerPerson: false, sensitiveDays: 15, keepDays: 400 };
+      expect(await updateSettings(tx, HR, id, shown, { ...next, notifyEmail: 'nope' })).toBe('invalid');
+      expect(await updateSettings(tx, HR, id, shown, { ...next, sensitiveDays: 500 })).toBe('invalid');
+      expect(await updateSettings(tx, HR, id, { ...shown, keepDays: 1 }, next)).toBe('changed');
+      expect(await updateSettings(tx, HR, id, shown, next)).toBe('done');
+      expect(await getForm(tx, id)).toMatchObject({ notifyEmail: 'rh@jacmar-restaurants.com', oncePerPerson: false, sensitiveDays: 15, keepDays: 400 });
+      expect(await updateSettings(tx, HR, id, parseSettings(next), next)).toBe('unchanged');
+    });
+  });
+
+  it('duplicating: the questions and settings, a new title, shared with nobody, no answers', async () => {
+    await rolledBack(async (tx) => {
+      const id = await openForm(tx);
+      await submit(tx, MARIE, id, 1, { phone: '8195550101' }, 'Marie', allow());
+      const { outcome, id: copy } = await duplicateForm(tx, HR, id, 'Calypso 2027');
+      expect(outcome).toBe('done');
+      const f = (await getForm(tx, copy))!;
+      expect(f).toMatchObject({ title: 'Calypso 2027', status: 'draft', currentVersion: null, audience: { roles: [], stores: [], people: [] } });
+      expect((f.draft as { title: { fr: string }; fields: { id: string }[] }).fields.map((x) => x.id)).toEqual(['phone', 'bus']);
+      expect((f.draft as { title: { fr: string } }).title.fr).toBe('Calypso 2027');
+      expect(await listSubmissions(tx, copy!, 'all')).toEqual([]);
     });
   });
 });

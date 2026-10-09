@@ -16,6 +16,9 @@ const store = vi.hoisted(() => ({
   share: vi.fn(),
   setStatus: vi.fn(),
   submit: vi.fn(),
+  updateSettings: vi.fn(),
+  duplicateForm: vi.fn(),
+  getForm: vi.fn(async () => null),
 }));
 const journal = vi.hoisted(() => vi.fn(async () => 'written'));
 
@@ -32,6 +35,7 @@ vi.mock('@/lib/access', async () => {
 });
 vi.mock('@/lib/forms/store', () => store);
 vi.mock('@/lib/forms/db', () => ({ formsDb: vi.fn(() => ({})) }));
+vi.mock('@/lib/forms/notify', () => ({ tellReached: vi.fn() }));
 vi.mock('@/lib/db', () => ({ db: vi.fn(() => ({})) }));
 vi.mock('@/lib/people', () => ({ directoryPerson: vi.fn(async (email: string) => ({ email, fullName: 'Someone', employeeNumber: '0042' })) }));
 vi.mock('@/lib/rate-limit', () => ({ allow: vi.fn(async () => ({ allowed: true, justTripped: false })), journalUnderLimit: journal }));
@@ -56,11 +60,13 @@ const hrCalls: [string, () => Promise<{ outcome: string }>][] = [
   ['publishAction', () => actions.publishAction(1, 'x')],
   ['shareAction', () => actions.shareAction(1, {}, { roles: ['manager'] })],
   ['setStatusAction', () => actions.setStatusAction(1, 'closed', 'x')],
+  ['updateSettingsAction', () => actions.updateSettingsAction(1, {}, {})],
+  ['duplicateFormAction', () => actions.duplicateFormAction(1, 'x')],
 ];
 
 describe('HR’s Forms actions refuse anyone who may not edit forms', () => {
   beforeEach(() => {
-    Object.values(store).forEach((f) => f.mockReset());
+    Object.values(store).forEach((f) => f.mockClear());
     journal.mockClear();
     access.signedIn = 'someone@gmail.com';
   });

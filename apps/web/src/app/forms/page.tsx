@@ -6,6 +6,7 @@ import { canEditForms, fillDecision, responsesScope } from '@/lib/forms/rules';
 import { listForms, mySubmissions, openForms } from '@/lib/forms/store';
 import { getLang } from '@/lib/lang';
 import { getRoster, getViewer } from '@/lib/viewer';
+import { NewForm } from '@/components/forms/new-form';
 import Link from 'next/link';
 
 /**
@@ -66,6 +67,11 @@ export default async function FormsPage() {
               <h2>{ft(lang, editor ? 'manage' : 'responses_of')}</h2>
               <p>{ft(lang, 'manage_line')}</p>
             </div>
+            {editor && (
+              <div className="end">
+                <NewForm lang={lang} />
+              </div>
+            )}
           </div>
           {managed.length === 0 ? (
             <p className="favempty">{ft(lang, 'no_forms')}</p>
@@ -77,12 +83,19 @@ export default async function FormsPage() {
                     <b>{f.title}</b>
                     <span className={`fo-status is-${f.status}`}>{statusLabel(lang, f.status)}</span>
                   </div>
-                  {f.currentVersion !== null && (
-                    <Link className="fo-link" href={`/forms/${f.id}/responses`}>
-                      {ft(lang, 'responses')}
-                      {scope === 'all' ? ` (${f.submissions})` : ''}
-                    </Link>
-                  )}
+                  <div className="fo-links">
+                    {f.currentVersion !== null && (
+                      <Link className="fo-link" href={`/forms/${f.id}/responses`}>
+                        {ft(lang, 'responses')}
+                        {scope === 'all' ? ` (${f.submissions})` : ''}
+                      </Link>
+                    )}
+                    {editor && (
+                      <Link className="fo-link" href={`/forms/${f.id}/edit`}>
+                        {ft(lang, 'edit')}
+                      </Link>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

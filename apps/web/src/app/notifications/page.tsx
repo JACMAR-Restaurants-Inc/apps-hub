@@ -74,11 +74,16 @@ function Note({ lang, n, storeName }: { lang: Lang; n: NotificationRow; storeNam
   const beta = n.kind === 'testing' ? betaApp(n.app) : undefined;
   const named = app ?? beta;
   const appName = named ? (lang === 'fr' ? named.nameFr : named.name) : n.app;
-  const title = t(lang, n.kind === 'granted' ? 'notifGranted' : n.kind === 'changed' ? 'notifChanged' : n.kind === 'testing' ? 'notifTesting' : 'notifDeclined').replace('{app}', appName);
-  const role = n.detail ? roleLabel(lang, n.detail.role) : null;
-  const where = n.detail ? n.detail.stores.map((s) => storeName.get(s) ?? s).join(', ') : '';
-  // A beta that has since gone live, or been withdrawn, has no door here.
-  const url = n.kind === 'testing' ? (beta ? beta.path : null) : app ? appUrl(app) : null;
+  const form = n.kind === 'form' && n.detail && 'formId' in n.detail ? n.detail : null;
+  const access = n.detail && 'role' in n.detail ? n.detail : null;
+  const title = form
+    ? t(lang, 'notifForm').replace('{form}', form.title)
+    : t(lang, n.kind === 'granted' ? 'notifGranted' : n.kind === 'changed' ? 'notifChanged' : n.kind === 'testing' ? 'notifTesting' : 'notifDeclined').replace('{app}', appName);
+  const role = access ? roleLabel(lang, access.role) : null;
+  const where = access ? access.stores.map((s) => storeName.get(s) ?? s).join(', ') : '';
+  // A beta that has since gone live, or been withdrawn, has no door here. A form's door
+  // is the form itself: if it is no longer shared with them, its page says so.
+  const url = form ? `/forms/${form.formId}` : n.kind === 'testing' ? (beta ? beta.path : null) : app ? appUrl(app) : null;
   return (
     <li className={`note ${n.kind}${n.readAt ? '' : ' unread'}`}>
       <div className="notebody">
@@ -95,11 +100,12 @@ function Note({ lang, n, storeName }: { lang: Lang; n: NotificationRow; storeNam
         )}
         {n.kind === 'declined' && <span>{t(lang, 'notifDeclinedHint')}</span>}
         {n.kind === 'testing' && <span>{t(lang, 'notifTestingHint')}</span>}
+        {form && <span>{t(lang, 'notifFormHint')}</span>}
         <span className="noteday">{formatDay(lang, n.createdAt)}</span>
       </div>
       {n.kind !== 'declined' && url && (
         <a className="pbtn noteopen" href={url}>
-          {t(lang, 'openApp')}
+          {t(lang, form ? 'notifFormOpen' : 'openApp')}
         </a>
       )}
     </li>

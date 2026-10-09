@@ -107,3 +107,17 @@ export function responsesScope(roster: RosterSnapshot, email: string): 'all' | s
 }
 
 export const mayRead = (scope: 'all' | string[], restaurantId: string | null) => scope === 'all' || (restaurantId !== null && scope.includes(restaurantId));
+
+/**
+ * Who a share newly reaches: in the directory, not an admin (an admin sees every form
+ * anyway), able to fill under `after` and not under `before`. They are told once, in
+ * Notifications; nobody is told twice for the same form by widening it again.
+ */
+export function newlyReached(roster: RosterSnapshot, before: Audience, after: Audience): string[] {
+  const out: string[] = [];
+  for (const email of roster.users.keys()) {
+    if (isSystemAdmin(roster, email)) continue;
+    if (fillDecision(roster, email, 'open', after).allowed && !fillDecision(roster, email, 'open', before).allowed) out.push(email);
+  }
+  return out.sort();
+}

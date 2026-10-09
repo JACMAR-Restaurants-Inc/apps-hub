@@ -19,9 +19,10 @@ export const KEEP_READ_DAYS = 30;
 export interface NotificationRow {
   id: number;
   app: string;
-  /** 'testing': invited to test a beta app (lib/beta/testers.ts). */
-  kind: 'granted' | 'changed' | 'declined' | 'testing';
-  detail: { role: string; stores: string[] } | null;
+  /** 'testing': invited to test a beta app (lib/beta/testers.ts). 'form': a form shared with them (lib/forms/notify.ts). */
+  kind: 'granted' | 'changed' | 'declined' | 'testing' | 'form';
+  /** { role, stores } for granted and changed; { formId, title } for a form. */
+  detail: { role: string; stores: string[] } | { formId: number; title: string } | null;
   createdAt: Date;
   readAt: Date | null;
 }

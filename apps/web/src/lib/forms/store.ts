@@ -317,3 +317,67 @@ export async function allVersions(db: Conn, formId: number): Promise<Map<number,
   }
   return out;
 }
+
+export interface Settings {
+  notifyEmail: string | null;
+  oncePerPerson: boolean;
+  sensitiveDays: number;
+  keepDays: number;
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Settings as sent, checked: a real address or none, retention in whole days, sensitive first. */
+export function parseSettings(raw: unknown): Settings | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const email = typeof r.notifyEmail === 'string' ? r.notifyEmail.trim().toLowerCase() : '';
+  if (email && (email.length > 254 || !EMAIL.test(email))) return null;
+  const days = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3650 ? v : null);
+  const sensitiveDays = days(r.sensitiveDays);
+  const keepDays = days(r.keepDays);
+  if (sensitiveDays === null || keepDays === null || sensitiveDays > keepDays || typeof r.oncePerPerson !== 'boolean') return null;
+  return { notifyEmail: email || null, oncePerPerson: r.oncePerPerson, sensitiveDays, keepDays };
+}
+
+const settingsOf = (f: FormRow): Settings => ({ notifyEmail: f.notifyEmail, oncePerPerson: f.oncePerPerson, sensitiveDays: f.sensitiveDays, keepDays: f.keepDays });
+
+/** Where answers are emailed, one per person, and how long answers are kept. */
+export async function updateSettings(db: Conn, actor: string, id: unknown, shown: unknown, next: unknown): Promise<Outcome> {
+  if (!validId(id)) return 'not_found';
+  const after = parseSettings(next);
+  if (!after) return 'invalid';
+  return db.transaction(async (tx) => {
+    const form = await locked(tx, id);
+    if (!form) return 'not_found';
+    const before = settingsOf(form);
+    if (JSON.stringify(before) !== JSON.stringify(parseSettings(shown))) return 'changed';
+    if (JSON.stringify(before) === JSON.stringify(after)) return 'unchanged';
+    await tx.update(forms).set({ ...after, updatedAt: sql`now()` }).where(eq(forms.id, id));
+    await event(tx, id, actor, 'settings', { before, after });
+    return 'done';
+  });
+}
+
+/**
+ * A new draft from an existing form: its questions (the draft being written, which is
+ * the published one or newer) and its settings, shared with nobody, with no answers.
+ * Last year's Calypso becomes this year's (owner, 2026-10-09: small changes each year).
+ */
+export async function duplicateForm(db: Conn, actor: string, id: unknown, title: unknown): Promise<{ outcome: Outcome; id?: number }> {
+  if (!validId(id)) return { outcome: 'not_found' };
+  const t = typeof title === 'string' ? title.trim() : '';
+  if (!t || t.length > MAX_TITLE) return { outcome: 'invalid' };
+  return db.transaction(async (tx) => {
+    const [source] = await tx.select().from(forms).where(eq(forms.id, id));
+    if (!source) return { outcome: 'not_found' };
+    const parsed = parseDefinition(source.draft);
+    const draft = parsed.ok ? { ...parsed.definition, title: { ...parsed.definition.title, fr: t } } : emptyDefinition(t);
+    const [r] = await tx
+      .insert(forms)
+      .values({ title: t, status: 'draft', draft, audience: NOBODY, notifyEmail: source.notifyEmail, oncePerPerson: source.oncePerPerson, sensitiveDays: source.sensitiveDays, keepDays: source.keepDays, createdBy: actor })
+      .returning({ id: forms.id });
+    await event(tx, r.id, actor, 'created', { title: t, from: id });
+    return { outcome: 'done', id: r.id };
+  });
+}
