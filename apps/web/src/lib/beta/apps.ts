@@ -39,8 +39,17 @@ export interface BetaApp {
 // The owner's version 2 goes here when it reaches beta. The placeholder (BetaDemo,
 // /beta/demo) was removed on 2026-09-30 once the owner had tried Tests. The tests use
 // their own betas (vi.mock of this module).
-export const BETA_APPS: readonly BetaApp[] = [
+export const BETA_APPS: readonly BetaApp[] = [];
+
+/**
+ * Betas set aside, not withdrawn (owner, 2026-10-09). Nothing reads this list: a beta
+ * here has no card, and `authorizeBeta()` denies it as unknown. Its rbac.beta_testers
+ * rows are KEPT, so moving it back into BETA_APPS brings its testers back as they were.
+ */
+export const ARCHIVED_BETAS: readonly BetaApp[] = [
   {
+    // Archived 2026-10-09: passed testing. Back when the Drive file store and the Gmail
+    // sender (docs/GMAIL_DELEGATION.md) are connected.
     // Apps Script test console (2026-10-06). The /exec address of the versioned
     // deployment "Test console": it stays the same, as each push updates that deployment.
     // It sends REAL texts and emails, so the blurb says so: the card is all testers read.

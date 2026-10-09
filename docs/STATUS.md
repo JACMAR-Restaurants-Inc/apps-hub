@@ -8,6 +8,15 @@ a statement stops being true, correct it in place and say what it used to say (t
 rule as `CLAUDE.md` §0). A § number in the log below refers to `CLAUDE.md` as it was then: what §1 said
 about database connections and roles is now in §3.
 
+## Latest, 2026-10-09
+
+The Appreciation Messages test console passed testing and is ARCHIVED (owner,
+2026-10-09): moved from `BETA_APPS` to `ARCHIVED_BETAS` in `lib/beta/apps.ts`, so it
+has no card and `authorizeBeta()` denies it; its `rbac.beta_testers` rows are kept, so
+moving it back restores its testers. It returns when the Drive file store and the Gmail
+sender are connected. The Apps Script console itself is unchanged and still public to
+anyone with its address. With no beta listed, nobody sees the Tests menu again.
+
 ## Latest, 2026-10-06
 
 Later the same day: the Tests page can list the owner's Apps Script test consoles (a
