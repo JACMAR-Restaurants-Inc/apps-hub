@@ -8,6 +8,20 @@ a statement stops being true, correct it in place and say what it used to say (t
 rule as `CLAUDE.md` §0). A § number in the log below refers to `CLAUDE.md` as it was then: what §1 said
 about database connections and roles is now in §3.
 
+## Latest, 2026-10-09: Forms
+
+Forms, in place of Jotform (owner, 2026-10-09; option B: HR edits forms on a screen),
+branch `forms`. Built: phase 1 (schema `forms`, versioned definitions, server-side
+answer checks, sharing by roles, restaurants and people, the fill page, the answers
+page) and phase 4 (HR's editor: questions, preview, sharing, settings, publish, close,
+reopen, duplicate; Notifications when a form reaches someone). Migration 0017 applied
+to staging 2026-10-09 with the owner's approval (adds only: the `forms` schema and the
+Forms app's 4 permissions, 7 role rows). Checked: 457 tests (45 files) on staging in
+rolled-back transactions, 17 mutations (16 caught; the 17th showed a redundant line,
+removed), lint, `next build`. Not checked by hand yet. Open: phase 3 (email to HR, PDF,
+Excel; email waits on the Gmail delegation), phase 5 (the retention job), then
+Playwright (owner: after Forms).
+
 ## Latest, 2026-10-09
 
 The Appreciation Messages test console passed testing and is ARCHIVED (owner,
