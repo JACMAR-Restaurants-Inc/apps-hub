@@ -53,7 +53,7 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
     apps/web          the one Next.js app. Portal and each app are route sections.
     packages/core     money in cents, Toronto dates, email normalisation
     packages/rbac     can() / explain(): pure, tested, no database
-    packages/db       Drizzle schema (rbac, cash, identity, portal), migrations, the client
+    packages/db       Drizzle schema (rbac, cash, identity, portal, devops, forms), migrations, the client
                       (node-postgres),
                       loadRoster()
     packages/import   the spreadsheet import: xlsx -> transform -> load -> verify
@@ -310,8 +310,9 @@ questions it was not written for. Answers are rebuilt on the server from the ver
 (`checkAnswers`): unknown keys dropped, values normalised. Name, employee number and
 email come from the directory, never typed (so nobody files under another's number);
 the signature is a typed name plus "I agree" (owner: no drawing). Retention (Law 25):
-fields marked sensitive are cleared `sensitiveDays` after closing (default 30), the
-whole submission `keepDays` after (default 365). Sharing an open form, or opening a
+fields marked sensitive are to be cleared `sensitiveDays` after closing (default 30),
+the whole submission `keepDays` after (default 365). The settings are stored; the job
+that clears them is NOT built yet (phase 5). Sharing an open form, or opening a
 form by its first publish, tells the people it newly reaches in Notifications (kind
 `form`), in its own write after the form's (separable, as above).
 
