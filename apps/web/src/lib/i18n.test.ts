@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { GRANT_PANEL_LABELS } from './requests/messages';
 import { cashDict } from './cash/i18n';
 import { devopsDict } from './devops/i18n';
+import { formsDict } from './forms/i18n';
 import { dict, langFrom } from './i18n';
 
-describe('the dictionaries (portal, Cash Balancing and JM DevOps)', () => {
-  const entries = [...Object.entries(dict), ...Object.entries(cashDict), ...Object.entries(devopsDict)];
+describe('the dictionaries (portal, Cash Balancing, JM DevOps and Forms)', () => {
+  const entries = [...Object.entries(dict), ...Object.entries(cashDict), ...Object.entries(devopsDict), ...Object.entries(formsDict)];
 
   it('has both languages for every key, never empty', () => {
     for (const [, v] of entries) {

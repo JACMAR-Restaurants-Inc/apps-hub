@@ -1,0 +1,113 @@
+import { describe, expect, it } from 'vitest';
+import { checkAnswers, parseDefinition, say, sensitiveIds, type FormDefinition } from './definition';
+
+// Shaped like the Calypso registration (Jotform 261747485869074).
+const calypso = {
+  title: { fr: 'Calypso 2026', en: 'Calypso 2026' },
+  intro: { fr: 'Inscription à la journée Calypso.' },
+  fields: [
+    { id: 'contact', type: 'heading', label: { fr: 'Coordonnées' } },
+    { id: 'phone', type: 'phone', label: { fr: 'Téléphone' }, required: true, sensitive: true },
+    { id: 'emergency', type: 'text', label: { fr: 'Contact d’urgence' }, required: true, sensitive: true },
+    { id: 'guests', type: 'number', label: { fr: 'Invités' }, min: 0, max: 4 },
+    { id: 'day', type: 'date', label: { fr: 'Date' } },
+    { id: 'bus', type: 'choice', label: { fr: 'Transport' }, required: true, options: [{ id: 'yes', label: { fr: 'Autobus' } }, { id: 'no', label: { fr: 'Par mes moyens' } }] },
+    { id: 'size', type: 'choices', label: { fr: 'Tailles' }, options: [{ id: 's', label: { fr: 'P' } }, { id: 'm', label: { fr: 'M' } }, { id: 'l', label: { fr: 'G' } }] },
+    { id: 'mail', type: 'email', label: { fr: 'Courriel' } },
+    { id: 'rule1', type: 'agree', label: { fr: 'J’autorise la retenue sur ma paie.' }, required: true },
+  ],
+  signature: true,
+};
+
+const def = (): FormDefinition => {
+  const r = parseDefinition(calypso);
+  if (!r.ok) throw new Error(r.errors.join());
+  return r.definition;
+};
+
+const good = { phone: '(819) 555-0101', emergency: 'Marie, 819 555 0102', guests: '2', day: '2026-07-14', bus: 'yes', size: ['m', 's'], mail: 'Marie@Example.com', rule1: true };
+
+describe('parseDefinition', () => {
+  it('reads a whole form and keeps only what it knows', () => {
+    const r = parseDefinition({ ...calypso, extra: 'x', fields: [{ ...calypso.fields[1], script: '<x>' }] });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.definition).not.toHaveProperty('extra');
+    expect(r.definition.fields[0]).toEqual({ id: 'phone', type: 'phone', label: { fr: 'Téléphone' }, required: true, sensitive: true });
+  });
+
+  it('refuses what cannot be shown or answered', () => {
+    const bad = (patch: object, fieldPatch?: object) =>
+      parseDefinition({ ...calypso, ...(fieldPatch ? { fields: [{ ...calypso.fields[5], ...fieldPatch }] } : {}), ...patch });
+    expect(bad({ title: { en: 'English only' } }).ok).toBe(false);
+    expect(bad({ fields: 'nope' }).ok).toBe(false);
+    expect(bad({}, { type: 'signature-pad' }).ok).toBe(false);
+    expect(bad({}, { id: 'Has Spaces' }).ok).toBe(false);
+    expect(bad({}, { options: [{ id: 'only', label: { fr: 'Une' } }] }).ok).toBe(false);
+    expect(bad({}, { options: [{ id: 'a', label: { fr: 'A' } }, { id: 'a', label: { fr: 'B' } }] }).ok).toBe(false);
+    expect(parseDefinition({ ...calypso, fields: [calypso.fields[1], calypso.fields[1]] }).ok).toBe(false);
+    expect(parseDefinition({ ...calypso, fields: [{ ...calypso.fields[3], min: 5, max: 1 }] }).ok).toBe(false);
+    expect(parseDefinition({ ...calypso, fields: Array.from({ length: 101 }, (_, i) => ({ id: `f${i}`, type: 'text', label: { fr: 'x' } })) }).ok).toBe(false);
+  });
+
+  it('a heading is never required nor sensitive', () => {
+    const r = parseDefinition({ ...calypso, fields: [{ id: 'h', type: 'heading', label: { fr: 'Titre' }, required: true, sensitive: true }] });
+    expect(r.ok && r.definition.fields[0]).toMatchObject({ required: false, sensitive: false });
+  });
+});
+
+describe('checkAnswers', () => {
+  it('normalises good answers and drops what was not asked', () => {
+    const r = checkAnswers(def(), { ...good, injected: 'x', contact: 'heading has no answer' }, '  Marie   Tremblay ');
+    expect(r).toEqual({
+      ok: true,
+      signedName: 'Marie Tremblay',
+      answers: { phone: '8195550101', emergency: 'Marie, 819 555 0102', guests: 2, day: '2026-07-14', bus: 'yes', size: ['s', 'm'], mail: 'marie@example.com', rule1: true },
+    });
+  });
+
+  it('a required field left empty, or "I agree" unticked, is refused', () => {
+    const r = checkAnswers(def(), { ...good, phone: '  ', bus: undefined, rule1: false }, 'Marie');
+    expect(r.ok === false && r.errors).toEqual({ phone: 'required', bus: 'required', rule1: 'required' });
+  });
+
+  it('a signature is required when the form asks for one', () => {
+    expect(checkAnswers(def(), good, '   ')).toMatchObject({ ok: false, errors: { signature: 'required' } });
+    expect(checkAnswers(def(), good, 'x'.repeat(121))).toMatchObject({ ok: false, errors: { signature: 'too_long' } });
+    expect(checkAnswers({ ...def(), signature: false }, good, undefined)).toMatchObject({ ok: true, signedName: null });
+  });
+
+  it('refuses values the field cannot hold', () => {
+    const errs = (patch: object) => {
+      const r = checkAnswers(def(), { ...good, ...patch }, 'Marie');
+      return r.ok ? {} : r.errors;
+    };
+    expect(errs({ phone: '555-01' })).toEqual({ phone: 'invalid' });
+    expect(errs({ phone: 'call me' })).toEqual({ phone: 'invalid' });
+    expect(errs({ guests: '5' })).toEqual({ guests: 'invalid' });
+    expect(errs({ guests: 'two' })).toEqual({ guests: 'invalid' });
+    expect(errs({ day: '2026-02-30' })).toEqual({ day: 'invalid' });
+    expect(errs({ bus: 'maybe' })).toEqual({ bus: 'invalid' });
+    expect(errs({ size: ['m', 'xl'] })).toEqual({ size: 'invalid' });
+    expect(errs({ size: 'm' })).toEqual({ size: 'invalid' });
+    expect(errs({ mail: 'not-an-email' })).toEqual({ mail: 'invalid' });
+    expect(errs({ rule1: 'true' })).toEqual({ rule1: 'invalid' });
+    expect(errs({ emergency: 'x'.repeat(201) })).toEqual({ emergency: 'too_long' });
+    expect(errs({ emergency: { $ne: 1 } })).toEqual({ emergency: 'invalid' });
+  });
+
+  it('nothing at all is every required field missing, never a crash', () => {
+    const r = checkAnswers(def(), null, null);
+    expect(r.ok === false && Object.keys(r.errors).sort()).toEqual(['bus', 'emergency', 'phone', 'rule1', 'signature']);
+  });
+});
+
+describe('helpers', () => {
+  it('the sensitive fields are the ones marked', () => {
+    expect(sensitiveIds(def())).toEqual(['phone', 'emergency']);
+  });
+  it('English falls back to French', () => {
+    expect(say({ fr: 'Bonjour', en: 'Hello' }, 'en')).toBe('Hello');
+    expect(say({ fr: 'Bonjour' }, 'en')).toBe('Bonjour');
+  });
+});

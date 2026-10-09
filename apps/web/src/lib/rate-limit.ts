@@ -12,6 +12,7 @@
  *
  * Where they apply, and why (every limit is per person, by signed-in address):
  * - accessRequest: asking for access reaches Clearview and emails the admins.
+ * - formSubmit: each submission will email HR (Forms, 2026-10-09).
  * - denialAudit: a refused action writes a journal row; anyone with a Google account can
  *   sign in, so without this a stranger could grow rbac.audit without end.
  * - noGrantsAudit: the same for "signed in with no access", written at each sign-in.
@@ -27,6 +28,7 @@ type Conn = Db | Tx;
 
 export const LIMITS = {
   accessRequest: { max: 5, windowSeconds: 15 * 60 },
+  formSubmit: { max: 20, windowSeconds: 60 * 60 },
   denialAudit: { max: 30, windowSeconds: 60 * 60 },
   noGrantsAudit: { max: 5, windowSeconds: 60 * 60 },
 } as const;
