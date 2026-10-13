@@ -63,8 +63,20 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
   const [version, setVersion] = useState(form.currentVersion);
   const [differs, setDiffers] = useState(form.draftDiffers);
   const [badFields, setBadFields] = useState<Set<number>>(new Set());
-  const [message, setMessage] = useState<{ key: FormsKey; n?: number; ok?: boolean } | null>(null);
+  // Problems stay at the top until the next action; a success is a toast that goes
+  // (owner, 2026-10-13: "a toast saying draft saved with green background").
+  const [message, setMessage] = useState<{ key: FormsKey } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(id);
+  }, [toast]);
+  const succeed = (key: FormsKey, n?: number) => {
+    setMessage(null);
+    setToast(ft(lang, key).replace('{n}', String(n ?? '')));
+  };
   const dirty = JSON.stringify(def) !== saved;
 
   const t = (k: FormsKey) => ft(lang, k);
@@ -77,7 +89,8 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
       if (r.updatedAt) setShownAt(r.updatedAt);
       if (r.outcome === 'done') {
         const key = onDone(r);
-        setMessage(key ? { key, n: r.version, ok: true } : null);
+        if (key) succeed(key, r.version);
+        else setMessage(null);
         router.refresh();
       } else setMessage({ key: `out_${r.outcome}` as FormsKey });
     });
@@ -92,7 +105,7 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
       if (r.outcome === 'done' || r.outcome === 'unchanged') {
         setSaved(JSON.stringify(def));
         if (r.outcome === 'done') setDiffers(true);
-        setMessage({ key: 'saved', ok: true });
+        succeed('draft_saved');
       } else if (r.outcome === 'invalid') {
         setBadFields(new Set((r.errors ?? []).map((e) => /^field_(\d+)/.exec(e)?.[1]).filter(Boolean).map(Number)));
         setMessage({ key: 'out_invalid' });
@@ -143,10 +156,13 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
       </div>
 
       {message && (
-        <p className={message.ok ? 'fo-ok' : 'gp-err'} role={message.ok ? 'status' : 'alert'}>
-          {message.key === 'out_invalid' && tab !== 'questions' ? t('out_publish_invalid') : t(message.key).replace('{n}', String(message.n ?? ''))}
+        <p className="gp-err" role="alert">
+          {message.key === 'out_invalid' && tab !== 'questions' ? t('out_publish_invalid') : t(message.key)}
         </p>
       )}
+      <div className="fo-toastzone" role="status" aria-live="polite">
+        {toast && <div className="gp-toast fo-toast">✓ {toast}</div>}
+      </div>
 
       <div className="fo-tabs" role="tablist">
         {(['questions', 'preview', 'share', 'settings', 'history'] as const).map((k) => (
@@ -222,7 +238,7 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
           people={people}
           roles={roles}
           pending={pending}
-          onSave={(shown, next) => act(() => shareAction(form.id, shown, next), () => 'saved')}
+          onSave={(shown, next) => act(() => shareAction(form.id, shown, next), () => 'share_saved')}
         />
       )}
 
@@ -248,17 +264,17 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
       )}
 
       {tab === 'settings' && (
-        <SettingsPanel lang={lang} shown={form.settings} pending={pending} onSave={(shown, next) => act(() => updateSettingsAction(form.id, shown, next), () => 'saved')} />
+        <SettingsPanel lang={lang} shown={form.settings} pending={pending} onSave={(shown, next) => act(() => updateSettingsAction(form.id, shown, next), () => 'settings_saved')} />
       )}
 
       <div className="fo-bar fo-bar-end">
         {status === 'open' && (
-          <button type="button" className="fo-btn" disabled={pending} onClick={() => act(() => setStatusAction(form.id, 'closed', shownAt), () => (setStatus('closed'), 'saved'))}>
+          <button type="button" className="fo-btn" disabled={pending} onClick={() => act(() => setStatusAction(form.id, 'closed', shownAt), () => (setStatus('closed'), 'form_closed'))}>
             {t('close_form')}
           </button>
         )}
         {status === 'closed' && (
-          <button type="button" className="fo-btn" disabled={pending} onClick={() => act(() => setStatusAction(form.id, 'open', shownAt), () => (setStatus('open'), 'saved'))}>
+          <button type="button" className="fo-btn" disabled={pending} onClick={() => act(() => setStatusAction(form.id, 'open', shownAt), () => (setStatus('open'), 'form_reopened'))}>
             {t('reopen_form')}
           </button>
         )}

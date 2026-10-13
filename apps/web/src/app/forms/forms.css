@@ -153,3 +153,5 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-history > li.is-current { border-color:#15803D; }
 .fo-history .fo-vhead { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
 .fo-history .fo-vpreview { border-top:1px solid var(--line2); padding-top:12px; }
+/* The editor's success toast: the portal's toast, green (white on #15803D is 5.0:1). */
+.fo-toast { background:#15803D; font-weight:600; font-size:14px; }
