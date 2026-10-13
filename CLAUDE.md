@@ -258,7 +258,7 @@ granted. Any exception denies. `explain()` gives the reason for logs and admin s
 **A blank never grants** (RBAC §4), and here the database enforces it: `active` and
 `status` are NOT NULL, and a store grant is a row, so there is no "denied" to mistype.
 
-**Nothing is deleted, with TWO guarded exceptions.** People are deactivated,
+**Nothing is deleted, with THREE guarded exceptions.** People are deactivated,
 memberships revoked. There are no cascading deletes, so a careless delete fails instead
 of taking history with it. The exception (owner's call, 2026-09-26): an admin can DELETE
 a person from the directory, so their next sign-in is a first visit. It is guarded
@@ -281,8 +281,14 @@ event keeps a full copy of it and its comments. A PROJECT can be deleted complet
 (`deleteProject`, as the old app did): the admin types its exact name, and the project,
 its issues, their comments and its whole history go, children first, in one
 transaction. Nothing of it is kept: the owner asked for "completely". Projects used to be
-archived, never deleted (migration 0010 dropped `archived_at`). This used to say, without
-exception, "Nothing is deleted", then "ONE guarded exception".
+archived, never deleted (migration 0010 dropped `archived_at`).
+The third (owner, 2026-10-13: "like a draft that was saved"): a FORM nobody has answered
+can be deleted (`deleteForm` in `lib/forms/store.ts`, HR or an admin, a second click that
+names it): the form, its versions, its history and any file picked but never sent, in
+one transaction under the form's lock, then its notifications. A form with even one
+submission answers `answered` and is never deleted: answers are HR's records, so it is
+closed, and retention clears it. This used to say, without exception, "Nothing is
+deleted", then "ONE guarded exception", then "TWO".
 
 **JM DevOps numbers issues under a row lock, and saves only what the page showed**
 (`lib/devops/store.ts`). A new issue takes its project's `next_number` in the same

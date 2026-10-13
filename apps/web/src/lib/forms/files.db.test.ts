@@ -6,11 +6,11 @@
  */
 
 import { existsSync } from 'node:fs';
-import { createDb, formFiles, submissions } from '@hub/db';
+import { createDb, formEvents, formFiles, formVersions, forms, submissions } from '@hub/db';
 import { eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import { abandonedFiles, fileById, filesOf, setFilePath, stageFile, stagedCount, unstageFile } from './files';
-import { type Conn, createForm, getForm, publish, saveDraft, submit, type Person } from './store';
+import { type Conn, createForm, deleteForm, getForm, publish, saveDraft, submit, type Person } from './store';
 
 if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
 const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
@@ -120,6 +120,47 @@ describe.skipIf(!db)('Form files on Postgres (rolled back)', () => {
       expect((await abandonedFiles(tx, since)).some((f) => f.id === id)).toBe(false);
       expect(await unstageFile(tx, id, MARIE.email)).toEqual({ ok: true, ref: `supabase:${form}/${id}` });
       expect(await fileById(tx, id)).toBeNull();
+    });
+  });
+});
+
+describe.skipIf(!db)('Deleting a form (rolled back)', () => {
+  const left = async (tx: Conn, id: number) => ({
+    form: (await tx.select({ id: forms.id }).from(forms).where(eq(forms.id, id))).length,
+    versions: (await tx.select({ v: formVersions.version }).from(formVersions).where(eq(formVersions.formId, id))).length,
+    events: (await tx.select({ id: formEvents.id }).from(formEvents).where(eq(formEvents.formId, id))).length,
+    files: (await tx.select({ id: formFiles.id }).from(formFiles).where(eq(formFiles.formId, id))).length,
+  });
+
+  it('a saved draft goes completely', async () => {
+    await rolledBack(async (tx) => {
+      const { id } = await createForm(tx, HR, 'Brouillon');
+      expect(await deleteForm(tx, id, await at(tx, id!))).toEqual({ outcome: 'done', refs: [] });
+      expect(await left(tx, id!)).toEqual({ form: 0, versions: 0, events: 0, files: 0 });
+    });
+  });
+
+  it('a published form nobody answered goes too, with a file someone picked and never sent', async () => {
+    await rolledBack(async (tx) => {
+      const form = await openForm(tx);
+      const file = await staged(tx, form, 'id_card');
+      expect(await deleteForm(tx, form, await at(tx, form))).toEqual({ outcome: 'done', refs: [`supabase:${form}/${file}`] });
+      expect(await left(tx, form)).toEqual({ form: 0, versions: 0, events: 0, files: 0 });
+    });
+  });
+
+  it('an answered form is never deleted; nor from a stale page; nothing is touched', async () => {
+    await rolledBack(async (tx) => {
+      const form = await openForm(tx);
+      const before = await left(tx, form);
+      expect(await deleteForm(tx, form, new Date(0).toISOString())).toEqual({ outcome: 'changed' });
+      expect(await left(tx, form)).toEqual(before);
+      expect((await submit(tx, MARIE, form, 1, { id_card: [String(await staged(tx, form, 'id_card'))] }, null, allow())).outcome).toBe('done');
+      const answered = await left(tx, form);
+      expect(await deleteForm(tx, form, await at(tx, form))).toEqual({ outcome: 'answered' });
+      expect(await left(tx, form)).toEqual(answered);
+      expect(await submissionsOf(tx, form)).toBe(1);
+      expect(await deleteForm(tx, 999_999_999, 'x')).toEqual({ outcome: 'not_found' });
     });
   });
 });
