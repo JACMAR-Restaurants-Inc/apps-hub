@@ -31,6 +31,9 @@ export const formsDict = {
   restaurant: { fr: 'Restaurant', en: 'Restaurant' },
   choose: { fr: 'Choisir…', en: 'Choose…' },
   required_mark: { fr: 'obligatoire', en: 'required' },
+  // Around the red asterisk: "Les champs marqués d’un * sont obligatoires."
+  required_note_before: { fr: 'Les champs marqués d’un', en: 'Fields marked with' },
+  required_note_after: { fr: 'sont obligatoires.', en: 'are required.' },
   signature: { fr: 'Signature', en: 'Signature' },
   signature_line: {
     fr: 'En tapant votre nom, vous confirmez que ces réponses sont exactes et vous acceptez ce qui précède. La date et l’heure sont enregistrées.',

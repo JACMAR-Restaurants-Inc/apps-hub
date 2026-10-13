@@ -93,6 +93,15 @@ export function FillForm({ lang, formId, version, definition, already, person, s
     <form className="fo-form" onSubmit={send} noValidate>
       {masthead}
       {definition.intro && <p className="fo-intro">{definition.intro}</p>}
+      {(definition.signature || stores.length > 1 || definition.fields.some((f) => f.required)) && (
+        <p className="fo-dim">
+          {ft(lang, 'required_note_before')}
+          <span className="fo-req" aria-hidden="true">
+            *
+          </span>{' '}
+          {ft(lang, 'required_note_after')}
+        </p>
+      )}
 
       <div>
         <div className="ph">
