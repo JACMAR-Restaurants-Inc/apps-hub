@@ -227,5 +227,41 @@ export function checkAnswers(def: FormDefinition, raw: unknown, signedName: unkn
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, answers, signedName: name };
 }
 
+/**
+ * A form's sections (owner, 2026-10-12: "Informations personnelles", then "Qualifications"...).
+ * A section is a heading and the questions after it, up to the next heading; questions
+ * before the first heading have no section. Stored as a flat list, so a version answered
+ * before sections existed reads the same.
+ */
+export interface Section {
+  head?: Field;
+  fields: Field[];
+}
+
+export function sections(fields: Field[]): Section[] {
+  const out: Section[] = [];
+  for (const f of fields) {
+    if (f.type === 'heading') out.push({ head: f, fields: [] });
+    else if (out.length) out.at(-1)!.fields.push(f);
+    else out.push({ fields: [f] });
+  }
+  return out;
+}
+
+/**
+ * Moves the section headed at `i` with all its questions, one section up (-1) or down (1).
+ * Null if it cannot go there: past the ends, or above questions that have no section
+ * (they would silently join it).
+ */
+export function moveSection(fields: Field[], i: number, by: -1 | 1): Field[] | null {
+  if (fields[i]?.type !== 'heading') return null;
+  const blocks = sections(fields);
+  const b = blocks.findIndex((s) => s.head === fields[i]);
+  const to = b + by;
+  if (to < 0 || to >= blocks.length || !blocks[to].head) return null;
+  [blocks[b], blocks[to]] = [blocks[to], blocks[b]];
+  return blocks.flatMap((s) => (s.head ? [s.head, ...s.fields] : s.fields));
+}
+
 /** The fields whose answers are cleared after the form closes. */
 export const sensitiveIds = (def: FormDefinition) => def.fields.filter((f) => f.sensitive).map((f) => f.id);

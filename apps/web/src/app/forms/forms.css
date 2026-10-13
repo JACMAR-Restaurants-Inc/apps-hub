@@ -60,6 +60,11 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-card { border:1px solid var(--border); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px;
   background:var(--card-bg-light); }
 .fo-card.has-error { border-color:var(--red); }
+.fo-card.is-section { border-left:4px solid var(--blue); background:var(--card-bg); margin-top:10px; }
+.fo-section { border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:18px; }
+.fo-section-head { padding-bottom:10px; border-bottom:1px solid var(--line2); }
+.fo-section-head h2 { margin:0; font-size:18px; }
+.fo-section-head p { margin:4px 0 0; color:var(--text-muted); white-space:pre-line; }
 .fo-cardhead { display:flex; align-items:center; gap:10px; }
 .fo-icon { font:inherit; width:32px; height:32px; border-radius:8px; border:1px solid var(--border);
   background:var(--card-bg); color:var(--text); cursor:pointer; }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkAnswers, parseDefinition, sensitiveIds, type FormDefinition } from './definition';
+import { checkAnswers, moveSection, parseDefinition, sections, sensitiveIds, type FormDefinition } from './definition';
 
 // Shaped like the Calypso registration (Jotform 261747485869074).
 const calypso = {
@@ -112,5 +112,36 @@ describe('checkAnswers', () => {
 describe('helpers', () => {
   it('the sensitive fields are the ones marked', () => {
     expect(sensitiveIds(def())).toEqual(['phone', 'emergency']);
+  });
+
+  it('a section is a heading and the questions after it', () => {
+    const fields = def().fields;
+    const loose = { ...fields[1], id: 'loose' };
+    const got = sections([loose, ...fields]).map((s) => [s.head?.id ?? null, s.fields.map((f) => f.id)]);
+    expect(got).toEqual([
+      [null, ['loose']],
+      ['contact', ['phone', 'emergency', 'guests', 'day', 'bus', 'size', 'mail', 'rule1']],
+    ]);
+    expect(sections([])).toEqual([]);
+  });
+});
+
+describe('moving a section', () => {
+  const q = (id: string) => ({ id, type: 'text' as const, label: id, required: false, sensitive: false });
+  const h = (id: string) => ({ ...q(id), type: 'heading' as const });
+  const ids = (fs: { id: string }[] | null) => fs && fs.map((f) => f.id);
+  const form = [q('loose'), h('perso'), q('name'), q('phone'), h('quals'), q('diploma'), h('end')];
+
+  it('takes its questions with it', () => {
+    expect(ids(moveSection(form, 4, -1))).toEqual(['loose', 'quals', 'diploma', 'perso', 'name', 'phone', 'end']);
+    expect(ids(moveSection(form, 1, 1))).toEqual(['loose', 'quals', 'diploma', 'perso', 'name', 'phone', 'end']);
+    expect(ids(moveSection(form, 6, -1))).toEqual(['loose', 'perso', 'name', 'phone', 'end', 'quals', 'diploma']);
+  });
+
+  it('never past the ends, above questions with no section, or from a question', () => {
+    expect(moveSection(form, 1, -1)).toBeNull();
+    expect(moveSection(form, 6, 1)).toBeNull();
+    expect(moveSection(form, 2, 1)).toBeNull();
+    expect(ids(moveSection(form.slice(1), 0, 1))).toEqual(['quals', 'diploma', 'perso', 'name', 'phone', 'end']);
   });
 });

@@ -1,10 +1,10 @@
 'use client';
 
 import { submitFormAction } from '@/app/forms/actions';
-import { type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
+import { sections, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Lang } from '@/lib/i18n';
-import { useState, useTransition } from 'react';
+import { Fragment, useState, useTransition } from 'react';
 
 interface Props {
   lang: Lang;
@@ -119,9 +119,19 @@ export function FillForm({ lang, formId, version, definition, already, person, s
         </div>
       )}
 
-      {definition.fields.map((f) => (
-        <FieldInput key={f.id} lang={lang} field={f} value={answers[f.id]} error={errors[f.id]} onChange={(v) => set(f.id, v)} />
-      ))}
+      {sections(definition.fields).map((sec, i) => {
+        const inputs = sec.fields.map((f) => <FieldInput key={f.id} lang={lang} field={f} value={answers[f.id]} error={errors[f.id]} onChange={(v) => set(f.id, v)} />);
+        if (!sec.head) return <Fragment key={i}>{inputs}</Fragment>;
+        return (
+          <section key={sec.head.id} className="fo-section" aria-labelledby={`fo-${sec.head.id}`}>
+            <div className="fo-section-head">
+              <h2 id={`fo-${sec.head.id}`}>{sec.head.label}</h2>
+              {sec.head.help && <p>{sec.head.help}</p>}
+            </div>
+            {inputs}
+          </section>
+        );
+      })}
 
       {definition.signature && (
         <div className={`fo-field${errors.signature ? ' has-error' : ''}`}>
@@ -161,14 +171,6 @@ function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field
   const err = error ? <p className="fo-err">{ft(lang, `err_${error}` as FormsKey)}</p> : null;
   const cls = `fo-field${error ? ' has-error' : ''}`;
 
-  if (field.type === 'heading') {
-    return (
-      <div className="fo-heading">
-        <h2>{label}</h2>
-        {field.help && <p>{field.help}</p>}
-      </div>
-    );
-  }
   if (field.type === 'agree') {
     return (
       <div className={cls}>

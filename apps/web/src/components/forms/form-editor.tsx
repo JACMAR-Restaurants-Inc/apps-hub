@@ -1,7 +1,7 @@
 'use client';
 
 import { duplicateFormAction, publishAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
-import { FIELD_TYPES, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
+import { FIELD_TYPES, moveSection, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Audience } from '@/lib/forms/rules';
 import type { Settings } from '@/lib/forms/store';
@@ -96,8 +96,10 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
   }
 
   const update = (i: number, f: Field) => setDef((d) => ({ ...d, fields: d.fields.map((x, j) => (j === i ? f : x)) }));
-  const move = (i: number, by: number) =>
+  /** A question moves one place (into the next section, past its heading); a section moves with its questions. */
+  const move = (i: number, by: -1 | 1) =>
     setDef((d) => {
+      if (d.fields[i].type === 'heading') return { ...d, fields: moveSection(d.fields, i, by) ?? d.fields };
       const fields = [...d.fields];
       const [f] = fields.splice(i, 1);
       fields.splice(i + by, 0, f);
@@ -171,11 +173,11 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
             <FieldCard
               key={f.id}
               lang={lang}
-              n={i + 1}
+              n={def.fields.slice(0, i + 1).filter((x) => x.type !== 'heading').length}
               field={f}
               bad={badFields.has(i)}
-              first={i === 0}
-              last={i === def.fields.length - 1}
+              first={f.type === 'heading' ? !moveSection(def.fields, i, -1) : i === 0}
+              last={f.type === 'heading' ? !moveSection(def.fields, i, 1) : i === def.fields.length - 1}
               onChange={(nf) => update(i, nf)}
               onMove={(by) => move(i, by)}
               onRemove={() => remove(i)}
@@ -243,15 +245,21 @@ function TextInput({ lang, label, value, long, onChange }: { lang: Lang; label: 
   );
 }
 
-function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; first: boolean; last: boolean; onChange: (f: Field) => void; onMove: (by: number) => void; onRemove: () => void }) {
+function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; first: boolean; last: boolean; onChange: (f: Field) => void; onMove: (by: -1 | 1) => void; onRemove: () => void }) {
   const { lang, n, field: f, bad, first, last, onChange, onMove, onRemove } = props;
   const t = (k: FormsKey) => ft(lang, k);
   const answerable = f.type !== 'heading';
   return (
-    <div className={`fo-card${bad ? ' has-error' : ''}`}>
+    <div className={`fo-card${answerable ? '' : ' is-section'}${bad ? ' has-error' : ''}`}>
       <div className="fo-cardhead">
-        <b>{t('field_n').replace('{n}', String(n))}</b>
-        <span className="fo-dim">{t(`type_${f.type}`)}</span>
+        {answerable ? (
+          <>
+            <b>{t('field_n').replace('{n}', String(n))}</b>
+            <span className="fo-dim">{t(`type_${f.type}`)}</span>
+          </>
+        ) : (
+          <b>{t('type_heading')}</b>
+        )}
         <span className="fo-grow" />
         <button type="button" className="fo-icon" disabled={first} onClick={() => onMove(-1)} aria-label={t('move_up')} title={t('move_up')}>
           ↑
@@ -263,10 +271,11 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
           ✕
         </button>
       </div>
-      <TextInput lang={lang} label="label_fr" long={f.type === 'heading' || f.type === 'agree'} value={f.label} onChange={(label) => onChange({ ...f, label: label ?? '' })} />
+      <TextInput lang={lang} label={answerable ? 'label_fr' : 'section_title'} long={f.type === 'agree'} value={f.label} onChange={(label) => onChange({ ...f, label: label ?? '' })} />
       <TextInput
         lang={lang}
-        label="help_fr"
+        label={answerable ? 'help_fr' : 'section_help'}
+        long={!answerable}
         value={f.help}
         onChange={(help) => {
           const next = { ...f, help };
@@ -327,12 +336,13 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
   );
 }
 
+/** Questions from the list; a section has its own button (owner, 2026-10-12). */
 function AddField({ lang, onAdd }: { lang: Lang; onAdd: (t: FieldType) => void }) {
   const [type, setType] = useState<FieldType>('text');
   return (
     <div className="fo-add">
       <select value={type} onChange={(e) => setType(e.target.value as FieldType)} aria-label={ft(lang, 'add_field')}>
-        {FIELD_TYPES.map((k) => (
+        {FIELD_TYPES.filter((k) => k !== 'heading').map((k) => (
           <option key={k} value={k}>
             {ft(lang, `type_${k}`)}
           </option>
@@ -340,6 +350,9 @@ function AddField({ lang, onAdd }: { lang: Lang; onAdd: (t: FieldType) => void }
       </select>
       <button type="button" className="fo-btn" onClick={() => onAdd(type)}>
         + {ft(lang, 'add_field')}
+      </button>
+      <button type="button" className="fo-btn" onClick={() => onAdd('heading')}>
+        + {ft(lang, 'add_section')}
       </button>
     </div>
   );

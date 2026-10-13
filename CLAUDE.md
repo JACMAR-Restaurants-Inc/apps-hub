@@ -313,7 +313,10 @@ the signature is a typed name plus "I agree" (owner: no drawing). HR writes form
 FRENCH ONLY (owner, 2026-10-12: "we are a French company"): the language toggle changes
 the page around a form, never what HR wrote. Texts are plain strings; they used to be
 `{ fr, en? }` with an English box beside each French one, and a definition stored that
-way is still read, keeping its French. Retention (Law 25):
+way is still read, keeping its French. A form has SECTIONS (owner,
+2026-10-12): a section is a `heading` field and the questions after it, kept in the one
+flat list (`sections()`, `moveSection()` in `definition.ts`), so versions answered
+before sections existed read unchanged; moving a section moves its questions. Retention (Law 25):
 fields marked sensitive are to be cleared `sensitiveDays` after closing (default 30),
 the whole submission `keepDays` after (default 365). The settings are stored; the job
 that clears them is NOT built yet (phase 5). Sharing an open form, or opening a
