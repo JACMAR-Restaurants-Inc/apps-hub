@@ -316,7 +316,11 @@ restaurants' answers); Consultation holding Forms reads nothing. Admins pass all
 permissions are rows written by migration 0017, like every app's. A form's questions
 are VERSIONED: publishing writes a new version, a submission keeps the one it answered,
 and a submission sent against an older version is refused as `changed`, never fitted to
-questions it was not written for. Answers are rebuilt on the server from the version
+questions it was not written for. Past versions are never edited: the
+editor's History tab lists them (when, by whom, answers each) and can take one back
+into the DRAFT (`restoreVersion`), which publishes nothing; publishing it makes a new
+version (owner, 2026-10-13: forms improved month after month). Badges say where a form
+stands: Brouillon, En ligne or Fermé, vN, and "Modifications non publiées". Answers are rebuilt on the server from the version
 (`checkAnswers`): unknown keys dropped, values normalised. Name, employee number and
 email come from the directory, never typed (so nobody files under another's number);
 the signature is a typed name plus "I agree" (owner: no drawing). HR writes forms in

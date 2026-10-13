@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteFormAction, duplicateFormAction, publishAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
+import { deleteFormAction, duplicateFormAction, publishAction, restoreVersionAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
 import { FIELD_TYPES, HEADER_COLORS, moveSection, type HeaderColor, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Audience } from '@/lib/forms/rules';
@@ -8,6 +8,7 @@ import type { Settings } from '@/lib/forms/store';
 import type { Lang } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
+import { FormBadges, VersionBadge } from './badges';
 import { FillForm } from './fill-form';
 
 export interface EditorForm {
@@ -22,6 +23,8 @@ export interface EditorForm {
   draftDiffers: boolean;
   /** Someone has answered it: it can be closed, never deleted. */
   answered: boolean;
+  /** Published versions, newest first; dates and names already written for the reader. */
+  history: { version: number; at: string; by: string; answers: number; definition: FormDefinition | null }[];
 }
 
 interface Props {
@@ -33,7 +36,7 @@ interface Props {
   me: { name: string; number: string | null; email: string };
 }
 
-type Tab = 'questions' | 'preview' | 'share' | 'settings';
+type Tab = 'questions' | 'preview' | 'share' | 'settings' | 'history';
 
 /** An id the definition accepts (lowercase, at most 32), unique enough within a form. */
 const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -112,9 +115,7 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
   return (
     <div className="fo-editor">
       <div className="fo-bar">
-        <span className={`fo-status is-${status}`}>{t(`status_${status}`)}</span>
-        {version !== null && <span className="fo-dim">{t('published').replace('{n}', String(version))}</span>}
-        {differs && version !== null && <span className="fo-dim">{t('draft_differs')}</span>}
+        <FormBadges lang={lang} status={status} version={version} pending={differs} />
         <span className="fo-grow" />
         {dirty && <span className="fo-unsaved">{t('unsaved')}</span>}
         <button type="button" className="fo-btn" disabled={pending || !dirty} onClick={saveDraft}>
@@ -148,7 +149,7 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
       )}
 
       <div className="fo-tabs" role="tablist">
-        {(['questions', 'preview', 'share', 'settings'] as const).map((k) => (
+        {(['questions', 'preview', 'share', 'settings', 'history'] as const).map((k) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'is-on' : ''} onClick={() => setTab(k)}>
             {t(`tab_${k}`)}
           </button>
@@ -219,6 +220,27 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
           roles={roles}
           pending={pending}
           onSave={(shown, next) => act(() => shareAction(form.id, shown, next), () => 'saved')}
+        />
+      )}
+
+      {tab === 'history' && (
+        <HistoryPanel
+          lang={lang}
+          form={form}
+          current={version}
+          status={status}
+          draftPending={differs || version === null}
+          dirty={dirty}
+          pending={pending}
+          me={me}
+          restaurants={restaurants}
+          onRestore={(v) =>
+            start(async () => {
+              const r = await restoreVersionAction(form.id, v, shownAt);
+              if (r.outcome === 'expired' || r.outcome === 'done') return window.location.reload();
+              setMessage({ key: r.outcome === 'unchanged' ? 'out_unchanged' : (`out_${r.outcome}` as FormsKey) });
+            })
+          }
         />
       )}
 
@@ -685,5 +707,90 @@ function ColorPicker({ lang, name, value, onChange }: { lang: Lang; name: string
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Every published version, newest first (owner, 2026-10-13): when, by whom, how many
+ * answered it; a preview of it as it was; and taking it back into the draft, which
+ * publishes nothing. The version people fill now is marked.
+ */
+function HistoryPanel(props: {
+  lang: Lang;
+  form: EditorForm;
+  current: number | null;
+  status: 'draft' | 'open' | 'closed';
+  draftPending: boolean;
+  dirty: boolean;
+  pending: boolean;
+  me: { name: string; number: string | null; email: string };
+  restaurants: { id: string; label: string }[];
+  onRestore: (version: number) => void;
+}) {
+  const { lang, form, current, status, draftPending, dirty, pending, me, restaurants, onRestore } = props;
+  const t = (k: FormsKey) => ft(lang, k);
+  const [shown, setShown] = useState<number | null>(null);
+  const [asking, setAsking] = useState<number | null>(null);
+  const answers = (n: number) => (n === 0 ? t('answers_none') : n === 1 ? t('answers_one') : t('answers_n').replace('{n}', String(n)));
+  return (
+    <section className="panel fo-form">
+      <p className="fo-dim">{t('history_line')}</p>
+      {form.history.length === 0 && <p className="favempty">{t('history_none')}</p>}
+      <ul className="fo-history">
+        {draftPending && form.history.length > 0 && (
+          <li>
+            <div className="fo-vhead">
+              <span className="fo-badge is-pending">{t('badge_pending')}</span>
+              <span className="fo-dim">{t('history_draft')}</span>
+            </div>
+          </li>
+        )}
+        {form.history.map((v) => {
+          const isCurrent = v.version === current;
+          return (
+            <li key={v.version} className={isCurrent && status === 'open' ? 'is-current' : undefined}>
+              <div className="fo-vhead">
+                <VersionBadge version={v.version} />
+                {isCurrent && <span className={`fo-badge is-${status === 'open' ? 'open' : 'closed'}`}>{status === 'open' ? t('status_open') : t('history_current')}</span>}
+                <span className="fo-dim">{t('history_by').replace('{date}', v.at).replace('{name}', v.by)}</span>
+                <span className="fo-dim">{answers(v.answers)}</span>
+                <span className="fo-grow" />
+                {v.definition && (
+                  <button type="button" className="fo-btn" onClick={() => setShown(shown === v.version ? null : v.version)} aria-expanded={shown === v.version}>
+                    {t(shown === v.version ? 'hide_version' : 'show_version')}
+                  </button>
+                )}
+                {v.definition && asking !== v.version && (
+                  <button type="button" className="fo-btn" disabled={pending} onClick={() => setAsking(v.version)}>
+                    {t('restore')}
+                  </button>
+                )}
+              </div>
+              {asking === v.version && (
+                <div className="fo-confirm" role="alertdialog" aria-labelledby={`fo-restore-${v.version}`}>
+                  <p id={`fo-restore-${v.version}`}>
+                    {t('restore_confirm').replace('{n}', String(v.version))}
+                    {dirty ? ` ${t('restore_unsaved')}` : ''}
+                  </p>
+                  <div className="fo-inline">
+                    <button type="button" className="pbtn" disabled={pending} onClick={() => onRestore(v.version)}>
+                      {t('restore_yes')}
+                    </button>
+                    <button type="button" className="fo-btn" disabled={pending} onClick={() => setAsking(null)}>
+                      {t('cancel')}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {shown === v.version && v.definition && (
+                <div className="fo-vpreview">
+                  <FillForm lang={lang} formId={form.id} version={0} definition={v.definition} already={false} person={me} stores={restaurants.slice(0, 1)} preview />
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

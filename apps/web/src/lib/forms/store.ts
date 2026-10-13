@@ -73,14 +73,71 @@ export async function getForm(db: Conn, id: unknown): Promise<FormRow | null> {
   return r ? toRow(r) : null;
 }
 
-/** Every form, newest first, with how many submissions each has: for HR's list. */
+/**
+ * Every form, newest first, with how many submissions each has and whether its draft
+ * differs from what people fill now (the "unpublished changes" badge): for HR's list.
+ */
 export async function listForms(db: Conn) {
-  const [rows, counts] = await Promise.all([
+  const [rows, counts, live] = await Promise.all([
     db.select().from(forms).orderBy(desc(forms.createdAt), desc(forms.id)),
     db.select({ formId: submissions.formId, n: count() }).from(submissions).groupBy(submissions.formId),
+    db
+      .select({ formId: formVersions.formId, definition: formVersions.definition })
+      .from(formVersions)
+      .innerJoin(forms, and(eq(forms.id, formVersions.formId), eq(forms.currentVersion, formVersions.version))),
   ]);
   const n = new Map(counts.map((c) => [c.formId, Number(c.n)]));
-  return rows.map((r) => ({ ...toRow(r), submissions: n.get(r.id) ?? 0 }));
+  const published = new Map(live.map((v) => [v.formId, v.definition]));
+  return rows.map((r) => ({ ...toRow(r), submissions: n.get(r.id) ?? 0, draftDiffers: r.currentVersion !== null && differs(r.draft, published.get(r.id)) }));
+}
+
+/** Two stored definitions differ, compared as they read (jsonb does not keep key order). */
+export function differs(a: unknown, b: unknown): boolean {
+  const pa = parseDefinition(a);
+  const pb = parseDefinition(b);
+  return !pa.ok || !pb.ok || JSON.stringify(pa.definition) !== JSON.stringify(pb.definition);
+}
+
+export interface VersionRow {
+  version: number;
+  publishedBy: string;
+  publishedAt: Date;
+  /** Submissions made to this version. */
+  answers: number;
+  definition: FormDefinition | null;
+}
+
+/** A form's published versions, newest first, with their answers counted: the editor's History tab. */
+export async function versionHistory(db: Conn, formId: number): Promise<VersionRow[]> {
+  const [rows, counts] = await Promise.all([
+    db.select().from(formVersions).where(eq(formVersions.formId, formId)).orderBy(desc(formVersions.version)),
+    db.select({ version: submissions.version, n: count() }).from(submissions).where(eq(submissions.formId, formId)).groupBy(submissions.version),
+  ]);
+  const n = new Map(counts.map((c) => [c.version, Number(c.n)]));
+  return rows.map((r) => {
+    const parsed = parseDefinition(r.definition);
+    return { version: r.version, publishedBy: r.publishedBy, publishedAt: r.publishedAt, answers: n.get(r.version) ?? 0, definition: parsed.ok ? parsed.definition : null };
+  });
+}
+
+/**
+ * Takes a published version's questions back into the draft (owner, 2026-10-13: forms
+ * improved over and over). Only the draft changes: nobody filling sees it until it is
+ * published, which makes it the next version; past versions are never edited.
+ */
+export async function restoreVersion(db: Conn, actor: string, id: unknown, version: unknown, shownAt: unknown): Promise<Outcome> {
+  if (!validId(id) || !validId(version)) return 'not_found';
+  return db.transaction(async (tx) => {
+    const form = await locked(tx, id);
+    if (!form) return 'not_found';
+    if (form.updatedAt.toISOString() !== shownAt) return 'changed';
+    const def = await publishedVersion(tx, id, version);
+    if (!def) return 'not_found';
+    if (!differs(form.draft, def)) return 'unchanged';
+    await tx.update(forms).set({ draft: def, title: def.title, updatedAt: sql`now()` }).where(eq(forms.id, id));
+    await event(tx, id, actor, 'restored', { version });
+    return 'done';
+  });
 }
 
 /** The open forms with their published definition, for deciding who sees which. */

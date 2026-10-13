@@ -7,8 +7,6 @@
 .fo-list li > div { display:flex; flex-direction:column; gap:2px; min-width:0; }
 .fo-dim { font-size:13px; color:var(--text-dim); }
 .fo-link { font-weight:600; color:var(--blue); white-space:nowrap; }
-.fo-status { font-size:12px; font-weight:600; color:var(--text-dim); }
-.fo-status.is-open { color:var(--green); }
 
 .fo-form { display:flex; flex-direction:column; gap:18px; }
 .fo-intro { white-space:pre-line; color:var(--text-muted); margin:0; max-width:70ch; }
@@ -128,3 +126,17 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-danger-solid { background:var(--red); border-color:var(--red); color:#fff; }
 .fo-confirm { display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--red); border-radius:10px; max-width:520px; }
 .fo-confirm p { margin:0; }
+/* Badges: where a form stands. */
+.fo-badges { display:inline-flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.fo-badge { display:inline-block; font-size:12px; font-weight:700; line-height:1; padding:5px 8px; border-radius:999px;
+  border:1px solid var(--border); color:var(--text-muted); background:var(--card-bg); white-space:nowrap; }
+.fo-badge.is-open { color:#fff; background:#15803D; border-color:#15803D; }
+.fo-badge.is-closed { color:#fff; background:#4B5563; border-color:#4B5563; }
+.fo-badge.is-version { color:var(--blue); border-color:var(--blue); }
+.fo-badge.is-pending { color:#7C2D12; background:#FFEDD5; border-color:#FDBA74; }
+/* History tab. */
+.fo-history { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.fo-history > li { border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+.fo-history > li.is-current { border-color:#15803D; }
+.fo-history .fo-vhead { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+.fo-history .fo-vpreview { border-top:1px solid var(--line2); padding-top:12px; }

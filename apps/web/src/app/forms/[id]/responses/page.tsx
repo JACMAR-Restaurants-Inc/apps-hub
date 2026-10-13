@@ -10,6 +10,7 @@ import { restaurantLabel } from '@/lib/labels';
 import { listRestaurants } from '@/lib/restaurants';
 import { getRoster, getViewer } from '@/lib/viewer';
 import { businessDate, businessTime } from '@hub/core';
+import { VersionBadge } from '@/components/forms/badges';
 import Link from 'next/link';
 
 /**
@@ -65,6 +66,7 @@ export default async function ResponsesPage({ params }: PageProps<'/forms/[id]/r
               <thead>
                 <tr>
                   <th>{ft(lang, 'submitted')}</th>
+                  <th>{ft(lang, 'version')}</th>
                   <th>{ft(lang, 'name')}</th>
                   <th>{ft(lang, 'number')}</th>
                   <th>{ft(lang, 'restaurant')}</th>
@@ -78,6 +80,9 @@ export default async function ResponsesPage({ params }: PageProps<'/forms/[id]/r
                 {rows.map((r) => (
                   <tr key={r.id}>
                     <td>{`${businessDate(r.submittedAt)} ${businessTime(r.submittedAt)}`}</td>
+                    <td>
+                      <VersionBadge version={r.version} />
+                    </td>
                     <td>{r.fullName ?? r.email}</td>
                     <td>{r.employeeNumber ?? ''}</td>
                     <td>{r.restaurantId ? restaurantLabel(r.restaurantId, names.get(r.restaurantId)) : ''}</td>
