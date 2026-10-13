@@ -1,7 +1,7 @@
 'use client';
 
 import { deleteFormAction, duplicateFormAction, publishAction, restoreVersionAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
-import { FIELD_TYPES, HEADER_COLORS, moveSection, type HeaderColor, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
+import { ALIGNS, FIELD_TYPES, HEADER_COLORS, moveSection, type Align, type HeaderColor, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Audience } from '@/lib/forms/rules';
 import type { Settings } from '@/lib/forms/store';
@@ -159,16 +159,19 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
       {tab === 'questions' && (
         <section className="panel fo-form">
           <TextInput lang={lang} label="title_fr" value={def.title} onChange={(title) => setDef({ ...def, title: title ?? '' })} />
-          <ColorPicker
-            lang={lang}
-            name="title"
-            value={def.titleColor}
-            onChange={(titleColor) => {
-              const next = { ...def, titleColor };
-              if (!titleColor) delete next.titleColor;
-              setDef(next);
-            }}
-          />
+          <div className="fo-headstyle">
+            <ColorPicker
+              lang={lang}
+              name="title"
+              value={def.titleColor}
+              onChange={(titleColor) => {
+                const next = { ...def, titleColor };
+                if (!titleColor) delete next.titleColor;
+                setDef(next);
+              }}
+            />
+            <AlignPicker lang={lang} value={def.titleAlign} fallback="center" onChange={(titleAlign) => setDef({ ...def, titleAlign })} />
+          </div>
           <TextInput
             lang={lang}
             label="intro_fr"
@@ -318,16 +321,19 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
         }}
       />
       {!answerable && (
-        <ColorPicker
-          lang={lang}
-          name={f.id}
-          value={f.color}
-          onChange={(color) => {
-            const next = { ...f, color };
-            if (!color) delete next.color;
-            onChange(next);
-          }}
-        />
+        <div className="fo-headstyle">
+          <ColorPicker
+            lang={lang}
+            name={f.id}
+            value={f.color}
+            onChange={(color) => {
+              const next = { ...f, color };
+              if (!color) delete next.color;
+              onChange(next);
+            }}
+          />
+          <AlignPicker lang={lang} value={f.align} fallback="left" onChange={(align) => onChange({ ...f, align })} />
+        </div>
       )}
       {(f.type === 'choice' || f.type === 'select' || f.type === 'choices') && (
         <div className="fo-options">
@@ -792,5 +798,22 @@ function HistoryPanel(props: {
         })}
       </ul>
     </section>
+  );
+}
+
+/** Gauche, Centre or Droite for a title and its text (owner, 2026-10-13); `fallback` is what absent means. */
+function AlignPicker({ lang, value, fallback, onChange }: { lang: Lang; value: Align | undefined; fallback: Align; onChange: (a: Align) => void }) {
+  const current = value ?? fallback;
+  return (
+    <div className="fo-field">
+      <span className="fo-label">{ft(lang, 'align_label')}</span>
+      <div className="fo-aligns" role="group" aria-label={ft(lang, 'align_label')}>
+        {ALIGNS.map((a) => (
+          <button key={a} type="button" aria-pressed={current === a} onClick={() => onChange(a)}>
+            {ft(lang, `align_${a}`)}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

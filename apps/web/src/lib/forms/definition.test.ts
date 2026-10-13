@@ -114,6 +114,23 @@ describe('parseDefinition', () => {
     expect(HEADER_COLORS.mcd_rouge.bg).toBe('#DB0007');
   });
 
+  it('alignment is kept on a section and the title, only left, center or right, never on a question', () => {
+    const r = parseDefinition({
+      ...calypso,
+      titleAlign: 'right',
+      fields: [
+        { id: 'h1', type: 'heading', label: 'Perso', align: 'center' },
+        { id: 'h2', type: 'heading', label: 'Quals', align: 'justify' },
+        { ...calypso.fields[1], align: 'left' },
+      ],
+    });
+    if (!r.ok) throw new Error('align');
+    expect(r.definition.titleAlign).toBe('right');
+    expect(r.definition.fields.map((f) => f.align)).toEqual(['center', undefined, undefined]);
+    const plain = parseDefinition({ ...calypso, titleAlign: 'middle' });
+    expect(plain.ok && plain.definition).not.toHaveProperty('titleAlign');
+  });
+
   it('a heading is never required nor sensitive', () => {
     const r = parseDefinition({ ...calypso, fields: [{ id: 'h', type: 'heading', label: 'Titre', required: true, sensitive: true }] });
     expect(r.ok && r.definition.fields[0]).toMatchObject({ required: false, sensitive: false });

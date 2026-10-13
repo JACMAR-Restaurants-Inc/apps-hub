@@ -79,7 +79,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
       <div className="fo-logo">
         <ArchesSvg />
       </div>
-      <div className={`fo-titleblock${band ? ' fo-band' : ''}`} style={band ? { background: band.bg, color: band.text } : undefined}>
+      <div className={`fo-titleblock is-${definition.titleAlign ?? 'center'}${band ? ' fo-band' : ''}`} style={band ? { background: band.bg, color: band.text } : undefined}>
         <Title>{definition.title}</Title>
         {definition.intro && !done && <p className="fo-intro">{definition.intro}</p>}
       </div>
@@ -172,7 +172,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
         if (!sec.head) return <Fragment key={i}>{inputs}</Fragment>;
         return (
           <section key={sec.head.id} className="fo-section" aria-labelledby={`fo-${sec.head.id}`}>
-            <div className={`fo-section-head${sec.head.color ? ' fo-band' : ''}`} style={sec.head.color ? { background: HEADER_COLORS[sec.head.color].bg, color: HEADER_COLORS[sec.head.color].text } : undefined}>
+            <div className={`fo-section-head is-${sec.head.align ?? 'left'}${sec.head.color ? ' fo-band' : ''}`} style={sec.head.color ? { background: HEADER_COLORS[sec.head.color].bg, color: HEADER_COLORS[sec.head.color].text } : undefined}>
               <h2 id={`fo-${sec.head.id}`}>{sec.head.label}</h2>
               {sec.head.help && <p>{sec.head.help}</p>}
             </div>

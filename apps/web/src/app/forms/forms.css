@@ -65,7 +65,7 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-cols > * { grid-column:1 / -1; min-width:0; }
 .fo-cols > .is-half { grid-column:auto; }
 @media (max-width:600px) { .fo-cols > .is-half { grid-column:1 / -1; } }
-.fo-section-head { padding-bottom:10px; border-bottom:1px solid var(--line2); }
+.fo-section-head { display:flex; flex-direction:column; padding-bottom:10px; border-bottom:1px solid var(--line2); }
 .fo-section-head h2 { margin:0; font-size:18px; }
 .fo-section-head p { margin:4px 0 0; color:var(--text-muted); white-space:pre-line; }
 .fo-cardhead { display:flex; align-items:center; gap:10px; }
@@ -112,6 +112,16 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-band p { opacity:.92; }
 .fo-titleblock { display:flex; flex-direction:column; align-items:center; gap:10px; }
 .fo-titleblock .fo-intro { max-width:70ch; }
+.fo-titleblock.is-left, .fo-section-head.is-left { align-items:flex-start; text-align:left; }
+.fo-titleblock.is-center, .fo-section-head.is-center { align-items:center; text-align:center; }
+.fo-titleblock.is-right, .fo-section-head.is-right { align-items:flex-end; text-align:right; }
+.fo-titleblock:not(.fo-band) { align-self:stretch; }
+.fo-aligns { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; align-self:flex-start; }
+.fo-aligns button { font:inherit; font-weight:600; padding:8px 12px; border:0; background:var(--card-bg); color:var(--text-muted); cursor:pointer; }
+.fo-aligns button + button { border-left:1px solid var(--border); }
+.fo-aligns button[aria-pressed=true] { background:var(--blue); color:#fff; }
+.fo-aligns button:focus-visible { outline:2px solid var(--blue); outline-offset:-2px; }
+.fo-headstyle { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:flex-end; }
 .fo-masthead .fo-band { align-self:stretch; padding:16px 20px; border-radius:10px; }
 .fo-band h1, .fo-band .fo-intro { color:inherit; }
 .fo-colorpick { position:relative; align-items:flex-start; }

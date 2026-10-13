@@ -48,6 +48,11 @@ export const HEADER_COLORS = {
   gris_pale: { bg: '#E5E7EB', text: DARK },
 } as const;
 export type HeaderColor = keyof typeof HEADER_COLORS;
+
+/** Where a title and its text sit (owner, 2026-10-13). Absent: the form title centred, a section's left. */
+export const ALIGNS = ['left', 'center', 'right'] as const;
+export type Align = (typeof ALIGNS)[number];
+const align = (v: unknown): Align | undefined => (ALIGNS as readonly unknown[]).includes(v) ? (v as Align) : undefined;
 const headerColor = (v: unknown): HeaderColor | undefined => (typeof v === 'string' && Object.hasOwn(HEADER_COLORS, v) ? (v as HeaderColor) : undefined);
 
 export interface Option {
@@ -69,6 +74,8 @@ export interface Field {
   half?: boolean;
   /** A section's header band; none when absent. */
   color?: HeaderColor;
+  /** A section's title and description; left when absent. */
+  align?: Align;
   /** For number. */
   min?: number;
   max?: number;
@@ -78,6 +85,8 @@ export interface FormDefinition {
   title: string;
   /** The title's band under the logo; none when absent. */
   titleColor?: HeaderColor;
+  /** The title and introduction; centred when absent. */
+  titleAlign?: Align;
   intro?: string;
   fields: Field[];
   /** Ends with "I agree" and the person's typed name (owner, 2026-10-09: no drawing). */
@@ -138,6 +147,8 @@ export function parseDefinition(raw: unknown): DefinitionResult {
     if (type !== 'heading' && f.half === true) field.half = true;
     const color = type === 'heading' ? headerColor(f.color) : undefined;
     if (color) field.color = color;
+    const where = type === 'heading' ? align(f.align) : undefined;
+    if (where) field.align = where;
 
     if (type === 'choice' || type === 'select' || type === 'choices') {
       const opts = Array.isArray(f.options) ? f.options : [];
@@ -172,6 +183,8 @@ export function parseDefinition(raw: unknown): DefinitionResult {
   if (intro) definition.intro = intro;
   const titleColor = headerColor(raw.titleColor);
   if (titleColor) definition.titleColor = titleColor;
+  const titleAlign = align(raw.titleAlign);
+  if (titleAlign) definition.titleAlign = titleAlign;
   return { ok: true, definition };
 }
 
