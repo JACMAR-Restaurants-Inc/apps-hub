@@ -1,7 +1,7 @@
 'use client';
 
 import { duplicateFormAction, publishAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
-import { FIELD_TYPES, moveSection, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
+import { FIELD_TYPES, HEADER_COLORS, moveSection, type HeaderColor, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Audience } from '@/lib/forms/rules';
 import type { Settings } from '@/lib/forms/store';
@@ -156,6 +156,16 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
       {tab === 'questions' && (
         <section className="panel fo-form">
           <TextInput lang={lang} label="title_fr" value={def.title} onChange={(title) => setDef({ ...def, title: title ?? '' })} />
+          <ColorPicker
+            lang={lang}
+            name="title"
+            value={def.titleColor}
+            onChange={(titleColor) => {
+              const next = { ...def, titleColor };
+              if (!titleColor) delete next.titleColor;
+              setDef(next);
+            }}
+          />
           <TextInput
             lang={lang}
             label="intro_fr"
@@ -282,6 +292,18 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
           onChange(next);
         }}
       />
+      {!answerable && (
+        <ColorPicker
+          lang={lang}
+          name={f.id}
+          value={f.color}
+          onChange={(color) => {
+            const next = { ...f, color };
+            if (!color) delete next.color;
+            onChange(next);
+          }}
+        />
+      )}
       {(f.type === 'choice' || f.type === 'select' || f.type === 'choices') && (
         <div className="fo-options">
           <span className="fo-label">{t('options')}</span>
@@ -547,5 +569,29 @@ function Duplicate({ lang, id, title, pending, onDone }: { lang: Lang; id: numbe
         {ft(lang, 'cancel')}
       </button>
     </form>
+  );
+}
+
+/** The header colour, from a grid of swatches (owner, 2026-10-13); "Aucune" first. Radio buttons, so keyboards and screen readers work. */
+function ColorPicker({ lang, name, value, onChange }: { lang: Lang; name: string; value: HeaderColor | undefined; onChange: (c: HeaderColor | undefined) => void }) {
+  const keys = Object.keys(HEADER_COLORS) as HeaderColor[];
+  return (
+    <fieldset className="fo-field fo-colors">
+      <legend>{ft(lang, 'header_color')}</legend>
+      <div className="fo-swatches">
+        <label className="fo-swatch is-none" title={ft(lang, 'color_none')}>
+          <input type="radio" name={`fo-color-${name}`} checked={!value} onChange={() => onChange(undefined)} />
+          <span aria-hidden="true" />
+          <span className="fo-hide">{ft(lang, 'color_none')}</span>
+        </label>
+        {keys.map((k) => (
+          <label key={k} className="fo-swatch" title={ft(lang, `color_${k}`)}>
+            <input type="radio" name={`fo-color-${name}`} checked={value === k} onChange={() => onChange(k)} />
+            <span aria-hidden="true" style={{ background: HEADER_COLORS[k] }} />
+            <span className="fo-hide">{ft(lang, `color_${k}`)}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }

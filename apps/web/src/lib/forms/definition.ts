@@ -20,6 +20,29 @@
 export const FIELD_TYPES = ['heading', 'text', 'textarea', 'number', 'date', 'phone', 'email', 'choice', 'select', 'choices', 'agree', 'file'] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
+/**
+ * Header colours a section or the form's title may take (owner, 2026-10-13: "choose a
+ * color from a grid"). Stored by name; each is dark enough for white text at 4.5:1 or
+ * better (checked: 5.0 to 11.5), and the band carries its own background, so it reads
+ * the same in light and dark mode. Anything else is dropped on read.
+ */
+export const HEADER_COLORS = {
+  bleu: '#1D4ED8',
+  marine: '#1E3A5F',
+  sarcelle: '#0F766E',
+  vert: '#15803D',
+  olive: '#4D7C0F',
+  brun: '#78350F',
+  rouge: '#B91C1C',
+  bordeaux: '#881337',
+  rose: '#BE185D',
+  violet: '#6D28D9',
+  orange: '#C2410C',
+  gris: '#374151',
+} as const;
+export type HeaderColor = keyof typeof HEADER_COLORS;
+const headerColor = (v: unknown): HeaderColor | undefined => (typeof v === 'string' && Object.hasOwn(HEADER_COLORS, v) ? (v as HeaderColor) : undefined);
+
 export interface Option {
   id: string;
   label: string;
@@ -37,6 +60,8 @@ export interface Field {
   options?: Option[];
   /** Half the width, beside its neighbour when it is half too (owner, 2026-10-13). Full when absent. */
   half?: boolean;
+  /** A section's header band; none when absent. */
+  color?: HeaderColor;
   /** For number. */
   min?: number;
   max?: number;
@@ -44,6 +69,8 @@ export interface Field {
 
 export interface FormDefinition {
   title: string;
+  /** The title's band under the logo; none when absent. */
+  titleColor?: HeaderColor;
   intro?: string;
   fields: Field[];
   /** Ends with "I agree" and the person's typed name (owner, 2026-10-09: no drawing). */
@@ -102,6 +129,8 @@ export function parseDefinition(raw: unknown): DefinitionResult {
     const field: Field = { id, type, label: label ?? '', required: type !== 'heading' && f.required === true, sensitive: type !== 'heading' && f.sensitive === true };
     if (help) field.help = help;
     if (type !== 'heading' && f.half === true) field.half = true;
+    const color = type === 'heading' ? headerColor(f.color) : undefined;
+    if (color) field.color = color;
 
     if (type === 'choice' || type === 'select' || type === 'choices') {
       const opts = Array.isArray(f.options) ? f.options : [];
@@ -134,6 +163,8 @@ export function parseDefinition(raw: unknown): DefinitionResult {
   if (errors.length) return { ok: false, errors: [...new Set(errors)] };
   const definition: FormDefinition = { title: title!, fields, signature: raw.signature === true };
   if (intro) definition.intro = intro;
+  const titleColor = headerColor(raw.titleColor);
+  if (titleColor) definition.titleColor = titleColor;
   return { ok: true, definition };
 }
 

@@ -82,6 +82,24 @@ describe('parseDefinition', () => {
     expect(fileAnswers(r.definition, { cv: ['12', '13'], other: ['9'] })).toEqual([{ fieldId: 'cv', ids: [12, 13] }]);
   });
 
+  it('a header colour is kept on a section and the title, only from the palette, never on a question', () => {
+    const r = parseDefinition({
+      ...calypso,
+      titleColor: 'rouge',
+      fields: [
+        { id: 'h1', type: 'heading', label: 'Perso', color: 'bleu' },
+        { id: 'h2', type: 'heading', label: 'Quals', color: '#ff00ff' },
+        { id: 'h3', type: 'heading', label: 'Autre', color: 'constructor' },
+        { ...calypso.fields[1], color: 'vert' },
+      ],
+    });
+    if (!r.ok) throw new Error('colours');
+    expect(r.definition.titleColor).toBe('rouge');
+    expect(r.definition.fields.map((f) => f.color)).toEqual(['bleu', undefined, undefined, undefined]);
+    const plain = parseDefinition({ ...calypso, titleColor: 'url(javascript:x)' });
+    expect(plain.ok && plain.definition).not.toHaveProperty('titleColor');
+  });
+
   it('a heading is never required nor sensitive', () => {
     const r = parseDefinition({ ...calypso, fields: [{ id: 'h', type: 'heading', label: 'Titre', required: true, sensitive: true }] });
     expect(r.ok && r.definition.fields[0]).toMatchObject({ required: false, sensitive: false });

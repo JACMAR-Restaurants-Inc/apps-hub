@@ -108,3 +108,14 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-filebtn.is-off { opacity:.5; cursor:default; }
 .fo-filebtn.is-off input { cursor:default; }
 .fo-filelink { display:block; color:var(--blue); font-weight:600; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+/* Header colours: a band with its own background and white text (each colour checked at 4.5:1 or better). */
+.fo-section-head.fo-band { margin:-16px -16px 0; padding:12px 16px; border-bottom:0; border-radius:11px 11px 0 0; color:#fff; }
+.fo-section-head.fo-band p { color:#fff; opacity:.92; }
+.fo-masthead .fo-band { align-self:stretch; max-width:none; color:#fff; padding:14px 20px; border-radius:10px; }
+.fo-swatches { display:flex; flex-wrap:wrap; gap:8px; }
+.fo-swatch { position:relative; cursor:pointer; }
+.fo-swatch input { position:absolute; opacity:0; width:1px; height:1px; }
+.fo-swatch > span[aria-hidden] { display:block; width:32px; height:32px; border-radius:8px; border:2px solid transparent; box-shadow:0 0 0 1px var(--border); }
+.fo-swatch.is-none > span[aria-hidden] { background:linear-gradient(135deg, transparent 46%, var(--red) 46%, var(--red) 54%, transparent 54%), var(--card-bg); }
+.fo-swatch input:checked + span { border-color:var(--card-bg); box-shadow:0 0 0 2px var(--text); }
+.fo-swatch input:focus-visible + span { outline:2px solid var(--blue); outline-offset:2px; }

@@ -2,7 +2,7 @@
 
 import { removeFormFileAction, submitFormAction, uploadFormFileAction } from '@/app/forms/actions';
 import { ArchesSvg } from '@/components/arches';
-import { sections, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
+import { HEADER_COLORS, sections, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Lang } from '@/lib/i18n';
 import { Fragment, useState, useTransition } from 'react';
@@ -76,7 +76,9 @@ export function FillForm({ lang, formId, version, definition, already, person, s
       <div className="fo-logo">
         <ArchesSvg />
       </div>
-      <Title>{definition.title}</Title>
+      <Title className={definition.titleColor ? 'fo-band' : undefined} style={definition.titleColor ? { background: HEADER_COLORS[definition.titleColor] } : undefined}>
+        {definition.title}
+      </Title>
     </header>
   );
 
@@ -167,7 +169,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
         if (!sec.head) return <Fragment key={i}>{inputs}</Fragment>;
         return (
           <section key={sec.head.id} className="fo-section" aria-labelledby={`fo-${sec.head.id}`}>
-            <div className="fo-section-head">
+            <div className={`fo-section-head${sec.head.color ? ' fo-band' : ''}`} style={sec.head.color ? { background: HEADER_COLORS[sec.head.color] } : undefined}>
               <h2 id={`fo-${sec.head.id}`}>{sec.head.label}</h2>
               {sec.head.help && <p>{sec.head.help}</p>}
             </div>
