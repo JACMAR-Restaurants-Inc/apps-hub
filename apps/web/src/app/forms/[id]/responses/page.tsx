@@ -1,4 +1,5 @@
 import { formsDb } from '@/lib/forms/db';
+import { filesOf } from '@/lib/forms/files';
 import { sensitiveIds, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
 import { ft } from '@/lib/forms/i18n';
 import { canEditForms, responsesScope } from '@/lib/forms/rules';
@@ -40,6 +41,10 @@ export default async function ResponsesPage({ params }: PageProps<'/forms/[id]/r
 
   const [rows, versions, stores] = await Promise.all([listSubmissions(formsDb(), form.id, scope), allVersions(formsDb(), form.id), listRestaurants()]);
   const names = new Map(stores.map((s) => [s.id, s.name]));
+  const files = await filesOf(
+    formsDb(),
+    rows.map((r) => r.id),
+  );
   const columns = columnsOf(versions, form.currentVersion);
   const sensitive = new Set([...versions.values()].flatMap(sensitiveIds));
 
@@ -80,6 +85,17 @@ export default async function ResponsesPage({ params }: PageProps<'/forms/[id]/r
                       r.sensitiveClearedAt && sensitive.has(c.id) ? (
                         <td key={c.id} className="fo-cleared">
                           {ft(lang, 'cleared')}
+                        </td>
+                      ) : c.type === 'file' ? (
+                        <td key={c.id}>
+                          {(Array.isArray(r.answers[c.id]) ? (r.answers[c.id] as string[]) : []).map((fid) => {
+                            const f = files.get(Number(fid));
+                            return f ? (
+                              <a key={fid} className="fo-filelink" href={`/forms/files/${fid}`} target="_blank" rel="noopener">
+                                {f.fileName}
+                              </a>
+                            ) : null;
+                          })}
                         </td>
                       ) : (
                         <td key={c.id}>{show(lang, versions.get(r.version)?.fields.find((f) => f.id === c.id) ?? c, r.answers[c.id])}</td>

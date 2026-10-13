@@ -57,6 +57,15 @@ export const formsDict = {
   err_denied: { fr: 'Ce formulaire ne vous est plus partagé.', en: 'This form is no longer shared with you.' },
   err_too_many: { fr: 'Trop de tentatives. Réessayez dans une heure.', en: 'Too many attempts. Try again in an hour.' },
   err_error: { fr: 'L’envoi a échoué. Réessayez.', en: 'Sending failed. Try again.' },
+  // A file question.
+  file_add: { fr: 'Ajouter un fichier', en: 'Add a file' },
+  file_hint: { fr: 'Photo ou PDF, 4\u00a0Mo au plus, jusqu’à 5 fichiers.', en: 'Photo or PDF, 4\u00a0MB at most, up to 5 files.' },
+  file_uploading: { fr: 'Envoi du fichier…', en: 'Uploading the file…' },
+  file_preview_off: { fr: 'Dans l’aperçu, aucun fichier n’est envoyé.', en: 'In the preview, no file is uploaded.' },
+  file_too_large: { fr: 'Ce fichier dépasse 4\u00a0Mo.', en: 'This file is over 4\u00a0MB.' },
+  file_type_not_allowed: { fr: 'Seuls les photos et les PDF sont acceptés.', en: 'Only photos and PDFs are accepted.' },
+  file_too_many: { fr: 'Trop de fichiers envoyés aujourd’hui. Réessayez demain.', en: 'Too many files uploaded today. Try again tomorrow.' },
+  file_upload_failed: { fr: 'Le fichier n’a pas pu être envoyé. Réessayez.', en: 'The file could not be uploaded. Try again.' },
 
   no_responses: { fr: 'Aucune réponse pour l’instant.', en: 'No answers yet.' },
   submitted: { fr: 'Envoyé', en: 'Sent' },
@@ -88,6 +97,7 @@ export const formsDict = {
   type_select: { fr: 'Liste déroulante', en: 'Dropdown list' },
   type_choices: { fr: 'Choix multiples', en: 'Multiple choice' },
   type_agree: { fr: 'Case «\u00a0J’accepte\u00a0»', en: '“I agree” box' },
+  type_file: { fr: 'Fichier (photo ou PDF)', en: 'File (photo or PDF)' },
   add_field: { fr: 'Ajouter une question', en: 'Add a question' },
   add_section: { fr: 'Ajouter une section', en: 'Add a section' },
   section_title: { fr: 'Titre de la section', en: 'Section title' },

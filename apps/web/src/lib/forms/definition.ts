@@ -8,15 +8,16 @@
  * nothing the definition does not ask for; the browser's checks are a convenience.
  *
  * The field types are a fixed set (owner, 2026-10-09: a list of fields, not a
- * drag-and-drop builder). Not yet: a field shown only when another answer says so, and
- * file uploads.
+ * drag-and-drop builder). Not yet: a field shown only when another answer says so.
+ * A file question's answer is the ids of files uploaded first (lib/forms/files.ts); here
+ * they are only checked for shape, and submit() checks they are the person's own.
  *
  * HR writes forms in French only (owner, 2026-10-12: "we are a French company"). The
  * language toggle changes the page around the form, never what HR wrote. Text used to be
  * { fr, en? }; a definition stored that way is still read, keeping its French.
  */
 
-export const FIELD_TYPES = ['heading', 'text', 'textarea', 'number', 'date', 'phone', 'email', 'choice', 'select', 'choices', 'agree'] as const;
+export const FIELD_TYPES = ['heading', 'text', 'textarea', 'number', 'date', 'phone', 'email', 'choice', 'select', 'choices', 'agree', 'file'] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
 export interface Option {
@@ -49,7 +50,7 @@ export interface FormDefinition {
   signature: boolean;
 }
 
-export const LIMITS = { fields: 100, options: 50, label: 300, help: 1000, intro: 4000, text: 200, textarea: 4000, signedName: 120 } as const;
+export const LIMITS = { fields: 100, options: 50, label: 300, help: 1000, intro: 4000, text: 200, textarea: 4000, signedName: 120, files: 5 } as const;
 
 const ID = /^[a-z0-9][a-z0-9_-]{0,31}$/;
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -204,6 +205,11 @@ function checkOne(field: Field, raw: unknown): { value?: Value; error?: AnswerEr
     case 'agree':
       if (raw == null || raw === false) return {};
       return raw === true ? { value: true } : { error: 'invalid' };
+    case 'file': {
+      if (raw == null) return {};
+      if (!Array.isArray(raw) || raw.length > LIMITS.files || !raw.every((v) => typeof v === 'string' && /^\d{1,9}$/.test(v)) || new Set(raw).size !== raw.length) return { error: 'invalid' };
+      return raw.length ? { value: raw as string[] } : {};
+    }
   }
 }
 
@@ -265,6 +271,11 @@ export function moveSection(fields: Field[], i: number, by: -1 | 1): Field[] | n
   if (to < 0 || to >= blocks.length || !blocks[to].head) return null;
   [blocks[b], blocks[to]] = [blocks[to], blocks[b]];
   return blocks.flatMap((s) => (s.head ? [s.head, ...s.fields] : s.fields));
+}
+
+/** The file ids each file question was answered with. */
+export function fileAnswers(def: FormDefinition, answers: Answers): { fieldId: string; ids: number[] }[] {
+  return def.fields.filter((f) => f.type === 'file' && Array.isArray(answers[f.id])).map((f) => ({ fieldId: f.id, ids: (answers[f.id] as string[]).map(Number) }));
 }
 
 /** The fields whose answers are cleared after the form closes. */

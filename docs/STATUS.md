@@ -8,7 +8,24 @@ a statement stops being true, correct it in place and say what it used to say (t
 rule as `CLAUDE.md` §0). A § number in the log below refers to `CLAUDE.md` as it was then: what §1 said
 about database connections and roles is now in §3.
 
-## Latest, 2026-10-09: Forms
+## Latest, 2026-10-13: Forms, after the owner's first look
+
+Same branch. From the owner trying the editor (2026-10-12 and 13): forms are written in
+French only (one box per text; a stored `{ fr, en }` still reads); sections (a heading
+and its questions, framed when filled, moved whole); half-width questions side by side
+(stacked on a phone); a dropdown list; the Arches centred above the title (120px, about
+three quarters of the Jotform logo); a red asterisk for required fields and the line
+"Les champs marqués d'un * sont obligatoires"; and a FILE question (photos and PDFs, 5 a
+question, 4 MB each; the owner chose 10 MB, which Vercel's 4.5 MB request limit rules
+out without uploading straight to storage, so photos are shrunk in the browser instead).
+Migration 0018 (`forms.files`, adds only) and a private `forms` Storage bucket were
+applied to staging 2026-10-13 with the owner's approval. The generic file store moved
+from `lib/cash/files.ts` to `lib/storage.ts`, Cash Balancing unchanged (its 69 tests
+pass). Checked: 476 tests (47 files), 12 mutations on the file rules (all caught), lint,
+both typechecks, a real put, read and delete in the staging bucket (its public address
+refused). Not checked by hand yet: the upload on a phone.
+
+## Earlier, 2026-10-09: Forms
 
 Forms, in place of Jotform (owner, 2026-10-09; option B: HR edits forms on a screen),
 branch `forms`. Built: phase 1 (schema `forms`, versioned definitions, server-side

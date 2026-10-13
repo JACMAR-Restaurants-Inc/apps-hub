@@ -101,3 +101,34 @@ export const formEvents = formsSchema.table(
   },
   (t) => [index().on(t.formId)],
 ).enableRLS();
+
+/**
+ * Files sent with a submission (owner, 2026-10-13: a file question; photos and PDFs).
+ * A file is uploaded BEFORE its submission exists, so it is first STAGED (submissionId
+ * null): owned by who uploaded it, for one form's one question. Submitting links it,
+ * under the form's row lock, and only a staged file of the same person, form and question
+ * can be linked, so nobody can claim another's file by its id. Staged files nobody sent
+ * are removed after a day. The bytes are in the private `forms` Storage bucket
+ * (lib/storage.ts); served only by /forms/files/[id], to whoever may read the submission.
+ */
+export const formFiles = formsSchema.table(
+  'files',
+  {
+    id: integer().primaryKey().generatedByDefaultAsIdentity(),
+    formId: integer()
+      .notNull()
+      .references(() => forms.id),
+    fieldId: text().notNull(),
+    submissionId: integer().references(() => submissions.id),
+    /** The signed-in address, normalised, as on the submission. */
+    uploadedBy: text().notNull(),
+    fileName: text().notNull(),
+    /** Read from the bytes at upload, never the browser's word. */
+    mimeType: text().notNull(),
+    fileSize: integer().notNull(),
+    /** The Storage ref; null only between the row and the upload, or if storing failed. */
+    storagePath: text(),
+    createdAt: stamp(),
+  },
+  (t) => [index().on(t.submissionId), index().on(t.uploadedBy, t.createdAt)],
+).enableRLS();

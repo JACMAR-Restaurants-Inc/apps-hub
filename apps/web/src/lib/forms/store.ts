@@ -16,7 +16,8 @@
 
 import { formEvents, formVersions, forms, submissions, type Db } from '@hub/db';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
-import { checkAnswers, emptyDefinition, parseDefinition, type AnswerError, type Answers, type FormDefinition } from './definition';
+import { checkAnswers, emptyDefinition, fileAnswers, parseDefinition, type AnswerError, type Answers, type FormDefinition } from './definition';
+import { linkFiles, unlinkableFiles } from './files';
 import { NOBODY, parseAudience, type Audience } from './rules';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -240,6 +241,11 @@ export async function submit(
     if (!def) return { outcome: 'not_open' };
     const checked = checkAnswers(def, rawAnswers, signedName);
     if (!checked.ok) return { outcome: 'invalid', errors: checked.errors };
+    // The files named must be the person's own, for that question, still staged; checked
+    // (and their rows locked) before anything is written, linked after.
+    const files = fileAnswers(def, checked.answers);
+    const badFiles = await unlinkableFiles(tx, formId, person.email, files);
+    if (badFiles.length) return { outcome: 'invalid', errors: Object.fromEntries(badFiles.map((f) => [f, 'invalid' as const])) };
     if (form.oncePerPerson) {
       const [prior] = await tx.select({ id: submissions.id }).from(submissions).where(and(eq(submissions.formId, formId), eq(submissions.email, person.email))).limit(1);
       if (prior) return { outcome: 'already' };
@@ -257,6 +263,7 @@ export async function submit(
         signedName: checked.signedName,
       })
       .returning({ id: submissions.id });
+    await linkFiles(tx, r.id, files);
     await event(tx, formId, person.email, 'submitted', { submission: r.id, restaurantId: where.restaurantId });
     return { outcome: 'done', id: r.id };
   });

@@ -25,7 +25,7 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
 
 - **Staging:** `https://apps-hub-web-eta.vercel.app` (Vercel, region yul1, a Pro TRIAL
   that ends about 2026-10-11; set up by `docs/DEPLOY_STAGING.md`) on Supabase project
-  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0017). It
+  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0018). It
   reads a SNAPSHOT of the production spreadsheets, never writes to them, never runs
   `clasp`, and DOES email real people (`EMAIL_MODE=live`, §4). Google sign-in is in
   "Testing": only listed test users can sign in (publishing is a cutover step).
@@ -316,7 +316,20 @@ the page around a form, never what HR wrote. Texts are plain strings; they used 
 way is still read, keeping its French. A form has SECTIONS (owner,
 2026-10-12): a section is a `heading` field and the questions after it, kept in the one
 flat list (`sections()`, `moveSection()` in `definition.ts`), so versions answered
-before sections existed read unchanged; moving a section moves its questions. Retention (Law 25):
+before sections existed read unchanged; moving a section moves its questions.
+A FILE question (owner, 2026-10-13; `lib/forms/files.ts`, migration 0018): a file is
+uploaded while the form is filled, so it is STAGED first, owned by its uploader for one
+form's one question; `submit()` checks, under the form's lock and BEFORE writing, that
+every file named is the sender's own, for that question, still staged and stored, and
+otherwise refuses the whole submission. Who uploads: the same decision as filling. Who
+opens one (`/forms/files/[id]`, outside the page policy like Cash Balancing's): a staged
+file its uploader only; a sent one whoever may read that submission's answers. Photos
+and PDFs (HEIC downloaded, not shown), 5 a question, **4 MB each because Vercel refuses
+a request over 4.5 MB**: the owner asked for 10 MB, and photos are shrunk in the browser
+instead; 10 MB would need uploads straight to Storage. The bytes are in the private
+`forms` bucket, the file store shared with Cash Balancing (`lib/storage.ts`, each app
+its own bucket). Staged files nobody sent are swept after a day, after each upload. The
+retention job (phase 5) must remove a sensitive question's FILES, not only its answers. Retention (Law 25):
 fields marked sensitive are to be cleared `sensitiveDays` after closing (default 30),
 the whole submission `keepDays` after (default 365). The settings are stored; the job
 that clears them is NOT built yet (phase 5). Sharing an open form, or opening a

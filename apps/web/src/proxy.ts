@@ -20,9 +20,9 @@ export const config = {
   matcher: [
     {
       // Not: API routes (auth, the cron), Next's built files, the brand images, the web
-      // manifest, and the two private file addresses, which must NOT get a policy
+      // manifest, and the three private file addresses, which must NOT get a policy
       // (it blanked Chrome's PDF viewer). Nor prefetches: not documents.
-      source: '/((?!api/|_next/static|_next/image|favicon.ico|brand/|manifest.webmanifest|cash/files/|cash/count/[^/]+/pdf).*)',
+      source: '/((?!api/|_next/static|_next/image|favicon.ico|brand/|manifest.webmanifest|cash/files/|cash/count/[^/]+/pdf|forms/files/).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

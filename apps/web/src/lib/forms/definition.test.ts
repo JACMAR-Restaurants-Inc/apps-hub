@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkAnswers, moveSection, parseDefinition, sections, sensitiveIds, type FormDefinition } from './definition';
+import { checkAnswers, fileAnswers, moveSection, parseDefinition, sections, sensitiveIds, type FormDefinition } from './definition';
 
 // Shaped like the Calypso registration (Jotform 261747485869074).
 const calypso = {
@@ -70,6 +70,16 @@ describe('parseDefinition', () => {
     expect(checkAnswers(r.definition, { prov: 'on' }, null)).toEqual({ ok: true, answers: { prov: 'on' }, signedName: null });
     expect(checkAnswers(r.definition, { prov: 'bc' }, null)).toEqual({ ok: false, errors: { prov: 'invalid' } });
     expect(checkAnswers(r.definition, { prov: '' }, null)).toEqual({ ok: false, errors: { prov: 'required' } });
+  });
+
+  it('a file answer is a list of up to 5 distinct file ids; which files they are is submit()’s to check', () => {
+    const r = parseDefinition({ ...calypso, signature: false, fields: [{ id: 'cv', type: 'file', label: 'CV', required: true }] });
+    if (!r.ok) throw new Error('file');
+    expect(checkAnswers(r.definition, { cv: ['12', '13'] }, null)).toEqual({ ok: true, answers: { cv: ['12', '13'] }, signedName: null });
+    for (const bad of [['12', '12'], ['1', '2', '3', '4', '5', '6'], [12], ['x'], ['../1'], '12'])
+      expect(checkAnswers(r.definition, { cv: bad }, null), JSON.stringify(bad)).toEqual({ ok: false, errors: { cv: 'invalid' } });
+    expect(checkAnswers(r.definition, { cv: [] }, null)).toEqual({ ok: false, errors: { cv: 'required' } });
+    expect(fileAnswers(r.definition, { cv: ['12', '13'], other: ['9'] })).toEqual([{ fieldId: 'cv', ids: [12, 13] }]);
   });
 
   it('a heading is never required nor sensitive', () => {

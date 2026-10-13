@@ -16,12 +16,7 @@ export const MAX_FILES = 5;
 export const MAX_BYTES = 4 * 1024 * 1024;
 export const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'] as const;
 
-/** A file name safe to store and to show: no path, no control characters, 100 characters at most. */
-export function cleanFileName(name: string): string {
-  const base = name.split(/[\\/]/).pop() ?? '';
-  const clean = base.replace(/[\u0000-\u001f\u007f"<>|:*?]/g, '').trim();
-  return (clean || 'fichier').slice(0, 100);
-}
+export { cleanFileName } from '../storage';
 
 export async function stagedCount(conn: Conn, email: string, restaurantId: string, since: Date): Promise<number> {
   const [row] = await conn
