@@ -8,6 +8,37 @@ a statement stops being true, correct it in place and say what it used to say (t
 rule as `CLAUDE.md` §0). A § number in the log below refers to `CLAUDE.md` as it was then: what §1 said
 about database connections and roles is now in §3.
 
+## Latest, 2026-10-13: Forms, after the owner's first look
+
+Same branch. From the owner trying the editor (2026-10-12 and 13): forms are written in
+French only (one box per text; a stored `{ fr, en }` still reads); sections (a heading
+and its questions, framed when filled, moved whole); half-width questions side by side
+(stacked on a phone); a dropdown list; the Arches centred above the title (120px, about
+three quarters of the Jotform logo); a red asterisk for required fields and the line
+"Les champs marqués d'un * sont obligatoires"; and a FILE question (photos and PDFs, 5 a
+question, 4 MB each; the owner chose 10 MB, which Vercel's 4.5 MB request limit rules
+out without uploading straight to storage, so photos are shrunk in the browser instead).
+Migration 0018 (`forms.files`, adds only) and a private `forms` Storage bucket were
+applied to staging 2026-10-13 with the owner's approval. The generic file store moved
+from `lib/cash/files.ts` to `lib/storage.ts`, Cash Balancing unchanged (its 69 tests
+pass). Checked: 476 tests (47 files), 12 mutations on the file rules (all caught), lint,
+both typechecks, a real put, read and delete in the staging bucket (its public address
+refused). Not checked by hand yet: the upload on a phone.
+
+## Earlier, 2026-10-09: Forms
+
+Forms, in place of Jotform (owner, 2026-10-09; option B: HR edits forms on a screen),
+branch `forms`. Built: phase 1 (schema `forms`, versioned definitions, server-side
+answer checks, sharing by roles, restaurants and people, the fill page, the answers
+page) and phase 4 (HR's editor: questions, preview, sharing, settings, publish, close,
+reopen, duplicate; Notifications when a form reaches someone). Migration 0017 applied
+to staging 2026-10-09 with the owner's approval (adds only: the `forms` schema and the
+Forms app's 4 permissions, 7 role rows). Checked: 457 tests (45 files) on staging in
+rolled-back transactions, 17 mutations (16 caught; the 17th showed a redundant line,
+removed), lint, `next build`. Not checked by hand yet. Open: phase 3 (email to HR, PDF,
+Excel; email waits on the Gmail delegation), phase 5 (the retention job), then
+Playwright (owner: after Forms).
+
 ## Latest, 2026-10-09
 
 The Appreciation Messages test console passed testing and is ARCHIVED (owner,

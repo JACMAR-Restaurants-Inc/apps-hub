@@ -16,6 +16,12 @@ describe('sniffType: what a file is, from its bytes', () => {
     expect(sniffType(bytes('%PDF-1.7'))).toBe('application/pdf');
   });
 
+  it('knows an iPhone photo (HEIF), which Forms takes and Cash Balancing does not', () => {
+    expect(sniffType(bytes(0, 0, 0, 24, 'ftypheic'))).toBe('image/heic');
+    expect(sniffType(bytes(0, 0, 0, 24, 'ftypmif1'))).toBe('image/heic');
+    expect(sniffType(bytes(0, 0, 0, 24, 'ftypisom'))).toBeNull();
+  });
+
   it('refuses anything else, whatever it is called', () => {
     expect(sniffType(bytes('<html><script>'))).toBeNull();
     expect(sniffType(bytes('<svg xmlns='))).toBeNull();

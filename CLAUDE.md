@@ -25,7 +25,7 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
 
 - **Staging:** `https://apps-hub-web-eta.vercel.app` (Vercel, region yul1, a Pro TRIAL
   that ends about 2026-10-11; set up by `docs/DEPLOY_STAGING.md`) on Supabase project
-  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0016). It
+  `apps-hub-staging` (Canada Central, Free plan, Data API off, migrations 0000–0018). It
   reads a SNAPSHOT of the production spreadsheets, never writes to them, never runs
   `clasp`, and DOES email real people (`EMAIL_MODE=live`, §4). Google sign-in is in
   "Testing": only listed test users can sign in (publishing is a cutover step).
@@ -53,7 +53,7 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
     apps/web          the one Next.js app. Portal and each app are route sections.
     packages/core     money in cents, Toronto dates, email normalisation
     packages/rbac     can() / explain(): pure, tested, no database
-    packages/db       Drizzle schema (rbac, cash, identity, portal), migrations, the client
+    packages/db       Drizzle schema (rbac, cash, identity, portal, devops, forms), migrations, the client
                       (node-postgres),
                       loadRoster()
     packages/import   the spreadsheet import: xlsx -> transform -> load -> verify
@@ -61,6 +61,7 @@ open list are in **`docs/STATUS.md`**; this section used to hold all of that (mo
     apps/web/src/lib/requests  asking for access and granting it: rules, store, emails
     apps/web/src/lib/devops    JM DevOps: rules, store, i18n; the app is app/devops
     apps/web/src/lib/beta      beta apps and their testers; the page is app/tests
+    apps/web/src/lib/forms     Forms (HR's forms, in place of Jotform): rules, store, i18n
     packages/email    where an email actually goes (test vs live)
     docs/CUTOVER.md   the approval-day checklist
     docs/STATUS.md    what was built when, with which PR, and what is open (the log)
@@ -294,6 +295,47 @@ Dates are `date` columns in Toronto: the old API sent them through UTC and showe
 a day early. Every action is `requireSystemAdmin` first; a test calls each one as a
 non-admin and with no session and checks the store is never reached.
 
+**Forms: sharing decides who FILLS, the Forms app decides who EDITS and READS**
+(owner, 2026-10-09; `lib/forms`, schema `forms`, migration 0017). Filling a form needs
+no grant: HR shares it with roles (optionally only at some restaurants) and/or people
+picked from the access directory, and `fillDecision` reads that against the roster on
+every click; only someone switched on and holding at least one app counts (crew are not
+in the directory yet; the owner will add employees later). Holding Forms is for HR
+(Bureau: write, share, close, read every answer) and managers (Gérant: read their own
+restaurants' answers); Consultation holding Forms reads nothing. Admins pass all. The
+permissions are rows written by migration 0017, like every app's. A form's questions
+are VERSIONED: publishing writes a new version, a submission keeps the one it answered,
+and a submission sent against an older version is refused as `changed`, never fitted to
+questions it was not written for. Answers are rebuilt on the server from the version
+(`checkAnswers`): unknown keys dropped, values normalised. Name, employee number and
+email come from the directory, never typed (so nobody files under another's number);
+the signature is a typed name plus "I agree" (owner: no drawing). HR writes forms in
+FRENCH ONLY (owner, 2026-10-12: "we are a French company"): the language toggle changes
+the page around a form, never what HR wrote. Texts are plain strings; they used to be
+`{ fr, en? }` with an English box beside each French one, and a definition stored that
+way is still read, keeping its French. A form has SECTIONS (owner,
+2026-10-12): a section is a `heading` field and the questions after it, kept in the one
+flat list (`sections()`, `moveSection()` in `definition.ts`), so versions answered
+before sections existed read unchanged; moving a section moves its questions.
+A FILE question (owner, 2026-10-13; `lib/forms/files.ts`, migration 0018): a file is
+uploaded while the form is filled, so it is STAGED first, owned by its uploader for one
+form's one question; `submit()` checks, under the form's lock and BEFORE writing, that
+every file named is the sender's own, for that question, still staged and stored, and
+otherwise refuses the whole submission. Who uploads: the same decision as filling. Who
+opens one (`/forms/files/[id]`, outside the page policy like Cash Balancing's): a staged
+file its uploader only; a sent one whoever may read that submission's answers. Photos
+and PDFs (HEIC downloaded, not shown), 5 a question, **4 MB each because Vercel refuses
+a request over 4.5 MB**: the owner asked for 10 MB, and photos are shrunk in the browser
+instead; 10 MB would need uploads straight to Storage. The bytes are in the private
+`forms` bucket, the file store shared with Cash Balancing (`lib/storage.ts`, each app
+its own bucket). Staged files nobody sent are swept after a day, after each upload. The
+retention job (phase 5) must remove a sensitive question's FILES, not only its answers. Retention (Law 25):
+fields marked sensitive are to be cleared `sensitiveDays` after closing (default 30),
+the whole submission `keepDays` after (default 365). The settings are stored; the job
+that clears them is NOT built yet (phase 5). Sharing an open form, or opening a
+form by its first publish, tells the people it newly reaches in Notifications (kind
+`form`), in its own write after the form's (separable, as above).
+
 **Emails are normalised on every read and write** with `normalizeEmail`: lowercase,
 trim, and strip dots ONLY for Gmail (Yahoo and Hotmail dots are significant).
 
@@ -461,7 +503,9 @@ the roster email is how sign-in recognises people.
 
     npm test              all tests (TZ=UTC): `unit` in parallel, then `postgres`, the
                           *.db.test.ts files, one file at a time (see vitest.config.mts)
-    npm run typecheck
+    npm run typecheck     the PACKAGES only. The web app is typechecked by `next build`, or
+                          `npx next typegen && npx tsc --noEmit` in apps/web (found
+                          2026-10-09: an error in a page passed `npm run typecheck`)
     npm run db:generate   after any schema change; commit the migration
     npm run db:migrate    staging first, always
     npm run import -- <snapshot folder>                        dry run: reads, checks, writes nothing

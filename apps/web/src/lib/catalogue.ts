@@ -91,6 +91,37 @@ export const CATALOGUE: readonly CatalogueApp[] = [
     },
   },
   {
+    // Forms (owner, 2026-10-09), in place of Jotform. Holding it is for HR (Bureau, who
+    // write and share forms) and managers (who read their restaurants' responses): FILLING
+    // a form needs no grant, only being in the audience HR shares it with (lib/forms/rules.ts).
+    key: 'Forms',
+    category: 'hr',
+    group: 'internal',
+    governed: true,
+    isApp: true,
+    mark: 'FO',
+    tint: '#0B5563',
+    name: 'Forms',
+    nameFr: 'Formulaires',
+    blurb: 'HR forms: fill the ones shared with you; HR writes and shares them, managers read their restaurants’ answers.',
+    blurbFr: 'Formulaires RH\u00a0: remplissez ceux qui vous sont partagés; les RH les rédigent et les partagent, les gérants lisent les réponses de leurs restaurants.',
+    defaultUrl: '/forms',
+    roleHelp: {
+      manager: {
+        en: 'Fills the forms shared with them, and reads the answers from their restaurants.',
+        fr: 'Remplit les formulaires qui lui sont partagés, et lit les réponses de ses restaurants.',
+      },
+      viewer: {
+        en: 'Fills the forms shared with them. Sees no one else’s answers.',
+        fr: 'Remplit les formulaires qui lui sont partagés. Ne voit les réponses de personne d’autre.',
+      },
+      office: {
+        en: 'Writes, shares and closes forms, and reads every answer.',
+        fr: 'Rédige, partage et ferme les formulaires, et lit toutes les réponses.',
+      },
+    },
+  },
+  {
     key: 'Projects',
     category: 'development',
     group: 'internal',

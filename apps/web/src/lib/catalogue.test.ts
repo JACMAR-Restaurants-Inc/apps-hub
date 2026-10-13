@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { APP_GROUPS, CATALOGUE, CATEGORIES, appUrl, catalogueApp, contrast, inkFor, openStyle } from './catalogue';
 
 describe('the catalogue', () => {
-  it('has all 18 apps of the Apps Script portal, in its order, keys unique', () => {
+  it('has all 18 apps of the Apps Script portal, in its order, keys unique, and Forms', () => {
     expect(CATALOGUE.map((a) => a.key)).toEqual([
-      'SafeCount', 'Projects', 'GitHub', 'Intuit', 'Twilio', 'AtMcd', 'McdGuides', 'Campus', 'Clearview',
+      'SafeCount', 'Forms', 'Projects', 'GitHub', 'Intuit', 'Twilio', 'AtMcd', 'McdGuides', 'Campus', 'Clearview',
       'Fujitsu', 'Gerants', 'Prequart', 'McValeurs', 'Transfert', 'Reparation', 'Calendrier', 'Ithq', 'JreTracker',
     ]);
   });
@@ -18,8 +18,8 @@ describe('the catalogue', () => {
     }
   });
 
-  it('only Cash Balancing is governed by the roster', () => {
-    expect(CATALOGUE.filter((a) => a.governed).map((a) => a.key)).toEqual(['SafeCount']);
+  it('only Cash Balancing and Forms are governed by the roster', () => {
+    expect(CATALOGUE.filter((a) => a.governed).map((a) => a.key)).toEqual(['SafeCount', 'Forms']);
   });
 
   it('the Arches only on McDonald’s own sites (§74)', () => {

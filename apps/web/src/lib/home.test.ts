@@ -23,19 +23,20 @@ describe('greetingPart', () => {
 });
 
 describe('homeCards', () => {
+  // The same standing in every app that can be asked for (Cash Balancing and Forms).
   const manager = (status?: 'pending' | 'active' | 'revoked', personActive = status === 'active') =>
-    homeCards({ isAdmin: false, personActive, memberships: status ? [{ app: 'SafeCount', status, since }] : [], formatDay: day, env: {} });
+    homeCards({ isAdmin: false, personActive, memberships: status ? ['SafeCount', 'Forms'].map((app) => ({ app, status, since })) : [], formatDay: day, env: {} });
   const find = (s: ReturnType<typeof homeCards>, key: string) => s.find((c) => c.key === key);
 
-  it('an admin sees all 18 cards and holds every one: never Request access', () => {
+  it('an admin sees all 19 cards and holds every one: never Request access', () => {
     const cards = homeCards({ isAdmin: true, personActive: true, memberships: [], formatDay: day, env: {} });
-    expect(cards).toHaveLength(18);
+    expect(cards).toHaveLength(19);
     expect(cards.every((c) => c.state === 'held')).toBe(true);
   });
 
-  it('a manager sees no admin-only card: 8 of ours and 2 other tools, in one list (§81)', () => {
+  it('a manager sees no admin-only card: 9 of ours and 2 other tools, in one list (§81)', () => {
     const s = manager('active');
-    expect(s).toHaveLength(10);
+    expect(s).toHaveLength(11);
     expect(s.some((c) => c.adminOnly)).toBe(false);
   });
 
@@ -56,7 +57,7 @@ describe('homeCards', () => {
   it('orders held, then pending, then askable, alphabetical by French name (§82)', () => {
     const internal = manager('pending');
     const states = internal.map((c) => c.state);
-    expect(states.indexOf('pending')).toBe(states.length - 1);
+    expect(states.slice(states.indexOf('pending'))).toEqual(['pending', 'pending']);
     const held = internal.filter((c) => c.state === 'held').map((c) => c.nameFr);
     expect(held).toEqual([...held].sort((a, b) => a.localeCompare(b, 'fr')));
   });

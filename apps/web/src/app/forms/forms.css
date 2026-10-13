@@ -1,0 +1,110 @@
+/* Forms. Classes are prefixed fo- (CLAUDE.md §3: Tailwind is loaded, so a class named
+   like a utility is one). Colours are the portal's tokens, so dark mode follows. */
+.fo-list { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; }
+.fo-list li { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:12px 2px; border-top:1px solid var(--line2); }
+.fo-list li:first-child { border-top:0; }
+.fo-list li > div { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.fo-dim { font-size:13px; color:var(--text-dim); }
+.fo-link { font-weight:600; color:var(--blue); white-space:nowrap; }
+.fo-status { font-size:12px; font-weight:600; color:var(--text-dim); }
+.fo-status.is-open { color:var(--green); }
+
+.fo-form { display:flex; flex-direction:column; gap:18px; }
+.fo-intro { white-space:pre-line; color:var(--text-muted); margin:0; max-width:70ch; }
+.fo-field { display:flex; flex-direction:column; gap:6px; }
+.fo-field > label, .fo-field > legend { font-weight:600; color:var(--text); padding:0; }
+.fo-req { font-weight:700; color:var(--red); margin-left:4px; }
+.fo-hide { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.fo-field .fo-help { font-size:13px; color:var(--text-dim); margin:0; white-space:pre-line; }
+.fo-field input[type=text], .fo-field input[type=tel], .fo-field input[type=email],
+.fo-field input[type=number], .fo-field input[type=date], .fo-field textarea, .fo-field select {
+  font:inherit; color:var(--text); background:var(--card-bg); border:1px solid var(--border);
+  border-radius:8px; padding:10px 12px; width:100%; max-width:480px; }
+.fo-field textarea { min-height:110px; max-width:640px; resize:vertical; }
+.fo-field.has-error input, .fo-field.has-error textarea, .fo-field.has-error select { border-color:var(--red); }
+.fo-err { font-size:13px; color:var(--red); margin:0; }
+fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
+.fo-opt { display:flex; align-items:flex-start; gap:10px; padding:4px 0; cursor:pointer; }
+.fo-opt input { margin-top:3px; width:18px; height:18px; flex:none; }
+.fo-heading { margin:8px 0 0; padding-top:14px; border-top:1px solid var(--line2); }
+.fo-heading h2 { margin:0; font-size:17px; }
+.fo-heading p { margin:4px 0 0; color:var(--text-muted); white-space:pre-line; }
+.fo-who { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px 18px; margin:10px 0 0; }
+.fo-who dt { font-size:12px; color:var(--text-dim); }
+.fo-who dd { margin:2px 0 0; font-weight:600; overflow-wrap:anywhere; }
+.fo-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.fo-ok { padding:12px 14px; border-radius:10px; background:var(--card-bg-light); border:1px solid var(--border); margin:0; }
+
+.fo-tablewrap { overflow-x:auto; margin-top:12px; }
+.fo-table { border-collapse:collapse; font-size:13px; min-width:100%; }
+.fo-table th, .fo-table td { text-align:left; vertical-align:top; padding:8px 10px; border-top:1px solid var(--line2); }
+.fo-table th { font-weight:600; color:var(--text-dim); white-space:nowrap; border-top:0; }
+.fo-table td.fo-cleared { color:var(--text-dim); font-style:italic; }
+
+/* HR's editor. */
+.fo-list li > div.fo-links { flex-direction:row; gap:14px; }
+.fo-editor { display:flex; flex-direction:column; gap:14px; }
+.fo-bar { display:flex; align-items:center; flex-wrap:wrap; gap:10px 12px; }
+.fo-bar-end { padding-top:4px; }
+.fo-grow { flex:1; }
+.fo-unsaved { font-size:13px; font-weight:600; color:var(--orange); }
+.fo-btn { font:inherit; font-weight:600; padding:9px 14px; border-radius:8px; cursor:pointer;
+  background:var(--card-bg); color:var(--text); border:1px solid var(--border); }
+.fo-btn:disabled, .pbtn:disabled { opacity:.5; cursor:default; }
+.fo-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); overflow-x:auto; }
+.fo-tabs button { font:inherit; font-weight:600; padding:10px 14px; border:0; background:none; cursor:pointer;
+  color:var(--text-dim); border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap; }
+.fo-tabs button.is-on { color:var(--text); border-bottom-color:var(--blue); }
+.fo-pair { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px 16px; }
+.fo-pair .fo-field label, .fo-text > label, .fo-form > .fo-field > label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
+.fo-card { border:1px solid var(--border); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px;
+  background:var(--card-bg-light); }
+.fo-card.has-error { border-color:var(--red); }
+.fo-card.is-section { border-left:4px solid var(--blue); background:var(--card-bg); margin-top:10px; }
+.fo-section { border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:18px; }
+.fo-cols { display:grid; grid-template-columns:1fr 1fr; gap:18px 16px; align-items:start; }
+.fo-cols > * { grid-column:1 / -1; min-width:0; }
+.fo-cols > .is-half { grid-column:auto; }
+@media (max-width:600px) { .fo-cols > .is-half { grid-column:1 / -1; } }
+.fo-section-head { padding-bottom:10px; border-bottom:1px solid var(--line2); }
+.fo-section-head h2 { margin:0; font-size:18px; }
+.fo-section-head p { margin:4px 0 0; color:var(--text-muted); white-space:pre-line; }
+.fo-cardhead { display:flex; align-items:center; gap:10px; }
+.fo-icon { font:inherit; width:32px; height:32px; border-radius:8px; border:1px solid var(--border);
+  background:var(--card-bg); color:var(--text); cursor:pointer; }
+.fo-icon:disabled { opacity:.35; cursor:default; }
+.fo-options { display:flex; flex-direction:column; gap:8px; }
+.fo-label { font-weight:600; }
+.fo-option { display:flex; gap:8px; align-items:center; }
+.fo-option input { flex:1; min-width:0; font:inherit; color:var(--text); background:var(--card-bg);
+  border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+.fo-options .fo-link, .fo-link { background:none; border:0; padding:0; font:inherit; font-weight:600; cursor:pointer; text-align:left; }
+.fo-flags { display:flex; flex-wrap:wrap; gap:4px 20px; }
+.fo-add { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.fo-add select, .fo-inline input { font:inherit; color:var(--text); background:var(--card-bg);
+  border:1px solid var(--border); border-radius:8px; padding:9px 12px; }
+.fo-inline { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.fo-inline input { min-width:min(260px, 100%); }
+.fo-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:0 16px; }
+.fo-picks { list-style:none; margin:4px 0 0; padding:0; border:1px solid var(--border); border-radius:8px; max-width:480px; }
+.fo-picks button { font:inherit; width:100%; text-align:left; padding:8px 12px; background:none; border:0; cursor:pointer; color:var(--text); }
+.fo-picks li + li { border-top:1px solid var(--line2); }
+.fo-picks button:hover { background:var(--card-bg-light); }
+.fo-chips { list-style:none; margin:6px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
+.fo-chips li { display:flex; align-items:center; gap:6px; padding:4px 6px 4px 12px; border-radius:999px;
+  background:var(--card-bg-light); border:1px solid var(--border); font-size:13px; }
+.fo-chips button { border:0; background:none; cursor:pointer; color:var(--text-dim); font:inherit; padding:2px 6px; }
+.fo-masthead { display:flex; flex-direction:column; align-items:center; text-align:center; gap:30px; padding-top:6px; }
+.fo-logo { width:120px; }
+.fo-logo svg { display:block; width:100%; height:auto; }
+.fo-masthead h1, .fo-masthead h2 { margin:0; font-size:24px; line-height:1.25; max-width:40ch; }
+.fo-files { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; max-width:480px; }
+.fo-files li { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 6px 6px 12px;
+  border:1px solid var(--border); border-radius:8px; }
+.fo-files a { color:var(--blue); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.fo-filebtn { position:relative; align-self:flex-start; cursor:pointer; }
+.fo-filebtn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.fo-filebtn.is-off { opacity:.5; cursor:default; }
+.fo-filebtn.is-off input { cursor:default; }
+.fo-filelink { display:block; color:var(--blue); font-weight:600; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
