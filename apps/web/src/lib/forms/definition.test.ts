@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HEADER_COLORS, checkAnswers, fileAnswers, moveSection, parseDefinition, sections, sensitiveIds, type FormDefinition } from './definition';
+import { HEADER_COLORS, checkAnswers, checkField, fileAnswers, formatPhone, moveSection, parseDefinition, sections, sensitiveIds, type FormDefinition } from './definition';
 
 // Shaped like the Calypso registration (Jotform 261747485869074).
 const calypso = {
@@ -217,5 +217,38 @@ describe('moving a section', () => {
     expect(moveSection(form, 6, 1)).toBeNull();
     expect(moveSection(form, 2, 1)).toBeNull();
     expect(ids(moveSection(form.slice(1), 0, 1))).toEqual(['quals', 'diploma', 'perso', 'name', 'phone', 'end']);
+  });
+});
+
+describe('a Canadian phone number', () => {
+  const phone = { id: 'p', type: 'phone' as const, label: 'Téléphone', required: true, sensitive: false };
+  const one = (raw: unknown) => {
+    const r = checkAnswers({ title: 't', fields: [phone], signature: false }, { p: raw }, null);
+    return r.ok ? r.answers.p : r.errors.p;
+  };
+
+  it('takes 10 digits however written, with or without a leading 1 or +1, kept as the 10 digits', () => {
+    for (const raw of ['8195550101', '819 555 0101', '(819) 555-0101', '819.555.0101', '1 819 555 0101', '+1 (819) 555-0101', '1-819-555-0101']) expect(one(raw), raw).toBe('8195550101');
+  });
+
+  it('refuses too few or too many digits, another country, an area code or exchange starting with 0 or 1, letters', () => {
+    for (const raw of ['819555010', '81955501012', '+44 20 7946 0958', '019 555 0101', '119 555 0101', '819 055 0101', '819 155 0101', '2 819 555 0101', '819-555-O1O1', '819 555 0101 x2'])
+      expect(one(raw), raw).toBe('invalid');
+  });
+
+  it('is shown as people write it; anything else as stored', () => {
+    expect(formatPhone('8195550101')).toBe('(819) 555-0101');
+    expect(formatPhone('441234567890')).toBe('441234567890');
+  });
+});
+
+describe('checking one field as it is left', () => {
+  const email = { id: 'e', type: 'email' as const, label: 'Courriel', required: true, sensitive: false };
+  it('says what is wrong, and leaves "required" for Envoyer unless asked', () => {
+    expect(checkField(email, 'marie@')).toBe('invalid');
+    expect(checkField(email, 'marie@exemple.com')).toBeNull();
+    expect(checkField(email, '', { required: false })).toBeNull();
+    expect(checkField(email, '')).toBe('required');
+    expect(checkField({ ...email, required: false }, '')).toBeNull();
   });
 });

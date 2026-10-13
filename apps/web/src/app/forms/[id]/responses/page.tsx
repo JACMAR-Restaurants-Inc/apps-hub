@@ -1,6 +1,6 @@
 import { formsDb } from '@/lib/forms/db';
 import { filesOf } from '@/lib/forms/files';
-import { sensitiveIds, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
+import { formatPhone, sensitiveIds, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
 import { ft } from '@/lib/forms/i18n';
 import { canEditForms, responsesScope } from '@/lib/forms/rules';
 import { allVersions, getForm, listSubmissions } from '@/lib/forms/store';
@@ -140,5 +140,6 @@ function show(lang: Lang, field: Field, value: Value | undefined): string {
   const label = (id: string) => field.options?.find((o) => o.id === id)?.label || id;
   if (Array.isArray(value)) return value.map(label).join(', ');
   if ((field.type === 'choice' || field.type === 'select') && typeof value === 'string') return label(value);
+  if (field.type === 'phone' && typeof value === 'string') return formatPhone(value);
   return String(value);
 }
