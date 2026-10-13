@@ -120,7 +120,13 @@ export function FillForm({ lang, formId, version, definition, already, person, s
       )}
 
       {sections(definition.fields).map((sec, i) => {
-        const inputs = sec.fields.map((f) => <FieldInput key={f.id} lang={lang} field={f} value={answers[f.id]} error={errors[f.id]} onChange={(v) => set(f.id, v)} />);
+        const inputs = (
+          <div className="fo-cols">
+            {sec.fields.map((f) => (
+              <FieldInput key={f.id} lang={lang} field={f} value={answers[f.id]} error={errors[f.id]} onChange={(v) => set(f.id, v)} />
+            ))}
+          </div>
+        );
         if (!sec.head) return <Fragment key={i}>{inputs}</Fragment>;
         return (
           <section key={sec.head.id} className="fo-section" aria-labelledby={`fo-${sec.head.id}`}>
@@ -169,7 +175,7 @@ function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field
   const help = field.help ? <p className="fo-help">{field.help}</p> : null;
   const req = field.required ? <span className="fo-req">{ft(lang, 'required_mark')}</span> : null;
   const err = error ? <p className="fo-err">{ft(lang, `err_${error}` as FormsKey)}</p> : null;
-  const cls = `fo-field${error ? ' has-error' : ''}`;
+  const cls = `fo-field${field.half ? ' is-half' : ''}${error ? ' has-error' : ''}`;
 
   if (field.type === 'agree') {
     return (
@@ -212,6 +218,26 @@ function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field
     );
   }
   const text = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+  if (field.type === 'select') {
+    return (
+      <div className={cls}>
+        <label htmlFor={id}>
+          {label}
+          {req}
+        </label>
+        {help}
+        <select id={id} value={text} onChange={(e) => onChange(e.target.value || undefined)}>
+          <option value="">{ft(lang, 'choose')}</option>
+          {field.options!.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        {err}
+      </div>
+    );
+  }
   const common = { id, value: text, onChange: (e: { target: { value: string } }) => onChange(e.target.value) };
   return (
     <div className={cls}>

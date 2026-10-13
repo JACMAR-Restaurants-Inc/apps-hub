@@ -16,7 +16,7 @@
  * { fr, en? }; a definition stored that way is still read, keeping its French.
  */
 
-export const FIELD_TYPES = ['heading', 'text', 'textarea', 'number', 'date', 'phone', 'email', 'choice', 'choices', 'agree'] as const;
+export const FIELD_TYPES = ['heading', 'text', 'textarea', 'number', 'date', 'phone', 'email', 'choice', 'select', 'choices', 'agree'] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
 export interface Option {
@@ -32,8 +32,10 @@ export interface Field {
   required: boolean;
   /** Cleared after the form closes (Law 25): phones, emergency contacts. */
   sensitive: boolean;
-  /** For choice and choices. */
+  /** For choice, select and choices. */
   options?: Option[];
+  /** Half the width, beside its neighbour when it is half too (owner, 2026-10-13). Full when absent. */
+  half?: boolean;
   /** For number. */
   min?: number;
   max?: number;
@@ -98,8 +100,9 @@ export function parseDefinition(raw: unknown): DefinitionResult {
     if (help === null) errors.push(`${at}.help`);
     const field: Field = { id, type, label: label ?? '', required: type !== 'heading' && f.required === true, sensitive: type !== 'heading' && f.sensitive === true };
     if (help) field.help = help;
+    if (type !== 'heading' && f.half === true) field.half = true;
 
-    if (type === 'choice' || type === 'choices') {
+    if (type === 'choice' || type === 'select' || type === 'choices') {
       const opts = Array.isArray(f.options) ? f.options : [];
       const ids = new Set<string>();
       const options: Option[] = [];
@@ -186,7 +189,8 @@ function checkOne(field: Field, raw: unknown): { value?: Value; error?: AnswerEr
     case 'email':
       if (raw == null || str === '') return {};
       return str !== null && str.length <= 254 && EMAIL.test(str) ? { value: str.toLowerCase() } : { error: 'invalid' };
-    case 'choice': {
+    case 'choice':
+    case 'select': {
       if (raw == null || str === '') return {};
       return field.options!.some((o) => o.id === str) ? { value: str! } : { error: 'invalid' };
     }

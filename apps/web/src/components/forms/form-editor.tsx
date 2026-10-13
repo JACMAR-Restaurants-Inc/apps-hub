@@ -38,7 +38,7 @@ const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}${Math.ran
 
 function blankField(type: FieldType): Field {
   const f: Field = { id: newId('f'), type, label: '', required: false, sensitive: false };
-  if (type === 'choice' || type === 'choices') f.options = [{ id: newId('o'), label: '' }, { id: newId('o'), label: '' }];
+  if (type === 'choice' || type === 'select' || type === 'choices') f.options = [{ id: newId('o'), label: '' }, { id: newId('o'), label: '' }];
   return f;
 }
 
@@ -283,7 +283,7 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
           onChange(next);
         }}
       />
-      {(f.type === 'choice' || f.type === 'choices') && (
+      {(f.type === 'choice' || f.type === 'select' || f.type === 'choices') && (
         <div className="fo-options">
           <span className="fo-label">{t('options')}</span>
           {f.options!.map((o, i) => (
@@ -329,6 +329,18 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
           <label className="fo-opt">
             <input type="checkbox" checked={f.sensitive} onChange={(e) => onChange({ ...f, sensitive: e.target.checked })} />
             <span>{t('sensitive')}</span>
+          </label>
+          <label className="fo-opt">
+            <input
+              type="checkbox"
+              checked={f.half === true}
+              onChange={(e) => {
+                const next = { ...f, half: true };
+                if (!e.target.checked) delete (next as Partial<Field>).half;
+                onChange(next);
+              }}
+            />
+            <span>{t('half')}</span>
           </label>
         </div>
       )}

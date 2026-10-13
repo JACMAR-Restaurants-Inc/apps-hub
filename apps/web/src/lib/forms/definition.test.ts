@@ -57,6 +57,21 @@ describe('parseDefinition', () => {
     expect(r.ok && r.definition.fields[0]).toMatchObject({ label: 'Transport', help: 'Aide', options: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }] });
   });
 
+  it('half width is kept on a question, never on a section, and only when exactly true', () => {
+    const r = parseDefinition({ ...calypso, fields: [{ ...calypso.fields[1], half: true }, { ...calypso.fields[2], half: 'yes' }, { ...calypso.fields[0], half: true }] });
+    expect(r.ok && r.definition.fields.map((f) => f.half)).toEqual([true, undefined, undefined]);
+  });
+
+  it('a dropdown needs options like a single choice, and takes one of them', () => {
+    const select = { id: 'prov', type: 'select', label: 'Province', required: true, options: [{ id: 'qc', label: 'Québec' }, { id: 'on', label: 'Ontario' }] };
+    expect(parseDefinition({ ...calypso, fields: [{ ...select, options: [select.options[0]] }] }).ok).toBe(false);
+    const r = parseDefinition({ ...calypso, signature: false, fields: [select] });
+    if (!r.ok) throw new Error('select');
+    expect(checkAnswers(r.definition, { prov: 'on' }, null)).toEqual({ ok: true, answers: { prov: 'on' }, signedName: null });
+    expect(checkAnswers(r.definition, { prov: 'bc' }, null)).toEqual({ ok: false, errors: { prov: 'invalid' } });
+    expect(checkAnswers(r.definition, { prov: '' }, null)).toEqual({ ok: false, errors: { prov: 'required' } });
+  });
+
   it('a heading is never required nor sensitive', () => {
     const r = parseDefinition({ ...calypso, fields: [{ id: 'h', type: 'heading', label: 'Titre', required: true, sensitive: true }] });
     expect(r.ok && r.definition.fields[0]).toMatchObject({ required: false, sensitive: false });
