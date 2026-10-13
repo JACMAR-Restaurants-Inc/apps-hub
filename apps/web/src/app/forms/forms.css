@@ -108,6 +108,22 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-filebtn.is-off { opacity:.5; cursor:default; }
 .fo-filebtn.is-off input { cursor:default; }
 .fo-filelink { display:block; color:var(--blue); font-weight:600; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+/* Header colours: a band with its own background and text colour (each pair 4.5:1 or better, definition.test.ts). */
+.fo-section-head.fo-band { margin:-16px -16px 0; padding:12px 16px; border-bottom:0; border-radius:11px 11px 0 0; }
+.fo-band h2, .fo-band p { color:inherit; }
+.fo-band p { opacity:.92; }
+.fo-masthead .fo-band { align-self:stretch; max-width:none; padding:14px 20px; border-radius:10px; }
+.fo-colorpick { position:relative; align-items:flex-start; }
+.fo-colorbtn { display:inline-flex; align-items:center; gap:8px; }
+.fo-chip { width:18px; height:18px; border-radius:5px; box-shadow:0 0 0 1px var(--border); }
+.fo-pop { position:absolute; z-index:30; top:calc(100% + 6px); left:0; padding:12px; background:var(--card-bg);
+  border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.2); }
+.fo-swatches { display:grid; grid-template-columns:repeat(4, 36px); gap:8px; }
+.fo-swatch { width:36px; height:36px; padding:0; border-radius:8px; border:2px solid transparent; cursor:pointer;
+  box-shadow:0 0 0 1px var(--border); }
+.fo-swatch[aria-pressed=true] { border-color:var(--card-bg); box-shadow:0 0 0 2px var(--text); }
+.fo-swatch:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.fo-swatch.is-none, .fo-chip.is-none { background:linear-gradient(135deg, transparent 46%, var(--red) 46%, var(--red) 54%, transparent 54%), var(--card-bg); }
 .fo-danger { color:var(--red); }
 .fo-danger-solid { background:var(--red); border-color:var(--red); color:#fff; }
 .fo-confirm { display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--red); border-radius:10px; max-width:520px; }

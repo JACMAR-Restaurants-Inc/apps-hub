@@ -1,13 +1,13 @@
 'use client';
 
 import { deleteFormAction, duplicateFormAction, publishAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
-import { FIELD_TYPES, moveSection, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
+import { FIELD_TYPES, HEADER_COLORS, moveSection, type HeaderColor, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Audience } from '@/lib/forms/rules';
 import type { Settings } from '@/lib/forms/store';
 import type { Lang } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { FillForm } from './fill-form';
 
 export interface EditorForm {
@@ -158,6 +158,16 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
       {tab === 'questions' && (
         <section className="panel fo-form">
           <TextInput lang={lang} label="title_fr" value={def.title} onChange={(title) => setDef({ ...def, title: title ?? '' })} />
+          <ColorPicker
+            lang={lang}
+            name="title"
+            value={def.titleColor}
+            onChange={(titleColor) => {
+              const next = { ...def, titleColor };
+              if (!titleColor) delete next.titleColor;
+              setDef(next);
+            }}
+          />
           <TextInput
             lang={lang}
             label="intro_fr"
@@ -285,6 +295,18 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
           onChange(next);
         }}
       />
+      {!answerable && (
+        <ColorPicker
+          lang={lang}
+          name={f.id}
+          value={f.color}
+          onChange={(color) => {
+            const next = { ...f, color };
+            if (!color) delete next.color;
+            onChange(next);
+          }}
+        />
+      )}
       {(f.type === 'choice' || f.type === 'select' || f.type === 'choices') && (
         <div className="fo-options">
           <span className="fo-label">{t('options')}</span>
@@ -591,6 +613,77 @@ function DeleteForm({ lang, id, title, shownAt, pending, onDone }: { lang: Lang;
         </button>
       </div>
       {problem && <p className="fo-err">{ft(lang, problem)}</p>}
+    </div>
+  );
+}
+
+/**
+ * The header colour: a button showing the current one, which opens a small window with
+ * the grid (owner, 2026-10-13: not the swatches lying open). Choosing closes it; so do
+ * Escape and a click outside. Each swatch is a button named for screen readers.
+ */
+function ColorPicker({ lang, name, value, onChange }: { lang: Lang; name: string; value: HeaderColor | undefined; onChange: (c: HeaderColor | undefined) => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const keys = Object.keys(HEADER_COLORS) as HeaderColor[];
+  const label = (k: HeaderColor | undefined) => ft(lang, k ? `color_${k}` : 'color_none');
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      button.current?.focus();
+    };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open]);
+
+  const choose = (k: HeaderColor | undefined) => {
+    onChange(k);
+    setOpen(false);
+    button.current?.focus();
+  };
+  const swatch = (k: HeaderColor | undefined) => (
+    <button
+      key={k ?? 'none'}
+      type="button"
+      className={`fo-swatch${k ? '' : ' is-none'}`}
+      style={k ? { background: HEADER_COLORS[k].bg } : undefined}
+      aria-label={label(k)}
+      aria-pressed={value === k}
+      title={label(k)}
+      autoFocus={value === k}
+      onClick={() => choose(k)}
+    />
+  );
+
+  return (
+    <div className="fo-field fo-colorpick" ref={box}>
+      <span className="fo-label" id={`fo-color-${name}`}>
+        {ft(lang, 'header_color')}
+      </span>
+      <button type="button" ref={button} className="fo-btn fo-colorbtn" aria-haspopup="dialog" aria-expanded={open} aria-describedby={`fo-color-${name}`} onClick={() => setOpen((o) => !o)}>
+        <span className={`fo-chip${value ? '' : ' is-none'}`} style={value ? { background: HEADER_COLORS[value].bg } : undefined} aria-hidden="true" />
+        {label(value)}
+        <span aria-hidden="true">▾</span>
+      </button>
+      {open && (
+        <div className="fo-pop" role="dialog" aria-label={ft(lang, 'header_color')}>
+          <div className="fo-swatches">
+            {swatch(undefined)}
+            {keys.map(swatch)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkAnswers, fileAnswers, moveSection, parseDefinition, sections, sensitiveIds, type FormDefinition } from './definition';
+import { HEADER_COLORS, checkAnswers, fileAnswers, moveSection, parseDefinition, sections, sensitiveIds, type FormDefinition } from './definition';
 
 // Shaped like the Calypso registration (Jotform 261747485869074).
 const calypso = {
@@ -80,6 +80,38 @@ describe('parseDefinition', () => {
       expect(checkAnswers(r.definition, { cv: bad }, null), JSON.stringify(bad)).toEqual({ ok: false, errors: { cv: 'invalid' } });
     expect(checkAnswers(r.definition, { cv: [] }, null)).toEqual({ ok: false, errors: { cv: 'required' } });
     expect(fileAnswers(r.definition, { cv: ['12', '13'], other: ['9'] })).toEqual([{ fieldId: 'cv', ids: [12, 13] }]);
+  });
+
+  it('a header colour is kept on a section and the title, only from the palette, never on a question', () => {
+    const r = parseDefinition({
+      ...calypso,
+      titleColor: 'rouge',
+      fields: [
+        { id: 'h1', type: 'heading', label: 'Perso', color: 'bleu' },
+        { id: 'h2', type: 'heading', label: 'Quals', color: '#ff00ff' },
+        { id: 'h3', type: 'heading', label: 'Autre', color: 'constructor' },
+        { ...calypso.fields[1], color: 'vert' },
+      ],
+    });
+    if (!r.ok) throw new Error('colours');
+    expect(r.definition.titleColor).toBe('rouge');
+    expect(r.definition.fields.map((f) => f.color)).toEqual(['bleu', undefined, undefined, undefined]);
+    const plain = parseDefinition({ ...calypso, titleColor: 'url(javascript:x)' });
+    expect(plain.ok && plain.definition).not.toHaveProperty('titleColor');
+  });
+
+  it('every header colour keeps its text readable: 4.5:1 or better (WCAG AA)', () => {
+    const lum = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const ratio = (a: string, b: string) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    for (const [name, c] of Object.entries(HEADER_COLORS)) expect(ratio(c.bg, c.text), name).toBeGreaterThanOrEqual(4.5);
+    expect(HEADER_COLORS.mcd_or.bg).toBe('#FFBC0D');
+    expect(HEADER_COLORS.mcd_rouge.bg).toBe('#DB0007');
   });
 
   it('a heading is never required nor sensitive', () => {

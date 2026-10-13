@@ -20,6 +20,36 @@
 export const FIELD_TYPES = ['heading', 'text', 'textarea', 'number', 'date', 'phone', 'email', 'choice', 'select', 'choices', 'agree', 'file'] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
+/**
+ * Header colours a section or the form's title may take (owner, 2026-10-13: "choose a
+ * color from a grid", then light grey and McDonald's gold and red). Stored by name. Each
+ * has its text colour, checked at 4.5:1 or better: white on the dark ones (5.0 to 11.5),
+ * dark on light grey (11.9) and gold (8.7). McDonald's gold and red are the Arches' own
+ * (components/arches.tsx). The band carries its own background, so it reads the same in
+ * light and dark mode. Anything else is dropped on read.
+ */
+const WHITE = '#FFFFFF';
+const DARK = '#1F2937';
+export const HEADER_COLORS = {
+  mcd_rouge: { bg: '#DB0007', text: WHITE },
+  mcd_or: { bg: '#FFBC0D', text: DARK },
+  rouge: { bg: '#B91C1C', text: WHITE },
+  bordeaux: { bg: '#881337', text: WHITE },
+  rose: { bg: '#BE185D', text: WHITE },
+  orange: { bg: '#C2410C', text: WHITE },
+  brun: { bg: '#78350F', text: WHITE },
+  olive: { bg: '#4D7C0F', text: WHITE },
+  vert: { bg: '#15803D', text: WHITE },
+  sarcelle: { bg: '#0F766E', text: WHITE },
+  bleu: { bg: '#1D4ED8', text: WHITE },
+  marine: { bg: '#1E3A5F', text: WHITE },
+  violet: { bg: '#6D28D9', text: WHITE },
+  gris: { bg: '#374151', text: WHITE },
+  gris_pale: { bg: '#E5E7EB', text: DARK },
+} as const;
+export type HeaderColor = keyof typeof HEADER_COLORS;
+const headerColor = (v: unknown): HeaderColor | undefined => (typeof v === 'string' && Object.hasOwn(HEADER_COLORS, v) ? (v as HeaderColor) : undefined);
+
 export interface Option {
   id: string;
   label: string;
@@ -37,6 +67,8 @@ export interface Field {
   options?: Option[];
   /** Half the width, beside its neighbour when it is half too (owner, 2026-10-13). Full when absent. */
   half?: boolean;
+  /** A section's header band; none when absent. */
+  color?: HeaderColor;
   /** For number. */
   min?: number;
   max?: number;
@@ -44,6 +76,8 @@ export interface Field {
 
 export interface FormDefinition {
   title: string;
+  /** The title's band under the logo; none when absent. */
+  titleColor?: HeaderColor;
   intro?: string;
   fields: Field[];
   /** Ends with "I agree" and the person's typed name (owner, 2026-10-09: no drawing). */
@@ -102,6 +136,8 @@ export function parseDefinition(raw: unknown): DefinitionResult {
     const field: Field = { id, type, label: label ?? '', required: type !== 'heading' && f.required === true, sensitive: type !== 'heading' && f.sensitive === true };
     if (help) field.help = help;
     if (type !== 'heading' && f.half === true) field.half = true;
+    const color = type === 'heading' ? headerColor(f.color) : undefined;
+    if (color) field.color = color;
 
     if (type === 'choice' || type === 'select' || type === 'choices') {
       const opts = Array.isArray(f.options) ? f.options : [];
@@ -134,6 +170,8 @@ export function parseDefinition(raw: unknown): DefinitionResult {
   if (errors.length) return { ok: false, errors: [...new Set(errors)] };
   const definition: FormDefinition = { title: title!, fields, signature: raw.signature === true };
   if (intro) definition.intro = intro;
+  const titleColor = headerColor(raw.titleColor);
+  if (titleColor) definition.titleColor = titleColor;
   return { ok: true, definition };
 }
 
