@@ -14,7 +14,8 @@
 .fo-intro { white-space:pre-line; color:var(--text-muted); margin:0; max-width:70ch; }
 .fo-field { display:flex; flex-direction:column; gap:6px; }
 .fo-field > label, .fo-field > legend { font-weight:600; color:var(--text); padding:0; }
-.fo-field .fo-req { font-weight:400; font-size:12px; color:var(--text-dim); margin-left:6px; }
+.fo-req { font-weight:700; color:var(--red); margin-left:4px; }
+.fo-hide { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .fo-field .fo-help { font-size:13px; color:var(--text-dim); margin:0; white-space:pre-line; }
 .fo-field input[type=text], .fo-field input[type=tel], .fo-field input[type=email],
 .fo-field input[type=number], .fo-field input[type=date], .fo-field textarea, .fo-field select {

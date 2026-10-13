@@ -129,7 +129,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
         <div className="fo-field">
           <label htmlFor="fo-store">
             {ft(lang, 'restaurant')}
-            <span className="fo-req">{ft(lang, 'required_mark')}</span>
+            <Req lang={lang} />
           </label>
           <select id="fo-store" value={store} onChange={(e) => setStore(e.target.value)} required>
             <option value="">{ft(lang, 'choose')}</option>
@@ -170,7 +170,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
           </div>
           <label htmlFor="fo-sign">
             {ft(lang, 'signed_name')}
-            <span className="fo-req">{ft(lang, 'required_mark')}</span>
+            <Req lang={lang} />
           </label>
           <input id="fo-sign" type="text" autoComplete="name" maxLength={120} value={signedName} onChange={(e) => setSignedName(e.target.value)} />
           {errors.signature && <p className="fo-err">{ft(lang, `err_${errors.signature}` as FormsKey)}</p>}
@@ -196,7 +196,7 @@ function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field
   const id = `fo-${field.id}`;
   const label = field.label;
   const help = field.help ? <p className="fo-help">{field.help}</p> : null;
-  const req = field.required ? <span className="fo-req">{ft(lang, 'required_mark')}</span> : null;
+  const req = field.required ? <Req lang={lang} /> : null;
   const err = error ? <p className="fo-err">{ft(lang, `err_${error}` as FormsKey)}</p> : null;
   const cls = `fo-field${field.half ? ' is-half' : ''}${error ? ' has-error' : ''}`;
 
@@ -283,5 +283,15 @@ function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field
       )}
       {err}
     </div>
+  );
+}
+
+/** A red asterisk (owner, 2026-10-13); a screen reader hears "obligatoire" instead. */
+function Req({ lang }: { lang: Lang }) {
+  return (
+    <span className="fo-req">
+      <span aria-hidden="true">*</span>
+      <span className="fo-hide">{ft(lang, 'required_mark')}</span>
+    </span>
   );
 }
