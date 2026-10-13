@@ -70,15 +70,19 @@ export function FillForm({ lang, formId, version, definition, already, person, s
   // The Arches, centred above the title (owner, 2026-10-13: like the Jotform forms, at
   // three quarters of their logo). The one instance on the page (MCDONALDS_BRAND_USAGE.md:
   // one per screen, gold, unmodified, clear space of two legs).
+  // The introduction belongs to the title (owner, 2026-10-13): one block, in the title's
+  // band when it has a colour, as a section's description sits in its header.
   const Title = preview ? 'h2' : 'h1';
+  const band = definition.titleColor ? HEADER_COLORS[definition.titleColor] : null;
   const masthead = (
     <header className="fo-masthead">
       <div className="fo-logo">
         <ArchesSvg />
       </div>
-      <Title className={definition.titleColor ? 'fo-band' : undefined} style={definition.titleColor ? { background: HEADER_COLORS[definition.titleColor].bg, color: HEADER_COLORS[definition.titleColor].text } : undefined}>
-        {definition.title}
-      </Title>
+      <div className={`fo-titleblock is-${definition.titleAlign ?? 'center'}${band ? ' fo-band' : ''}`} style={band ? { background: band.bg, color: band.text } : undefined}>
+        <Title>{definition.title}</Title>
+        {definition.intro && !done && <p className="fo-intro">{definition.intro}</p>}
+      </div>
     </header>
   );
 
@@ -95,7 +99,6 @@ export function FillForm({ lang, formId, version, definition, already, person, s
   return (
     <form className="fo-form" onSubmit={send} noValidate>
       {masthead}
-      {definition.intro && <p className="fo-intro">{definition.intro}</p>}
       {(definition.signature || stores.length > 1 || definition.fields.some((f) => f.required)) && (
         <p className="fo-dim">
           {ft(lang, 'required_note_before')}
@@ -169,7 +172,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
         if (!sec.head) return <Fragment key={i}>{inputs}</Fragment>;
         return (
           <section key={sec.head.id} className="fo-section" aria-labelledby={`fo-${sec.head.id}`}>
-            <div className={`fo-section-head${sec.head.color ? ' fo-band' : ''}`} style={sec.head.color ? { background: HEADER_COLORS[sec.head.color].bg, color: HEADER_COLORS[sec.head.color].text } : undefined}>
+            <div className={`fo-section-head is-${sec.head.align ?? 'left'}${sec.head.color ? ' fo-band' : ''}`} style={sec.head.color ? { background: HEADER_COLORS[sec.head.color].bg, color: HEADER_COLORS[sec.head.color].text } : undefined}>
               <h2 id={`fo-${sec.head.id}`}>{sec.head.label}</h2>
               {sec.head.help && <p>{sec.head.help}</p>}
             </div>

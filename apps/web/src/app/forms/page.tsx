@@ -1,11 +1,12 @@
-import { formatDay, type Lang } from '@/lib/i18n';
+import { formatDay } from '@/lib/i18n';
 import { formsDb } from '@/lib/forms/db';
-import { ft, type FormsKey } from '@/lib/forms/i18n';
+import { ft } from '@/lib/forms/i18n';
 import { canEditForms, fillDecision, responsesScope } from '@/lib/forms/rules';
 import { listForms, mySubmissions, openForms } from '@/lib/forms/store';
 import { getLang } from '@/lib/lang';
 import { getRoster, getViewer } from '@/lib/viewer';
 import { NewForm } from '@/components/forms/new-form';
+import { FormBadges } from '@/components/forms/badges';
 import Link from 'next/link';
 
 /**
@@ -80,7 +81,7 @@ export default async function FormsPage() {
                 <li key={f.id}>
                   <div>
                     <b>{f.title}</b>
-                    <span className={`fo-status is-${f.status}`}>{statusLabel(lang, f.status)}</span>
+                    <FormBadges lang={lang} status={f.status} version={f.currentVersion} pending={editor && f.draftDiffers} />
                   </div>
                   <div className="fo-links">
                     {f.currentVersion !== null && (
@@ -103,8 +104,4 @@ export default async function FormsPage() {
       )}
     </>
   );
-}
-
-function statusLabel(lang: Lang, status: string) {
-  return ft(lang, `status_${status}` as FormsKey);
 }

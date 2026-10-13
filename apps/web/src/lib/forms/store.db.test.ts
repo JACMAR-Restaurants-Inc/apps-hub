@@ -7,7 +7,7 @@ import { existsSync } from 'node:fs';
 import { createDb, formEvents, forms, submissions } from '@hub/db';
 import { asc, eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
-import { type Conn, createForm, duplicateForm, getForm, parseSettings, updateSettings, listForms, listSubmissions, mySubmissions, openForms, publish, saveDraft, setStatus, share, submit, type Person } from './store';
+import { type Conn, createForm, restoreVersion, versionHistory, duplicateForm, getForm, parseSettings, updateSettings, listForms, listSubmissions, mySubmissions, openForms, publish, saveDraft, setStatus, share, submit, type Person } from './store';
 
 if (!process.env.DATABASE_URL && existsSync('.env.local')) process.loadEnvFile('.env.local');
 const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
@@ -205,6 +205,43 @@ describe.skipIf(!db)('Forms on Postgres (rolled back)', () => {
       expect((f.draft as { fields: { id: string }[] }).fields.map((x) => x.id)).toEqual(['phone', 'bus']);
       expect((f.draft as { title: string }).title).toBe('Calypso 2027');
       expect(await listSubmissions(tx, copy!, 'all')).toEqual([]);
+    });
+  });
+
+  it('versions: history newest first with answers per version; a restore changes only the draft; the list flags unpublished changes', async () => {
+    await rolledBack(async (tx) => {
+      const id = await openForm(tx);
+      const flag = async () => (await listForms(tx)).find((f) => f.id === id)!.draftDiffers;
+      expect(await flag()).toBe(false);
+      expect((await submit(tx, MARIE, id, 1, { phone: '8195550101' }, 'Marie', allow())).outcome).toBe('done');
+
+      const v2 = { ...QUESTIONS, title: 'Calypso v2', fields: [...QUESTIONS.fields, { id: 'note', type: 'text', label: 'Note' }] };
+      expect((await saveDraft(tx, HR, id, await at(tx, id), v2)).outcome).toBe('done');
+      expect(await flag()).toBe(true);
+      expect((await publish(tx, HR, id, await at(tx, id))).version).toBe(2);
+      expect(await flag()).toBe(false);
+
+      const history = await versionHistory(tx, id);
+      expect(history.map((v) => [v.version, v.answers, v.publishedBy, v.definition?.title])).toEqual([
+        [2, 0, HR, 'Calypso v2'],
+        [1, 1, HR, 'Calypso test'],
+      ]);
+
+      // Taking version 1 back: the draft becomes it, nothing is published, version 2 is untouched.
+      expect(await restoreVersion(tx, HR, id, 1, new Date(0).toISOString())).toBe('changed');
+      expect(await restoreVersion(tx, HR, id, 9, await at(tx, id))).toBe('not_found');
+      expect(await restoreVersion(tx, HR, id, 2, await at(tx, id))).toBe('unchanged');
+      expect(await restoreVersion(tx, HR, id, 1, await at(tx, id))).toBe('done');
+      const f = (await getForm(tx, id))!;
+      expect(f.currentVersion).toBe(2);
+      expect(f.title).toBe('Calypso test');
+      expect((f.draft as { fields: { id: string }[] }).fields.map((x) => x.id)).toEqual(['phone', 'bus']);
+      expect(await flag()).toBe(true);
+      expect((await versionHistory(tx, id))[0].definition?.title).toBe('Calypso v2');
+      const events = await tx.select({ event: formEvents.event, detail: formEvents.detail }).from(formEvents).where(eq(formEvents.formId, id)).orderBy(asc(formEvents.id));
+      expect(events.at(-1)).toEqual({ event: 'restored', detail: { version: 1 } });
+      // Publishing it makes version 3, the same questions as 1.
+      expect((await publish(tx, HR, id, await at(tx, id))).version).toBe(3);
     });
   });
 });

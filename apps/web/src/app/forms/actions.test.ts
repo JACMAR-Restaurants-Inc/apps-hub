@@ -20,6 +20,7 @@ const store = vi.hoisted(() => ({
   duplicateForm: vi.fn(),
   getForm: vi.fn(async (): Promise<unknown> => null),
   deleteForm: vi.fn(),
+  restoreVersion: vi.fn(),
   publishedVersion: vi.fn(async (): Promise<unknown> => null),
 }));
 const files = vi.hoisted(() => ({
@@ -81,6 +82,7 @@ const hrCalls: [string, () => Promise<{ outcome: string }>][] = [
   ['updateSettingsAction', () => actions.updateSettingsAction(1, {}, {})],
   ['duplicateFormAction', () => actions.duplicateFormAction(1, 'x')],
   ['deleteFormAction', () => actions.deleteFormAction(1, 'x')],
+  ['restoreVersionAction', () => actions.restoreVersionAction(1, 1, 'x')],
 ];
 
 describe('HR’s Forms actions refuse anyone who may not edit forms', () => {

@@ -17,7 +17,7 @@ import { formsDb } from '@/lib/forms/db';
 import { ALLOWED_TYPES, MAX_BYTES, MAX_STAGED_PER_DAY, abandonedFiles, fileById, setFilePath, stageFile, stagedCount, unstageFile } from '@/lib/forms/files';
 import { forgetForm, tellReached } from '@/lib/forms/notify';
 import { FORMS_APP, NOBODY, fillDecision, newlyReached, pickStore } from '@/lib/forms/rules';
-import { createForm, deleteForm, duplicateForm, getForm, publish, publishedVersion, saveDraft, setStatus, share, submit, updateSettings, type Outcome, type SubmitResult } from '@/lib/forms/store';
+import { createForm, deleteForm, duplicateForm, restoreVersion, getForm, publish, publishedVersion, saveDraft, setStatus, share, submit, updateSettings, type Outcome, type SubmitResult } from '@/lib/forms/store';
 import { directoryPerson } from '@/lib/people';
 import { allow, journalUnderLimit } from '@/lib/rate-limit';
 import { getRoster, getSignedInEmail } from '@/lib/viewer';
@@ -217,6 +217,11 @@ export async function shareAction(id: unknown, shown: unknown, next: unknown): P
     }
     return { outcome: out.outcome };
   });
+}
+
+/** A published version's questions back into the draft; nothing is published. */
+export async function restoreVersionAction(id: unknown, version: unknown, shownAt: unknown): Promise<EditResult> {
+  return asHr('restore', id, async (actor) => ({ outcome: await restoreVersion(formsDb(), actor, id, version, shownAt) }));
 }
 
 export async function setStatusAction(id: unknown, status: unknown, shownAt: unknown): Promise<EditResult> {

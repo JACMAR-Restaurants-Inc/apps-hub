@@ -7,8 +7,6 @@
 .fo-list li > div { display:flex; flex-direction:column; gap:2px; min-width:0; }
 .fo-dim { font-size:13px; color:var(--text-dim); }
 .fo-link { font-weight:600; color:var(--blue); white-space:nowrap; }
-.fo-status { font-size:12px; font-weight:600; color:var(--text-dim); }
-.fo-status.is-open { color:var(--green); }
 
 .fo-form { display:flex; flex-direction:column; gap:18px; }
 .fo-intro { white-space:pre-line; color:var(--text-muted); margin:0; max-width:70ch; }
@@ -67,7 +65,7 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-cols > * { grid-column:1 / -1; min-width:0; }
 .fo-cols > .is-half { grid-column:auto; }
 @media (max-width:600px) { .fo-cols > .is-half { grid-column:1 / -1; } }
-.fo-section-head { padding-bottom:10px; border-bottom:1px solid var(--line2); }
+.fo-section-head { display:flex; flex-direction:column; padding-bottom:10px; border-bottom:1px solid var(--line2); }
 .fo-section-head h2 { margin:0; font-size:18px; }
 .fo-section-head p { margin:4px 0 0; color:var(--text-muted); white-space:pre-line; }
 .fo-cardhead { display:flex; align-items:center; gap:10px; }
@@ -112,7 +110,20 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-section-head.fo-band { margin:-16px -16px 0; padding:12px 16px; border-bottom:0; border-radius:11px 11px 0 0; }
 .fo-band h2, .fo-band p { color:inherit; }
 .fo-band p { opacity:.92; }
-.fo-masthead .fo-band { align-self:stretch; max-width:none; padding:14px 20px; border-radius:10px; }
+.fo-titleblock { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.fo-titleblock .fo-intro { max-width:70ch; }
+.fo-titleblock.is-left, .fo-section-head.is-left { align-items:flex-start; text-align:left; }
+.fo-titleblock.is-center, .fo-section-head.is-center { align-items:center; text-align:center; }
+.fo-titleblock.is-right, .fo-section-head.is-right { align-items:flex-end; text-align:right; }
+.fo-titleblock:not(.fo-band) { align-self:stretch; }
+.fo-aligns { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; align-self:flex-start; }
+.fo-aligns button { font:inherit; font-weight:600; padding:8px 12px; border:0; background:var(--card-bg); color:var(--text-muted); cursor:pointer; }
+.fo-aligns button + button { border-left:1px solid var(--border); }
+.fo-aligns button[aria-pressed=true] { background:var(--blue); color:#fff; }
+.fo-aligns button:focus-visible { outline:2px solid var(--blue); outline-offset:-2px; }
+.fo-headstyle { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:flex-end; }
+.fo-masthead .fo-band { align-self:stretch; padding:16px 20px; border-radius:10px; }
+.fo-band h1, .fo-band .fo-intro { color:inherit; }
 .fo-colorpick { position:relative; align-items:flex-start; }
 .fo-colorbtn { display:inline-flex; align-items:center; gap:8px; }
 .fo-chip { width:18px; height:18px; border-radius:5px; box-shadow:0 0 0 1px var(--border); }
@@ -128,3 +139,17 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-danger-solid { background:var(--red); border-color:var(--red); color:#fff; }
 .fo-confirm { display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--red); border-radius:10px; max-width:520px; }
 .fo-confirm p { margin:0; }
+/* Badges: where a form stands. */
+.fo-badges { display:inline-flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.fo-badge { display:inline-block; font-size:12px; font-weight:700; line-height:1; padding:5px 8px; border-radius:999px;
+  border:1px solid var(--border); color:var(--text-muted); background:var(--card-bg); white-space:nowrap; }
+.fo-badge.is-open { color:#fff; background:#15803D; border-color:#15803D; }
+.fo-badge.is-closed { color:#fff; background:#4B5563; border-color:#4B5563; }
+.fo-badge.is-version { color:var(--blue); border-color:var(--blue); }
+.fo-badge.is-pending { color:#7C2D12; background:#FFEDD5; border-color:#FDBA74; }
+/* History tab. */
+.fo-history { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.fo-history > li { border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+.fo-history > li.is-current { border-color:#15803D; }
+.fo-history .fo-vhead { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+.fo-history .fo-vpreview { border-top:1px solid var(--line2); padding-top:12px; }
