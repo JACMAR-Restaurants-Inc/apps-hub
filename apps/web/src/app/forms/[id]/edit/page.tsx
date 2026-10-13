@@ -3,7 +3,7 @@ import { formsDb } from '@/lib/forms/db';
 import { emptyDefinition, parseDefinition } from '@/lib/forms/definition';
 import { ft } from '@/lib/forms/i18n';
 import { canEditForms } from '@/lib/forms/rules';
-import { getForm, publishedVersion } from '@/lib/forms/store';
+import { getForm, publishedVersion, isAnswered } from '@/lib/forms/store';
 import { getLang } from '@/lib/lang';
 import { restaurantLabel, roleLabel } from '@/lib/labels';
 import { directoryPeople, directoryPerson } from '@/lib/people';
@@ -36,11 +36,12 @@ export default async function EditPage({ params }: PageProps<'/forms/[id]/edit'>
 
   const parsed = parseDefinition(form.draft);
   const draft = parsed.ok ? parsed.definition : emptyDefinition(form.title);
-  const [live, stores, people, me] = await Promise.all([
+  const [live, stores, people, me, answered] = await Promise.all([
     form.currentVersion !== null ? publishedVersion(formsDb(), form.id, form.currentVersion) : null,
     listRestaurants(),
     directoryPeople(),
     directoryPerson(viewer.email),
+    isAnswered(formsDb(), form.id),
   ]);
 
   return (
@@ -65,6 +66,7 @@ export default async function EditPage({ params }: PageProps<'/forms/[id]/edit'>
           audience: form.audience,
           settings: { notifyEmail: form.notifyEmail, oncePerPerson: form.oncePerPerson, sensitiveDays: form.sensitiveDays, keepDays: form.keepDays },
           draftDiffers: JSON.stringify(live) !== JSON.stringify(draft),
+          answered,
         }}
         restaurants={stores.filter((s) => s.active).map((s) => ({ id: s.id, label: restaurantLabel(s.id, s.name) }))}
         people={people}

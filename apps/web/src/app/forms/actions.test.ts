@@ -19,6 +19,7 @@ const store = vi.hoisted(() => ({
   updateSettings: vi.fn(),
   duplicateForm: vi.fn(),
   getForm: vi.fn(async (): Promise<unknown> => null),
+  deleteForm: vi.fn(),
   publishedVersion: vi.fn(async (): Promise<unknown> => null),
 }));
 const files = vi.hoisted(() => ({
@@ -52,7 +53,7 @@ vi.mock('@/lib/storage', async () => ({ ...(await vi.importActual<object>('@/lib
 vi.mock('server-only', () => ({}));
 vi.mock('next/server', () => ({ after: vi.fn() }));
 vi.mock('@/lib/forms/db', () => ({ formsDb: vi.fn(() => ({})) }));
-vi.mock('@/lib/forms/notify', () => ({ tellReached: vi.fn() }));
+vi.mock('@/lib/forms/notify', () => ({ tellReached: vi.fn(), forgetForm: vi.fn() }));
 vi.mock('@/lib/db', () => ({ db: vi.fn(() => ({})) }));
 vi.mock('@/lib/people', () => ({ directoryPerson: vi.fn(async (email: string) => ({ email, fullName: 'Someone', employeeNumber: '0042' })) }));
 vi.mock('@/lib/rate-limit', () => ({ allow: vi.fn(async () => ({ allowed: true, justTripped: false })), journalUnderLimit: journal }));
@@ -79,6 +80,7 @@ const hrCalls: [string, () => Promise<{ outcome: string }>][] = [
   ['setStatusAction', () => actions.setStatusAction(1, 'closed', 'x')],
   ['updateSettingsAction', () => actions.updateSettingsAction(1, {}, {})],
   ['duplicateFormAction', () => actions.duplicateFormAction(1, 'x')],
+  ['deleteFormAction', () => actions.deleteFormAction(1, 'x')],
 ];
 
 describe('HR’s Forms actions refuse anyone who may not edit forms', () => {

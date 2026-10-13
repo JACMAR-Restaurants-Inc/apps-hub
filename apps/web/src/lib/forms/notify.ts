@@ -1,5 +1,6 @@
 import 'server-only';
 import { notifications } from '@hub/db';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 
 /**
@@ -16,5 +17,16 @@ export async function tellReached(emails: string[], formId: number, title: strin
       .values(emails.map((email) => ({ email, app: 'Forms', kind: 'form', detail: { formId, title } })));
   } catch (e) {
     console.error('forms: could not write notifications', e);
+  }
+}
+
+/** A deleted form's notifications go too, so no bell points at nothing. Its own write, after the delete. */
+export async function forgetForm(formId: number): Promise<void> {
+  try {
+    await db()
+      .delete(notifications)
+      .where(and(eq(notifications.app, 'Forms'), eq(notifications.kind, 'form'), sql`(${notifications.detail} ->> 'formId')::int = ${formId}`));
+  } catch (e) {
+    console.error('forms: could not remove a deleted form’s notifications', e);
   }
 }
