@@ -233,10 +233,13 @@ function checkOne(field: Field, raw: unknown): { value?: Value; error?: AnswerEr
       if (raw == null || str === '') return {};
       return str !== null && validDate(str) ? { value: str } : { error: 'invalid' };
     case 'phone': {
+      // A Canadian (North American) number (owner, 2026-10-13): 10 digits, an optional
+      // leading 1 or +1; the area code and the exchange never start with 0 or 1. Kept
+      // as its 10 digits. It used to take any 10 to 15 digits.
       if (raw == null || str === '') return {};
       if (str === null || !/^[\d\s().+-]+$/.test(str)) return { error: 'invalid' };
-      const digits = str.replace(/\D/g, '');
-      return digits.length >= 10 && digits.length <= 15 ? { value: digits } : { error: 'invalid' };
+      const digits = str.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+      return /^[2-9]\d{2}[2-9]\d{6}$/.test(digits) ? { value: digits } : { error: 'invalid' };
     }
     case 'email':
       if (raw == null || str === '') return {};
@@ -322,6 +325,22 @@ export function moveSection(fields: Field[], i: number, by: -1 | 1): Field[] | n
   if (to < 0 || to >= blocks.length || !blocks[to].head) return null;
   [blocks[b], blocks[to]] = [blocks[to], blocks[b]];
   return blocks.flatMap((s) => (s.head ? [s.head, ...s.fields] : s.fields));
+}
+
+/**
+ * One answer's problem, if any: the same check as checkAnswers, for the browser to run as
+ * a field is left (owner, 2026-10-13). `required: false` skips "required", which waits for
+ * Envoyer, so moving through a form does not light it up.
+ */
+export function checkField(field: Field, raw: unknown, { required = true } = {}): AnswerError | null {
+  const { value, error } = checkOne(field, raw);
+  if (error) return error;
+  return required && value === undefined && field.required ? 'required' : null;
+}
+
+/** A phone kept as 10 digits, as people write it: (819) 555-0101. Anything else as stored. */
+export function formatPhone(digits: string): string {
+  return /^\d{10}$/.test(digits) ? `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}` : digits;
 }
 
 /** The file ids each file question was answered with. */

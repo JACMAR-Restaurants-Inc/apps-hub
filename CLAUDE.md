@@ -321,7 +321,11 @@ editor's History tab lists them (when, by whom, answers each) and can take one b
 into the DRAFT (`restoreVersion`), which publishes nothing; publishing it makes a new
 version (owner, 2026-10-13: forms improved month after month). Badges say where a form
 stands: Brouillon, En ligne or Fermé, vN, and "Modifications non publiées". Answers are rebuilt on the server from the version
-(`checkAnswers`): unknown keys dropped, values normalised. Name, employee number and
+(`checkAnswers`): unknown keys dropped, values normalised. The browser runs the SAME check
+(`checkField`) as each field is left (owner, 2026-10-13), "required" waiting for Envoyer,
+so the two never disagree; the server's check is the one that counts. A phone is
+Canadian: 10 digits, an optional leading 1 or +1, area code and exchange not starting
+with 0 or 1, kept as the 10 digits (it took any 10 to 15 digits until 2026-10-13). Name, employee number and
 email come from the directory, never typed (so nobody files under another's number);
 the signature is a typed name plus "I agree" (owner: no drawing). HR writes forms in
 FRENCH ONLY (owner, 2026-10-12: "we are a French company"): the language toggle changes

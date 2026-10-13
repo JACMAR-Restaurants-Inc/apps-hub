@@ -2,7 +2,7 @@
 
 import { removeFormFileAction, submitFormAction, uploadFormFileAction } from '@/app/forms/actions';
 import { ArchesSvg } from '@/components/arches';
-import { HEADER_COLORS, sections, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
+import { HEADER_COLORS, checkField, formatPhone, sections, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Lang } from '@/lib/i18n';
 import { Fragment, useState, useTransition } from 'react';
@@ -41,6 +41,33 @@ export function FillForm({ lang, formId, version, definition, already, person, s
       else next[id] = v;
       return next;
     });
+
+  /** Clears a field's error as soon as its answer is right again; never adds one while typing. */
+  const change = (f: Field, v: Value | undefined) => {
+    set(f.id, v);
+    if (errors[f.id] && !checkField(f, v, { required: errors[f.id] === 'required' }))
+      setErrors((e) => {
+        const next = { ...e };
+        delete next[f.id];
+        return next;
+      });
+  };
+
+  /** Leaving a field checks it (owner, 2026-10-13), "required" aside; a good phone is shown formatted. */
+  const leave = (f: Field) => {
+    const v = answers[f.id];
+    const problem = checkField(f, v, { required: false });
+    setErrors((e) => {
+      const next = { ...e };
+      if (problem) next[f.id] = problem;
+      else if (next[f.id] !== 'required' || v !== undefined) delete next[f.id];
+      return next;
+    });
+    if (!problem && f.type === 'phone' && typeof v === 'string') {
+      const digits = v.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+      set(f.id, formatPhone(digits));
+    }
+  };
 
   function send(e: React.FormEvent) {
     e.preventDefault();
@@ -164,7 +191,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
               f.type === 'file' ? (
                 <FileField key={f.id} lang={lang} formId={formId} field={f} error={errors[f.id]} preview={preview} onBusy={(d) => setUploading((n) => n + d)} onChange={(v) => set(f.id, v)} />
               ) : (
-                <FieldInput key={f.id} lang={lang} field={f} value={answers[f.id]} error={errors[f.id]} onChange={(v) => set(f.id, v)} />
+                <FieldInput key={f.id} lang={lang} field={f} value={answers[f.id]} error={errors[f.id]} onChange={(v) => change(f, v)} onBlur={() => leave(f)} />
               ),
             )}
           </div>
@@ -211,12 +238,30 @@ export function FillForm({ lang, formId, version, definition, already, person, s
   );
 }
 
-function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field: Field; value: Value | undefined; error?: string; onChange: (v: Value | undefined) => void }) {
+function FieldInput({
+  lang,
+  field,
+  value,
+  error,
+  onChange,
+  onBlur,
+}: {
+  lang: Lang;
+  field: Field;
+  value: Value | undefined;
+  error?: string;
+  onChange: (v: Value | undefined) => void;
+  onBlur: () => void;
+}) {
   const id = `fo-${field.id}`;
   const label = field.label;
   const help = field.help ? <p className="fo-help">{field.help}</p> : null;
   const req = field.required ? <Req lang={lang} /> : null;
-  const err = error ? <p className="fo-err">{ft(lang, `err_${error}` as FormsKey)}</p> : null;
+  const err = error ? (
+    <p className="fo-err" id={`${id}-err`}>
+      {ft(lang, error === 'invalid' && (field.type === 'phone' || field.type === 'email') ? `err_${field.type}` : (`err_${error}` as FormsKey))}
+    </p>
+  ) : null;
   const cls = `fo-field${field.half ? ' is-half' : ''}${error ? ' has-error' : ''}`;
 
   if (field.type === 'agree') {
@@ -284,6 +329,9 @@ function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field
     id,
     value: text,
     onChange: (e: { target: { value: string } }) => onChange(e.target.value),
+    onBlur,
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': error ? `${id}-err` : undefined,
   };
   return (
     <div className={cls}>

@@ -48,6 +48,8 @@ export const formsDict = {
 
   err_required: { fr: 'Ce champ est obligatoire.', en: 'This field is required.' },
   err_invalid: { fr: 'Cette réponse n’est pas valide.', en: 'This answer is not valid.' },
+  err_phone: { fr: 'Entrez un numéro à 10 chiffres, par exemple (819)\u00a0555-0101.', en: 'Enter a 10-digit number, for example (819) 555-0101.' },
+  err_email: { fr: 'Entrez une adresse courriel complète, par exemple nom@exemple.com.', en: 'Enter a full email address, for example name@example.com.' },
   err_too_long: { fr: 'Cette réponse est trop longue.', en: 'This answer is too long.' },
   err_fix: { fr: 'Corrigez les champs indiqués.', en: 'Fix the fields shown.' },
   err_changed: {
