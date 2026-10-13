@@ -40,10 +40,7 @@ export default async function FillPage({ params }: PageProps<'/forms/[id]'>) {
   const names = new Map(stores.map((s) => [s.id, s.name]));
   return (
     <>
-      <div className="pagehead">
-        {back}
-        <h1>{def.title}</h1>
-      </div>
+      <div className="pagehead">{back}</div>
       <section className="panel">
         <FillForm
           lang={lang}

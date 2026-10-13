@@ -1,9 +1,9 @@
 /**
  * McDonald's Canadian Golden Arches, the official web SVG byte for byte
  * (McDs_Arches_Canada_RGB_web.svg, also public/brand/mcd-arches.svg). Never recoloured,
- * never on a plate, never with effects; only on the door and on McDonald's own sites'
- * cards (MCDONALDS_BRAND_USAGE.md, RBAC §74). Inline so it needs no request and keeps
- * its accessible name.
+ * never on a plate, never with effects; only on the door, on McDonald's own sites'
+ * cards (RBAC §74), and at the top of a form (owner, 2026-10-13) (MCDONALDS_BRAND_USAGE.md).
+ * Inline so it needs no request and keeps its accessible name.
  */
 export function ArchesSvg() {
   return (

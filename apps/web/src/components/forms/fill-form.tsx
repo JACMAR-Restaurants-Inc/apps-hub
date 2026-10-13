@@ -1,6 +1,7 @@
 'use client';
 
 import { submitFormAction } from '@/app/forms/actions';
+import { ArchesSvg } from '@/components/arches';
 import { sections, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Lang } from '@/lib/i18n';
@@ -65,10 +66,32 @@ export function FillForm({ lang, formId, version, definition, already, person, s
     });
   }
 
-  if (done) return <p className="fo-ok" role="status">{ft(lang, message ?? 'sent')}</p>;
+  // The Arches, centred above the title (owner, 2026-10-13: like the Jotform forms, at
+  // three quarters of their logo). The one instance on the page (MCDONALDS_BRAND_USAGE.md:
+  // one per screen, gold, unmodified, clear space of two legs).
+  const Title = preview ? 'h2' : 'h1';
+  const masthead = (
+    <header className="fo-masthead">
+      <div className="fo-logo">
+        <ArchesSvg />
+      </div>
+      <Title>{definition.title}</Title>
+    </header>
+  );
+
+  if (done)
+    return (
+      <>
+        {masthead}
+        <p className="fo-ok" role="status">
+          {ft(lang, message ?? 'sent')}
+        </p>
+      </>
+    );
 
   return (
     <form className="fo-form" onSubmit={send} noValidate>
+      {masthead}
       {definition.intro && <p className="fo-intro">{definition.intro}</p>}
 
       <div>

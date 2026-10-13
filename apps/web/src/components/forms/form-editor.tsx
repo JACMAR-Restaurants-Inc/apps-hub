@@ -194,7 +194,6 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
 
       {tab === 'preview' && (
         <section className="panel">
-          <h2 className="fo-preview-title">{def.title}</h2>
           <FillForm lang={lang} formId={form.id} version={0} definition={def} already={false} person={me} stores={restaurants.slice(0, 1)} preview />
         </section>
       )}
