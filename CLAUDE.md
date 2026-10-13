@@ -226,10 +226,14 @@ transaction, dated by the server in Toronto, under a per-restaurant advisory loc
 a global one, safe-count §17), one per restaurant per minute. Counts are never edited.
 
 **The report queue retries, but never by surprise** (`lib/cash/reports.ts`). A job runs
-right after its count (`after()`), then `/api/cash/sweep` every 5 minutes (Vercel cron,
+right after its count (`after()`), then `/api/cash/sweep` (Vercel cron,
 `CRON_SECRET`; the old queue was callable by anyone) retries pending or failed jobs, up
 to 8 attempts and ONLY from the last 7 days: the import brought one job that failed in
-April, and an old report must be a person's decision (Rapports, "Réessayer"). An email
+April, and an old report must be a person's decision (Rapports, "Réessayer"). The cron
+runs ONCE A DAY (09:00 UTC, 4 or 5 am Toronto) while staging is on Vercel Hobby, which
+refuses to deploy anything more frequent (2026-10-13: the Pro trial ended and the deploy
+failed); it was every 5 minutes, and goes back to `*/5 * * * *` in `apps/web/vercel.json`
+on Pro. An email
 already sent is never resent. Every email is recorded in `cash.report_emails`, sent or
 not, with why: that is the Rapports page. The PDF is drawn once with @react-pdf/renderer
 and kept; attached PDFs are merged with pdf-lib (the old jacmar-pdf-merge Cloud
