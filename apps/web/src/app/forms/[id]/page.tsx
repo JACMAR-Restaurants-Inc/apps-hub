@@ -1,6 +1,5 @@
 import { FillForm } from '@/components/forms/fill-form';
 import { formsDb } from '@/lib/forms/db';
-import { say } from '@/lib/forms/definition';
 import { ft } from '@/lib/forms/i18n';
 import { fillDecision } from '@/lib/forms/rules';
 import { getForm, mySubmissions, publishedVersion } from '@/lib/forms/store';
@@ -43,7 +42,7 @@ export default async function FillPage({ params }: PageProps<'/forms/[id]'>) {
     <>
       <div className="pagehead">
         {back}
-        <h1>{say(def.title, lang)}</h1>
+        <h1>{def.title}</h1>
       </div>
       <section className="panel">
         <FillForm

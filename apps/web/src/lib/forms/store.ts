@@ -132,7 +132,7 @@ export async function saveDraft(db: Conn, actor: string, id: unknown, shownAt: u
     if (!form) return { outcome: 'not_found' };
     if (form.updatedAt.toISOString() !== shownAt) return { outcome: 'changed' };
     if (JSON.stringify(form.draft) === JSON.stringify(parsed.definition)) return { outcome: 'unchanged' };
-    await tx.update(forms).set({ draft: parsed.definition, title: parsed.definition.title.fr, updatedAt: sql`now()` }).where(eq(forms.id, id));
+    await tx.update(forms).set({ draft: parsed.definition, title: parsed.definition.title, updatedAt: sql`now()` }).where(eq(forms.id, id));
     await event(tx, id, actor, 'draft_saved');
     return { outcome: 'done' };
   });
@@ -372,7 +372,7 @@ export async function duplicateForm(db: Conn, actor: string, id: unknown, title:
     const [source] = await tx.select().from(forms).where(eq(forms.id, id));
     if (!source) return { outcome: 'not_found' };
     const parsed = parseDefinition(source.draft);
-    const draft = parsed.ok ? { ...parsed.definition, title: { ...parsed.definition.title, fr: t } } : emptyDefinition(t);
+    const draft = parsed.ok ? { ...parsed.definition, title: t } : emptyDefinition(t);
     const [r] = await tx
       .insert(forms)
       .values({ title: t, status: 'draft', draft, audience: NOBODY, notifyEmail: source.notifyEmail, oncePerPerson: source.oncePerPerson, sensitiveDays: source.sensitiveDays, keepDays: source.keepDays, createdBy: actor })

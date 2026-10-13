@@ -29,10 +29,10 @@ async function rolledBack(fn: (tx: Conn) => Promise<void>) {
 const HR = 'hr-test@example.invalid';
 const MARIE: Person = { email: 'marie-test@example.invalid', fullName: 'Marie Test', employeeNumber: '0123', };
 const QUESTIONS = {
-  title: { fr: 'Calypso test' },
+  title: 'Calypso test',
   fields: [
-    { id: 'phone', type: 'phone', label: { fr: 'Téléphone' }, required: true, sensitive: true },
-    { id: 'bus', type: 'choice', label: { fr: 'Transport' }, options: [{ id: 'yes', label: { fr: 'Oui' } }, { id: 'no', label: { fr: 'Non' } }] },
+    { id: 'phone', type: 'phone', label: 'Téléphone', required: true, sensitive: true },
+    { id: 'bus', type: 'choice', label: 'Transport', options: [{ id: 'yes', label: 'Oui' }, { id: 'no', label: 'Non' }] },
   ],
   signature: true,
 };
@@ -86,7 +86,7 @@ describe.skipIf(!db)('Forms on Postgres (rolled back)', () => {
     await rolledBack(async (tx) => {
       const id = await openForm(tx);
       expect((await publish(tx, HR, id, await at(tx, id))).outcome).toBe('unchanged');
-      const changed = { ...QUESTIONS, fields: [...QUESTIONS.fields, { id: 'note', type: 'text', label: { fr: 'Note' } }] };
+      const changed = { ...QUESTIONS, fields: [...QUESTIONS.fields, { id: 'note', type: 'text', label: 'Note' }] };
       expect((await saveDraft(tx, HR, id, await at(tx, id), changed)).outcome).toBe('done');
       expect(await publish(tx, HR, id, await at(tx, id))).toEqual({ outcome: 'done', version: 2 });
       expect((await openForms(tx)).find((o) => o.id === id)!.definition.fields.map((f) => f.id)).toEqual(['phone', 'bus', 'note']);
@@ -98,7 +98,7 @@ describe.skipIf(!db)('Forms on Postgres (rolled back)', () => {
       const id = await openForm(tx);
       const first = await submit(tx, MARIE, id, 1, { phone: '819 555 0101', bus: 'yes' }, 'Marie Test', allow());
       expect(first.outcome).toBe('done');
-      await saveDraft(tx, HR, id, await at(tx, id), { ...QUESTIONS, title: { fr: 'Calypso v2' } });
+      await saveDraft(tx, HR, id, await at(tx, id), { ...QUESTIONS, title: 'Calypso v2' });
       await publish(tx, HR, id, await at(tx, id));
       const other = { ...MARIE, email: 'other-test@example.invalid' };
       expect(await submit(tx, other, id, 1, { phone: '819 555 0101' }, 'Other', allow())).toEqual({ outcome: 'changed' });
@@ -202,8 +202,8 @@ describe.skipIf(!db)('Forms on Postgres (rolled back)', () => {
       expect(outcome).toBe('done');
       const f = (await getForm(tx, copy))!;
       expect(f).toMatchObject({ title: 'Calypso 2027', status: 'draft', currentVersion: null, audience: { roles: [], stores: [], people: [] } });
-      expect((f.draft as { title: { fr: string }; fields: { id: string }[] }).fields.map((x) => x.id)).toEqual(['phone', 'bus']);
-      expect((f.draft as { title: { fr: string } }).title.fr).toBe('Calypso 2027');
+      expect((f.draft as { fields: { id: string }[] }).fields.map((x) => x.id)).toEqual(['phone', 'bus']);
+      expect((f.draft as { title: string }).title).toBe('Calypso 2027');
       expect(await listSubmissions(tx, copy!, 'all')).toEqual([]);
     });
   });

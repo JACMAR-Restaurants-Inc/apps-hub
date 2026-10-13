@@ -1,6 +1,5 @@
 import { formatDay, type Lang } from '@/lib/i18n';
 import { formsDb } from '@/lib/forms/db';
-import { say } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import { canEditForms, fillDecision, responsesScope } from '@/lib/forms/rules';
 import { listForms, mySubmissions, openForms } from '@/lib/forms/store';
@@ -45,7 +44,7 @@ export default async function FormsPage() {
               return (
                 <li key={f.id}>
                   <div>
-                    <b>{say(f.definition.title, lang)}</b>
+                    <b>{f.definition.title}</b>
                     {at && <span className="fo-dim">{ft(lang, 'sent_on').replace('{date}', formatDay(lang, at))}</span>}
                   </div>
                   {!(at && f.oncePerPerson) && (

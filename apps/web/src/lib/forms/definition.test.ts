@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { checkAnswers, parseDefinition, say, sensitiveIds, type FormDefinition } from './definition';
+import { checkAnswers, parseDefinition, sensitiveIds, type FormDefinition } from './definition';
 
 // Shaped like the Calypso registration (Jotform 261747485869074).
 const calypso = {
-  title: { fr: 'Calypso 2026', en: 'Calypso 2026' },
-  intro: { fr: 'Inscription à la journée Calypso.' },
+  title: 'Calypso 2026',
+  intro: 'Inscription à la journée Calypso.',
   fields: [
-    { id: 'contact', type: 'heading', label: { fr: 'Coordonnées' } },
-    { id: 'phone', type: 'phone', label: { fr: 'Téléphone' }, required: true, sensitive: true },
-    { id: 'emergency', type: 'text', label: { fr: 'Contact d’urgence' }, required: true, sensitive: true },
-    { id: 'guests', type: 'number', label: { fr: 'Invités' }, min: 0, max: 4 },
-    { id: 'day', type: 'date', label: { fr: 'Date' } },
-    { id: 'bus', type: 'choice', label: { fr: 'Transport' }, required: true, options: [{ id: 'yes', label: { fr: 'Autobus' } }, { id: 'no', label: { fr: 'Par mes moyens' } }] },
-    { id: 'size', type: 'choices', label: { fr: 'Tailles' }, options: [{ id: 's', label: { fr: 'P' } }, { id: 'm', label: { fr: 'M' } }, { id: 'l', label: { fr: 'G' } }] },
-    { id: 'mail', type: 'email', label: { fr: 'Courriel' } },
-    { id: 'rule1', type: 'agree', label: { fr: 'J’autorise la retenue sur ma paie.' }, required: true },
+    { id: 'contact', type: 'heading', label: 'Coordonnées' },
+    { id: 'phone', type: 'phone', label: 'Téléphone', required: true, sensitive: true },
+    { id: 'emergency', type: 'text', label: 'Contact d’urgence', required: true, sensitive: true },
+    { id: 'guests', type: 'number', label: 'Invités', min: 0, max: 4 },
+    { id: 'day', type: 'date', label: 'Date' },
+    { id: 'bus', type: 'choice', label: 'Transport', required: true, options: [{ id: 'yes', label: 'Autobus' }, { id: 'no', label: 'Par mes moyens' }] },
+    { id: 'size', type: 'choices', label: 'Tailles', options: [{ id: 's', label: 'P' }, { id: 'm', label: 'M' }, { id: 'l', label: 'G' }] },
+    { id: 'mail', type: 'email', label: 'Courriel' },
+    { id: 'rule1', type: 'agree', label: 'J’autorise la retenue sur ma paie.', required: true },
   ],
   signature: true,
 };
@@ -33,25 +33,32 @@ describe('parseDefinition', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.definition).not.toHaveProperty('extra');
-    expect(r.definition.fields[0]).toEqual({ id: 'phone', type: 'phone', label: { fr: 'Téléphone' }, required: true, sensitive: true });
+    expect(r.definition.fields[0]).toEqual({ id: 'phone', type: 'phone', label: 'Téléphone', required: true, sensitive: true });
   });
 
   it('refuses what cannot be shown or answered', () => {
     const bad = (patch: object, fieldPatch?: object) =>
       parseDefinition({ ...calypso, ...(fieldPatch ? { fields: [{ ...calypso.fields[5], ...fieldPatch }] } : {}), ...patch });
-    expect(bad({ title: { en: 'English only' } }).ok).toBe(false);
+    expect(bad({ title: '  ' }).ok).toBe(false);
+    expect(bad({ title: 42 }).ok).toBe(false);
     expect(bad({ fields: 'nope' }).ok).toBe(false);
     expect(bad({}, { type: 'signature-pad' }).ok).toBe(false);
     expect(bad({}, { id: 'Has Spaces' }).ok).toBe(false);
-    expect(bad({}, { options: [{ id: 'only', label: { fr: 'Une' } }] }).ok).toBe(false);
-    expect(bad({}, { options: [{ id: 'a', label: { fr: 'A' } }, { id: 'a', label: { fr: 'B' } }] }).ok).toBe(false);
+    expect(bad({}, { options: [{ id: 'only', label: 'Une' }] }).ok).toBe(false);
+    expect(bad({}, { options: [{ id: 'a', label: 'A' }, { id: 'a', label: 'B' }] }).ok).toBe(false);
     expect(parseDefinition({ ...calypso, fields: [calypso.fields[1], calypso.fields[1]] }).ok).toBe(false);
     expect(parseDefinition({ ...calypso, fields: [{ ...calypso.fields[3], min: 5, max: 1 }] }).ok).toBe(false);
-    expect(parseDefinition({ ...calypso, fields: Array.from({ length: 101 }, (_, i) => ({ id: `f${i}`, type: 'text', label: { fr: 'x' } })) }).ok).toBe(false);
+    expect(parseDefinition({ ...calypso, fields: Array.from({ length: 101 }, (_, i) => ({ id: `f${i}`, type: 'text', label: 'x' })) }).ok).toBe(false);
+  });
+
+  it('a form stored as { fr, en } still reads, in French only', () => {
+    const r = parseDefinition({ ...calypso, title: { fr: 'Calypso', en: 'Calypso EN' }, fields: [{ id: 'bus', type: 'choice', label: { fr: 'Transport', en: 'Transport EN' }, help: { fr: 'Aide' }, options: [{ id: 'a', label: { fr: 'A', en: 'A EN' } }, { id: 'b', label: { fr: 'B' } }] }] });
+    expect(r.ok && r.definition.title).toBe('Calypso');
+    expect(r.ok && r.definition.fields[0]).toMatchObject({ label: 'Transport', help: 'Aide', options: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }] });
   });
 
   it('a heading is never required nor sensitive', () => {
-    const r = parseDefinition({ ...calypso, fields: [{ id: 'h', type: 'heading', label: { fr: 'Titre' }, required: true, sensitive: true }] });
+    const r = parseDefinition({ ...calypso, fields: [{ id: 'h', type: 'heading', label: 'Titre', required: true, sensitive: true }] });
     expect(r.ok && r.definition.fields[0]).toMatchObject({ required: false, sensitive: false });
   });
 });
@@ -105,9 +112,5 @@ describe('checkAnswers', () => {
 describe('helpers', () => {
   it('the sensitive fields are the ones marked', () => {
     expect(sensitiveIds(def())).toEqual(['phone', 'emergency']);
-  });
-  it('English falls back to French', () => {
-    expect(say({ fr: 'Bonjour', en: 'Hello' }, 'en')).toBe('Hello');
-    expect(say({ fr: 'Bonjour' }, 'en')).toBe('Bonjour');
   });
 });

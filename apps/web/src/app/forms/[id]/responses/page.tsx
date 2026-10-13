@@ -1,5 +1,5 @@
 import { formsDb } from '@/lib/forms/db';
-import { say, sensitiveIds, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
+import { sensitiveIds, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
 import { ft } from '@/lib/forms/i18n';
 import { canEditForms, responsesScope } from '@/lib/forms/rules';
 import { allVersions, getForm, listSubmissions } from '@/lib/forms/store';
@@ -64,7 +64,7 @@ export default async function ResponsesPage({ params }: PageProps<'/forms/[id]/r
                   <th>{ft(lang, 'number')}</th>
                   <th>{ft(lang, 'restaurant')}</th>
                   {columns.map((c) => (
-                    <th key={c.id}>{say(c.label, lang)}</th>
+                    <th key={c.id}>{c.label}</th>
                   ))}
                   <th>{ft(lang, 'signature')}</th>
                 </tr>
@@ -116,7 +116,7 @@ function columnsOf(versions: Map<number, FormDefinition>, current: number | null
 function show(lang: Lang, field: Field, value: Value | undefined): string {
   if (value === undefined) return '';
   if (value === true) return ft(lang, 'yes');
-  const label = (id: string) => say(field.options?.find((o) => o.id === id)?.label, lang) || id;
+  const label = (id: string) => field.options?.find((o) => o.id === id)?.label || id;
   if (Array.isArray(value)) return value.map(label).join(', ');
   if (field.type === 'choice' && typeof value === 'string') return label(value);
   return String(value);

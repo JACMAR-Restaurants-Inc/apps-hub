@@ -1,7 +1,7 @@
 'use client';
 
 import { submitFormAction } from '@/app/forms/actions';
-import { say, type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
+import { type Field, type FormDefinition, type Value } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Lang } from '@/lib/i18n';
 import { useState, useTransition } from 'react';
@@ -69,7 +69,7 @@ export function FillForm({ lang, formId, version, definition, already, person, s
 
   return (
     <form className="fo-form" onSubmit={send} noValidate>
-      {definition.intro && <p className="fo-intro">{say(definition.intro, lang)}</p>}
+      {definition.intro && <p className="fo-intro">{definition.intro}</p>}
 
       <div>
         <div className="ph">
@@ -155,8 +155,8 @@ export function FillForm({ lang, formId, version, definition, already, person, s
 
 function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field: Field; value: Value | undefined; error?: string; onChange: (v: Value | undefined) => void }) {
   const id = `fo-${field.id}`;
-  const label = say(field.label, lang);
-  const help = field.help ? <p className="fo-help">{say(field.help, lang)}</p> : null;
+  const label = field.label;
+  const help = field.help ? <p className="fo-help">{field.help}</p> : null;
   const req = field.required ? <span className="fo-req">{ft(lang, 'required_mark')}</span> : null;
   const err = error ? <p className="fo-err">{ft(lang, `err_${error}` as FormsKey)}</p> : null;
   const cls = `fo-field${error ? ' has-error' : ''}`;
@@ -165,7 +165,7 @@ function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field
     return (
       <div className="fo-heading">
         <h2>{label}</h2>
-        {field.help && <p>{say(field.help, lang)}</p>}
+        {field.help && <p>{field.help}</p>}
       </div>
     );
   }
@@ -202,7 +202,7 @@ function FieldInput({ lang, field, value, error, onChange }: { lang: Lang; field
               checked={many ? picked.includes(o.id) : value === o.id}
               onChange={(e) => onChange(many ? (e.target.checked ? [...picked, o.id] : picked.filter((p) => p !== o.id)) : o.id)}
             />
-            <span>{say(o.label, lang)}</span>
+            <span>{o.label}</span>
           </label>
         ))}
         {err}

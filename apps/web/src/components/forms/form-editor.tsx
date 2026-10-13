@@ -1,7 +1,7 @@
 'use client';
 
 import { duplicateFormAction, publishAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
-import { FIELD_TYPES, type Field, type FieldType, type FormDefinition, type Text } from '@/lib/forms/definition';
+import { FIELD_TYPES, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Audience } from '@/lib/forms/rules';
 import type { Settings } from '@/lib/forms/store';
@@ -37,8 +37,8 @@ type Tab = 'questions' | 'preview' | 'share' | 'settings';
 const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 function blankField(type: FieldType): Field {
-  const f: Field = { id: newId('f'), type, label: { fr: '' }, required: false, sensitive: false };
-  if (type === 'choice' || type === 'choices') f.options = [{ id: newId('o'), label: { fr: '' } }, { id: newId('o'), label: { fr: '' } }];
+  const f: Field = { id: newId('f'), type, label: '', required: false, sensitive: false };
+  if (type === 'choice' || type === 'choices') f.options = [{ id: newId('o'), label: '' }, { id: newId('o'), label: '' }];
   return f;
 }
 
@@ -153,8 +153,18 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
 
       {tab === 'questions' && (
         <section className="panel fo-form">
-          <TextPair lang={lang} fr="title_fr" en="title_en" value={def.title} onChange={(title) => setDef({ ...def, title: title ?? { fr: '' } })} />
-          <TextPair lang={lang} fr="intro_fr" en="intro_en" long value={def.intro} onChange={(intro) => setDef({ ...def, intro })} />
+          <TextInput lang={lang} label="title_fr" value={def.title} onChange={(title) => setDef({ ...def, title: title ?? '' })} />
+          <TextInput
+            lang={lang}
+            label="intro_fr"
+            long
+            value={def.intro}
+            onChange={(intro) => {
+              const next = { ...def, intro };
+              if (!intro) delete next.intro;
+              setDef(next);
+            }}
+          />
 
           {def.fields.length === 0 && <p className="favempty">{t('no_fields')}</p>}
           {def.fields.map((f, i) => (
@@ -182,7 +192,7 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
 
       {tab === 'preview' && (
         <section className="panel">
-          <h2 className="fo-preview-title">{def.title.fr}</h2>
+          <h2 className="fo-preview-title">{def.title}</h2>
           <FillForm lang={lang} formId={form.id} version={0} definition={def} already={false} person={me} stores={restaurants.slice(0, 1)} preview />
         </section>
       )}
@@ -214,29 +224,21 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
             {t('reopen_form')}
           </button>
         )}
-        <Duplicate lang={lang} id={form.id} title={def.title.fr} pending={pending} onDone={(id) => router.push(`/forms/${id}/edit`)} />
+        <Duplicate lang={lang} id={form.id} title={def.title} pending={pending} onDone={(id) => router.push(`/forms/${id}/edit`)} />
       </div>
     </div>
   );
 }
 
-function TextPair({ lang, fr, en, value, long, onChange }: { lang: Lang; fr: FormsKey; en: FormsKey; value: Text | undefined; long?: boolean; onChange: (v: Text | undefined) => void }) {
-  const set = (k: 'fr' | 'en', s: string) => {
-    const next: Text = { fr: value?.fr ?? '', ...(value?.en ? { en: value.en } : {}), [k]: s };
-    if (!next.en) delete next.en;
-    onChange(next.fr || next.en ? next : undefined);
-  };
+/** One French text (owner, 2026-10-12: forms are written in French only). Empty is undefined. */
+function TextInput({ lang, label, value, long, onChange }: { lang: Lang; label: FormsKey; value: string | undefined; long?: boolean; onChange: (v: string | undefined) => void }) {
   const Input = long ? 'textarea' : 'input';
   return (
-    <div className="fo-pair">
-      {(['fr', 'en'] as const).map((k) => (
-        <div className="fo-field" key={k}>
-          <label>
-            {ft(lang, k === 'fr' ? fr : en)}
-            <Input type={long ? undefined : 'text'} value={value?.[k] ?? ''} onChange={(e: { target: { value: string } }) => set(k, e.target.value)} />
-          </label>
-        </div>
-      ))}
+    <div className="fo-field fo-text">
+      <label>
+        {ft(lang, label)}
+        <Input type={long ? undefined : 'text'} value={value ?? ''} onChange={(e: { target: { value: string } }) => onChange(e.target.value || undefined)} />
+      </label>
     </div>
   );
 }
@@ -261,11 +263,10 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
           ✕
         </button>
       </div>
-      <TextPair lang={lang} fr="label_fr" en="label_en" long={f.type === 'heading' || f.type === 'agree'} value={f.label} onChange={(label) => onChange({ ...f, label: label ?? { fr: '' } })} />
-      <TextPair
+      <TextInput lang={lang} label="label_fr" long={f.type === 'heading' || f.type === 'agree'} value={f.label} onChange={(label) => onChange({ ...f, label: label ?? '' })} />
+      <TextInput
         lang={lang}
-        fr="help_fr"
-        en="help_en"
+        label="help_fr"
         value={f.help}
         onChange={(help) => {
           const next = { ...f, help };
@@ -278,30 +279,13 @@ function FieldCard(props: { lang: Lang; n: number; field: Field; bad: boolean; f
           <span className="fo-label">{t('options')}</span>
           {f.options!.map((o, i) => (
             <div key={o.id} className="fo-option">
-              <input type="text" aria-label={t('option_fr')} placeholder={t('option_fr')} value={o.label.fr} onChange={(e) => onChange({ ...f, options: f.options!.map((x, j) => (j === i ? { ...x, label: { ...x.label, fr: e.target.value } } : x)) })} />
-              <input
-                type="text"
-                aria-label={t('option_en')}
-                placeholder={t('option_en')}
-                value={o.label.en ?? ''}
-                onChange={(e) =>
-                  onChange({
-                    ...f,
-                    options: f.options!.map((x, j) => {
-                      if (j !== i) return x;
-                      const label: Text = { fr: x.label.fr, en: e.target.value };
-                      if (!label.en) delete label.en;
-                      return { ...x, label };
-                    }),
-                  })
-                }
-              />
+              <input type="text" aria-label={t('option_fr')} placeholder={t('option_fr')} value={o.label} onChange={(e) => onChange({ ...f, options: f.options!.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })} />
               <button type="button" className="fo-icon" disabled={f.options!.length <= 2} onClick={() => onChange({ ...f, options: f.options!.filter((_, j) => j !== i) })} aria-label={t('remove')} title={t('remove')}>
                 ✕
               </button>
             </div>
           ))}
-          <button type="button" className="fo-link" onClick={() => onChange({ ...f, options: [...f.options!, { id: newId('o'), label: { fr: '' } }] })}>
+          <button type="button" className="fo-link" onClick={() => onChange({ ...f, options: [...f.options!, { id: newId('o'), label: '' }] })}>
             + {t('add_option')}
           </button>
         </div>

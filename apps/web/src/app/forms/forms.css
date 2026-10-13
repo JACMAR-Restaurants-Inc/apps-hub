@@ -56,7 +56,7 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
   color:var(--text-dim); border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap; }
 .fo-tabs button.is-on { color:var(--text); border-bottom-color:var(--blue); }
 .fo-pair { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px 16px; }
-.fo-pair .fo-field label, .fo-form > .fo-field > label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
+.fo-pair .fo-field label, .fo-text > label, .fo-form > .fo-field > label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
 .fo-card { border:1px solid var(--border); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px;
   background:var(--card-bg-light); }
 .fo-card.has-error { border-color:var(--red); }

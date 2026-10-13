@@ -10,27 +10,25 @@
  * The field types are a fixed set (owner, 2026-10-09: a list of fields, not a
  * drag-and-drop builder). Not yet: a field shown only when another answer says so, and
  * file uploads.
+ *
+ * HR writes forms in French only (owner, 2026-10-12: "we are a French company"). The
+ * language toggle changes the page around the form, never what HR wrote. Text used to be
+ * { fr, en? }; a definition stored that way is still read, keeping its French.
  */
 
 export const FIELD_TYPES = ['heading', 'text', 'textarea', 'number', 'date', 'phone', 'email', 'choice', 'choices', 'agree'] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
-/** French is required (the forms are French first); English falls back to it. */
-export interface Text {
-  fr: string;
-  en?: string;
-}
-
 export interface Option {
   id: string;
-  label: Text;
+  label: string;
 }
 
 export interface Field {
   id: string;
   type: FieldType;
-  label: Text;
-  help?: Text;
+  label: string;
+  help?: string;
   required: boolean;
   /** Cleared after the form closes (Law 25): phones, emergency contacts. */
   sensitive: boolean;
@@ -42,8 +40,8 @@ export interface Field {
 }
 
 export interface FormDefinition {
-  title: Text;
-  intro?: Text;
+  title: string;
+  intro?: string;
   fields: Field[];
   /** Ends with "I agree" and the person's typed name (owner, 2026-10-09: no drawing). */
   signature: boolean;
@@ -54,14 +52,14 @@ export const LIMITS = { fields: 100, options: 50, label: 300, help: 1000, intro:
 const ID = /^[a-z0-9][a-z0-9_-]{0,31}$/;
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-function cleanText(v: unknown, max: number, required: boolean): Text | null | undefined {
+/** A text, trimmed: null if invalid, undefined if absent and allowed to be. An old { fr, en } keeps its French. */
+function cleanText(v: unknown, max: number, required: boolean): string | null | undefined {
+  if (isObj(v)) v = v.fr;
   if (v == null) return required ? null : undefined;
-  if (!isObj(v)) return null;
-  const fr = typeof v.fr === 'string' ? v.fr.trim() : '';
-  const en = typeof v.en === 'string' ? v.en.trim() : '';
-  if (!fr) return required ? null : en ? null : undefined;
-  if (fr.length > max || en.length > max) return null;
-  return en ? { fr, en } : { fr };
+  if (typeof v !== 'string') return null;
+  const text = v.trim();
+  if (!text) return required ? null : undefined;
+  return text.length > max ? null : text;
 }
 
 export type DefinitionResult = { ok: true; definition: FormDefinition } | { ok: false; errors: string[] };
@@ -98,7 +96,7 @@ export function parseDefinition(raw: unknown): DefinitionResult {
     if (!label) errors.push(`${at}.label`);
     const help = cleanText(f.help, LIMITS.help, false);
     if (help === null) errors.push(`${at}.help`);
-    const field: Field = { id, type, label: label ?? { fr: '' }, required: type !== 'heading' && f.required === true, sensitive: type !== 'heading' && f.sensitive === true };
+    const field: Field = { id, type, label: label ?? '', required: type !== 'heading' && f.required === true, sensitive: type !== 'heading' && f.sensitive === true };
     if (help) field.help = help;
 
     if (type === 'choice' || type === 'choices') {
@@ -137,7 +135,7 @@ export function parseDefinition(raw: unknown): DefinitionResult {
 
 /** Nothing asked yet: the draft a new form starts from. */
 export function emptyDefinition(title: string): FormDefinition {
-  return { title: { fr: title }, fields: [], signature: true };
+  return { title, fields: [], signature: true };
 }
 
 export type Value = string | number | boolean | string[];
@@ -231,5 +229,3 @@ export function checkAnswers(def: FormDefinition, raw: unknown, signedName: unkn
 
 /** The fields whose answers are cleared after the form closes. */
 export const sensitiveIds = (def: FormDefinition) => def.fields.filter((f) => f.sensitive).map((f) => f.id);
-
-export const say = (text: Text | undefined, lang: 'fr' | 'en') => (text ? (lang === 'en' && text.en ? text.en : text.fr) : '');

@@ -309,7 +309,11 @@ and a submission sent against an older version is refused as `changed`, never fi
 questions it was not written for. Answers are rebuilt on the server from the version
 (`checkAnswers`): unknown keys dropped, values normalised. Name, employee number and
 email come from the directory, never typed (so nobody files under another's number);
-the signature is a typed name plus "I agree" (owner: no drawing). Retention (Law 25):
+the signature is a typed name plus "I agree" (owner: no drawing). HR writes forms in
+FRENCH ONLY (owner, 2026-10-12: "we are a French company"): the language toggle changes
+the page around a form, never what HR wrote. Texts are plain strings; they used to be
+`{ fr, en? }` with an English box beside each French one, and a definition stored that
+way is still read, keeping its French. Retention (Law 25):
 fields marked sensitive are to be cleared `sensitiveDays` after closing (default 30),
 the whole submission `keepDays` after (default 365). The settings are stored; the job
 that clears them is NOT built yet (phase 5). Sharing an open form, or opening a
