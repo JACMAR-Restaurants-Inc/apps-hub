@@ -22,23 +22,30 @@ export type FieldType = (typeof FIELD_TYPES)[number];
 
 /**
  * Header colours a section or the form's title may take (owner, 2026-10-13: "choose a
- * color from a grid"). Stored by name; each is dark enough for white text at 4.5:1 or
- * better (checked: 5.0 to 11.5), and the band carries its own background, so it reads
- * the same in light and dark mode. Anything else is dropped on read.
+ * color from a grid", then light grey and McDonald's gold and red). Stored by name. Each
+ * has its text colour, checked at 4.5:1 or better: white on the dark ones (5.0 to 11.5),
+ * dark on light grey (11.9) and gold (8.7). McDonald's gold and red are the Arches' own
+ * (components/arches.tsx). The band carries its own background, so it reads the same in
+ * light and dark mode. Anything else is dropped on read.
  */
+const WHITE = '#FFFFFF';
+const DARK = '#1F2937';
 export const HEADER_COLORS = {
-  bleu: '#1D4ED8',
-  marine: '#1E3A5F',
-  sarcelle: '#0F766E',
-  vert: '#15803D',
-  olive: '#4D7C0F',
-  brun: '#78350F',
-  rouge: '#B91C1C',
-  bordeaux: '#881337',
-  rose: '#BE185D',
-  violet: '#6D28D9',
-  orange: '#C2410C',
-  gris: '#374151',
+  mcd_rouge: { bg: '#DB0007', text: WHITE },
+  mcd_or: { bg: '#FFBC0D', text: DARK },
+  rouge: { bg: '#B91C1C', text: WHITE },
+  bordeaux: { bg: '#881337', text: WHITE },
+  rose: { bg: '#BE185D', text: WHITE },
+  orange: { bg: '#C2410C', text: WHITE },
+  brun: { bg: '#78350F', text: WHITE },
+  olive: { bg: '#4D7C0F', text: WHITE },
+  vert: { bg: '#15803D', text: WHITE },
+  sarcelle: { bg: '#0F766E', text: WHITE },
+  bleu: { bg: '#1D4ED8', text: WHITE },
+  marine: { bg: '#1E3A5F', text: WHITE },
+  violet: { bg: '#6D28D9', text: WHITE },
+  gris: { bg: '#374151', text: WHITE },
+  gris_pale: { bg: '#E5E7EB', text: DARK },
 } as const;
 export type HeaderColor = keyof typeof HEADER_COLORS;
 const headerColor = (v: unknown): HeaderColor | undefined => (typeof v === 'string' && Object.hasOwn(HEADER_COLORS, v) ? (v as HeaderColor) : undefined);

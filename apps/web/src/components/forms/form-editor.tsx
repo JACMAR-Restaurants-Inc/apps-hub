@@ -7,7 +7,7 @@ import type { Audience } from '@/lib/forms/rules';
 import type { Settings } from '@/lib/forms/store';
 import type { Lang } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { FillForm } from './fill-form';
 
 export interface EditorForm {
@@ -617,26 +617,73 @@ function DeleteForm({ lang, id, title, shownAt, pending, onDone }: { lang: Lang;
   );
 }
 
-/** The header colour, from a grid of swatches (owner, 2026-10-13); "Aucune" first. Radio buttons, so keyboards and screen readers work. */
+/**
+ * The header colour: a button showing the current one, which opens a small window with
+ * the grid (owner, 2026-10-13: not the swatches lying open). Choosing closes it; so do
+ * Escape and a click outside. Each swatch is a button named for screen readers.
+ */
 function ColorPicker({ lang, name, value, onChange }: { lang: Lang; name: string; value: HeaderColor | undefined; onChange: (c: HeaderColor | undefined) => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const keys = Object.keys(HEADER_COLORS) as HeaderColor[];
+  const label = (k: HeaderColor | undefined) => ft(lang, k ? `color_${k}` : 'color_none');
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      button.current?.focus();
+    };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open]);
+
+  const choose = (k: HeaderColor | undefined) => {
+    onChange(k);
+    setOpen(false);
+    button.current?.focus();
+  };
+  const swatch = (k: HeaderColor | undefined) => (
+    <button
+      key={k ?? 'none'}
+      type="button"
+      className={`fo-swatch${k ? '' : ' is-none'}`}
+      style={k ? { background: HEADER_COLORS[k].bg } : undefined}
+      aria-label={label(k)}
+      aria-pressed={value === k}
+      title={label(k)}
+      autoFocus={value === k}
+      onClick={() => choose(k)}
+    />
+  );
+
   return (
-    <fieldset className="fo-field fo-colors">
-      <legend>{ft(lang, 'header_color')}</legend>
-      <div className="fo-swatches">
-        <label className="fo-swatch is-none" title={ft(lang, 'color_none')}>
-          <input type="radio" name={`fo-color-${name}`} checked={!value} onChange={() => onChange(undefined)} />
-          <span aria-hidden="true" />
-          <span className="fo-hide">{ft(lang, 'color_none')}</span>
-        </label>
-        {keys.map((k) => (
-          <label key={k} className="fo-swatch" title={ft(lang, `color_${k}`)}>
-            <input type="radio" name={`fo-color-${name}`} checked={value === k} onChange={() => onChange(k)} />
-            <span aria-hidden="true" style={{ background: HEADER_COLORS[k] }} />
-            <span className="fo-hide">{ft(lang, `color_${k}`)}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <div className="fo-field fo-colorpick" ref={box}>
+      <span className="fo-label" id={`fo-color-${name}`}>
+        {ft(lang, 'header_color')}
+      </span>
+      <button type="button" ref={button} className="fo-btn fo-colorbtn" aria-haspopup="dialog" aria-expanded={open} aria-describedby={`fo-color-${name}`} onClick={() => setOpen((o) => !o)}>
+        <span className={`fo-chip${value ? '' : ' is-none'}`} style={value ? { background: HEADER_COLORS[value].bg } : undefined} aria-hidden="true" />
+        {label(value)}
+        <span aria-hidden="true">▾</span>
+      </button>
+      {open && (
+        <div className="fo-pop" role="dialog" aria-label={ft(lang, 'header_color')}>
+          <div className="fo-swatches">
+            {swatch(undefined)}
+            {keys.map(swatch)}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
