@@ -110,7 +110,10 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-section-head.fo-band { margin:-16px -16px 0; padding:12px 16px; border-bottom:0; border-radius:11px 11px 0 0; }
 .fo-band h2, .fo-band p { color:inherit; }
 .fo-band p { opacity:.92; }
-.fo-masthead .fo-band { align-self:stretch; max-width:none; padding:14px 20px; border-radius:10px; }
+.fo-titleblock { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.fo-titleblock .fo-intro { max-width:70ch; }
+.fo-masthead .fo-band { align-self:stretch; padding:16px 20px; border-radius:10px; }
+.fo-band h1, .fo-band .fo-intro { color:inherit; }
 .fo-colorpick { position:relative; align-items:flex-start; }
 .fo-colorbtn { display:inline-flex; align-items:center; gap:8px; }
 .fo-chip { width:18px; height:18px; border-radius:5px; box-shadow:0 0 0 1px var(--border); }
