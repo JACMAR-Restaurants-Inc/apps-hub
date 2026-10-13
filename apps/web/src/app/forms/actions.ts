@@ -15,9 +15,9 @@ import { AccessDenied, authorize } from '@/lib/access';
 import { db } from '@/lib/db';
 import { formsDb } from '@/lib/forms/db';
 import { ALLOWED_TYPES, MAX_BYTES, MAX_STAGED_PER_DAY, abandonedFiles, fileById, setFilePath, stageFile, stagedCount, unstageFile } from '@/lib/forms/files';
-import { tellReached } from '@/lib/forms/notify';
+import { forgetForm, tellReached } from '@/lib/forms/notify';
 import { FORMS_APP, NOBODY, fillDecision, newlyReached, pickStore } from '@/lib/forms/rules';
-import { createForm, duplicateForm, getForm, publish, publishedVersion, saveDraft, setStatus, share, submit, updateSettings, type Outcome, type SubmitResult } from '@/lib/forms/store';
+import { createForm, deleteForm, duplicateForm, getForm, publish, publishedVersion, saveDraft, setStatus, share, submit, updateSettings, type Outcome, type SubmitResult } from '@/lib/forms/store';
 import { directoryPerson } from '@/lib/people';
 import { allow, journalUnderLimit } from '@/lib/rate-limit';
 import { getRoster, getSignedInEmail } from '@/lib/viewer';
@@ -155,7 +155,7 @@ async function sweepAbandonedFiles() {
 }
 
 export type EditResult = {
-  outcome: Outcome | Refusal;
+  outcome: Outcome | Refusal | 'answered';
   id?: number;
   version?: number;
   errors?: string[];
@@ -229,4 +229,21 @@ export async function updateSettingsAction(id: unknown, shown: unknown, next: un
   return asHr('settings', id, async (actor) => ({
     outcome: await updateSettings(formsDb(), actor, id, shown, next),
   }));
+}
+
+/** Deletes a form nobody has answered (lib/forms/store.ts deleteForm); then its unsent files' bytes and its notifications. */
+export async function deleteFormAction(id: unknown, shownAt: unknown): Promise<EditResult> {
+  try {
+    await authorize(FORMS_APP, 'form', 'edit');
+    const out = await deleteForm(formsDb(), id, shownAt);
+    if (out.outcome !== 'done') return { outcome: out.outcome };
+    for (const ref of out.refs ?? []) await supabaseBucket('forms').remove(ref).catch((e) => console.error('forms delete: file left behind', e));
+    await forgetForm(id as number);
+    revalidatePath('/forms', 'layout');
+    return { outcome: 'done' };
+  } catch (e) {
+    if (e instanceof AccessDenied) return { outcome: e.reason === 'not_signed_in' ? 'expired' : 'denied' };
+    console.error('forms delete failed', e);
+    return { outcome: 'error' };
+  }
 }

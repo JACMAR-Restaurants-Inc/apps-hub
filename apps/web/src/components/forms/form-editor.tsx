@@ -1,6 +1,6 @@
 'use client';
 
-import { duplicateFormAction, publishAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
+import { deleteFormAction, duplicateFormAction, publishAction, saveDraftAction, setStatusAction, shareAction, updateSettingsAction, type EditResult } from '@/app/forms/actions';
 import { FIELD_TYPES, HEADER_COLORS, moveSection, type HeaderColor, type Field, type FieldType, type FormDefinition } from '@/lib/forms/definition';
 import { ft, type FormsKey } from '@/lib/forms/i18n';
 import type { Audience } from '@/lib/forms/rules';
@@ -20,6 +20,8 @@ export interface EditorForm {
   settings: Settings;
   /** The draft is not what people fill now. */
   draftDiffers: boolean;
+  /** Someone has answered it: it can be closed, never deleted. */
+  answered: boolean;
 }
 
 interface Props {
@@ -236,6 +238,7 @@ export function FormEditor({ lang, form, restaurants, people, roles, me }: Props
           </button>
         )}
         <Duplicate lang={lang} id={form.id} title={def.title} pending={pending} onDone={(id) => router.push(`/forms/${id}/edit`)} />
+        {!form.answered && <DeleteForm lang={lang} id={form.id} title={def.title} shownAt={shownAt} pending={pending} onDone={() => router.push('/forms')} />}
       </div>
     </div>
   );
@@ -569,6 +572,48 @@ function Duplicate({ lang, id, title, pending, onDone }: { lang: Lang; id: numbe
         {ft(lang, 'cancel')}
       </button>
     </form>
+  );
+}
+
+/**
+ * Deletes a form nobody has answered, after a second click that names it (no browser
+ * dialog). The server checks again: a form answered meanwhile answers 'answered'.
+ */
+function DeleteForm({ lang, id, title, shownAt, pending, onDone }: { lang: Lang; id: number; title: string; shownAt: string; pending: boolean; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [problem, setProblem] = useState<FormsKey | null>(null);
+  const [busy, start] = useTransition();
+  if (!open)
+    return (
+      <button type="button" className="fo-btn fo-danger" disabled={pending} onClick={() => setOpen(true)}>
+        {ft(lang, 'delete_form')}
+      </button>
+    );
+  return (
+    <div className="fo-confirm" role="alertdialog" aria-labelledby={`fo-del-${id}`}>
+      <p id={`fo-del-${id}`}>{ft(lang, 'delete_confirm').replace('{title}', title)}</p>
+      <div className="fo-inline">
+        <button
+          type="button"
+          className="fo-btn fo-danger-solid"
+          disabled={busy}
+          onClick={() =>
+            start(async () => {
+              const r = await deleteFormAction(id, shownAt);
+              if (r.outcome === 'done') return onDone();
+              if (r.outcome === 'expired') return window.location.reload();
+              setProblem(r.outcome === 'answered' ? 'delete_answered' : (`out_${r.outcome}` as FormsKey));
+            })
+          }
+        >
+          {ft(lang, 'delete_yes')}
+        </button>
+        <button type="button" className="fo-btn" disabled={busy} onClick={() => (setOpen(false), setProblem(null))}>
+          {ft(lang, 'cancel')}
+        </button>
+      </div>
+      {problem && <p className="fo-err">{ft(lang, problem)}</p>}
+    </div>
   );
 }
 

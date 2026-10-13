@@ -14,7 +14,7 @@
  *   in from the caller, read through the roster's door.
  */
 
-import { formEvents, formVersions, forms, submissions, type Db } from '@hub/db';
+import { formEvents, formFiles, formVersions, forms, submissions, type Db } from '@hub/db';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { checkAnswers, emptyDefinition, fileAnswers, parseDefinition, type AnswerError, type Answers, type FormDefinition } from './definition';
 import { linkFiles, unlinkableFiles } from './files';
@@ -201,6 +201,34 @@ export async function setStatus(db: Conn, actor: string, id: unknown, status: un
       .where(eq(forms.id, id));
     await event(tx, id, actor, status === 'open' ? 'opened' : 'closed');
     return 'done';
+  });
+}
+
+/** Whether anyone has answered this form: such a form is closed, never deleted. */
+export async function isAnswered(db: Conn, formId: number): Promise<boolean> {
+  const [r] = await db.select({ id: submissions.id }).from(submissions).where(eq(submissions.formId, formId)).limit(1);
+  return !!r;
+}
+
+/**
+ * Deletes a form nobody has answered (owner, 2026-10-13: "like a draft that was saved"):
+ * the form, its versions, its history and any file someone picked but never sent, in one
+ * transaction under the form's lock. Once a submission exists the answer is 'answered':
+ * answers are HR's records, so such a form is closed, never deleted, and retention clears
+ * it. Returns the stored refs of those unsent files, for the caller to remove the bytes.
+ */
+export async function deleteForm(db: Conn, id: unknown, shownAt: unknown): Promise<{ outcome: Outcome | 'answered'; refs?: string[] }> {
+  if (!validId(id)) return { outcome: 'not_found' };
+  return db.transaction(async (tx) => {
+    const form = await locked(tx, id);
+    if (!form) return { outcome: 'not_found' };
+    if (form.updatedAt.toISOString() !== shownAt) return { outcome: 'changed' };
+    if (await isAnswered(tx, id)) return { outcome: 'answered' };
+    const files = await tx.delete(formFiles).where(eq(formFiles.formId, id)).returning({ ref: formFiles.storagePath });
+    await tx.delete(formEvents).where(eq(formEvents.formId, id));
+    await tx.delete(formVersions).where(eq(formVersions.formId, id));
+    await tx.delete(forms).where(eq(forms.id, id));
+    return { outcome: 'done', refs: files.flatMap((f) => (f.ref ? [f.ref] : [])) };
   });
 }
 

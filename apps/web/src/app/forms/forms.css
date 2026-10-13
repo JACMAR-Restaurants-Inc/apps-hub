@@ -119,3 +119,7 @@ fieldset.fo-field { border:0; margin:0; padding:0; min-width:0; }
 .fo-swatch.is-none > span[aria-hidden] { background:linear-gradient(135deg, transparent 46%, var(--red) 46%, var(--red) 54%, transparent 54%), var(--card-bg); }
 .fo-swatch input:checked + span { border-color:var(--card-bg); box-shadow:0 0 0 2px var(--text); }
 .fo-swatch input:focus-visible + span { outline:2px solid var(--blue); outline-offset:2px; }
+.fo-danger { color:var(--red); }
+.fo-danger-solid { background:var(--red); border-color:var(--red); color:#fff; }
+.fo-confirm { display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--red); border-radius:10px; max-width:520px; }
+.fo-confirm p { margin:0; }

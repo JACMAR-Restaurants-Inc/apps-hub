@@ -143,6 +143,13 @@ export const formsDict = {
   close_form: { fr: 'Fermer le formulaire', en: 'Close the form' },
   reopen_form: { fr: 'Rouvrir le formulaire', en: 'Reopen the form' },
   duplicate: { fr: 'Dupliquer', en: 'Duplicate' },
+  delete_form: { fr: 'Supprimer le formulaire', en: 'Delete the form' },
+  delete_confirm: {
+    fr: 'Supprimer «\u00a0{title}\u00a0» définitivement\u00a0? Ses questions et son historique seront effacés. Personne n’y a encore répondu.',
+    en: 'Delete “{title}” for good? Its questions and history will be erased. Nobody has answered it yet.',
+  },
+  delete_yes: { fr: 'Oui, supprimer', en: 'Yes, delete' },
+  delete_answered: { fr: 'Quelqu’un vient d’y répondre\u00a0: il ne peut plus être supprimé. Fermez-le plutôt.', en: 'Someone just answered it, so it can no longer be deleted. Close it instead.' },
   copy_title: { fr: 'Titre de la copie', en: 'Title of the copy' },
   preview_note: { fr: 'Aperçu du brouillon tel qu’il sera rempli. Rien n’est envoyé.', en: 'Preview of the draft as it will be filled. Nothing is sent.' },
   share_line: {

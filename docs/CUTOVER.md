@@ -46,7 +46,8 @@ carried over: it is full of rehearsal counts and test accounts.
         secret key, server only), and a PRIVATE Storage bucket `cash` created in it
         (50 MB per file, images and PDFs only: see how staging's was made).
       - `CRON_SECRET`: a new long random value. The sweep that retries reports runs
-        every 5 minutes, which needs Vercel Pro (Hobby allows one run a day).
+        every 5 minutes, which needs Vercel Pro (Hobby allows one run a day): on Pro,
+        set `apps/web/vercel.json` back to `*/5 * * * *` (once a day since 2026-10-13).
       - `ACCOUNTANT_EMAIL` (above) and no `REPORT_EMAIL_OVERRIDE`.
       - Files: `CASH_FILE_STORE` unset keeps them in Supabase. For Drive instead
         (`drive`, not built yet), the Workspace admin must add the Drive scope to the
